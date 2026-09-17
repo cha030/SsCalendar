@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Xcode user-specific files
+xcuserdata/
+*.xcuserstate
+
+# Xcode build files
+DerivedData/
+build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
