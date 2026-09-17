@@ -6,10 +6,12 @@ struct CalendarView: View {
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
     @State private var schedulePath: [Date] = []
+    @State private var holidaysByDate: [Date: [Holiday]] = [:]
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "ko_KR")
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
         calendar.firstWeekday = 1
         return calendar
     }
@@ -74,6 +76,7 @@ struct CalendarView: View {
                         CalendarWeekRow(
                             week: week,
                             occurrences: occurrences,
+                            holidaysByDate: holidaysByDate,
                             currentDate: currentDate,
                             selectedDate: selectedDate,
                             calendar: calendar
@@ -91,6 +94,9 @@ struct CalendarView: View {
             }
             .navigationDestination(for: Date.self) { date in
                 DayScheduleView(date: date)
+            }
+            .task(id: visibleHolidayMonths) {
+                await loadHolidays(for: visibleHolidayMonths)
             }
         }
     }
@@ -113,6 +119,41 @@ struct CalendarView: View {
             intersecting: DateInterval(start: firstDate, end: rangeEnd),
             calendar: calendar
         )
+    }
+
+    private var visibleHolidayMonths: [HolidayMonth] {
+        let months = visibleDates.compactMap { date -> HolidayMonth? in
+            let components = calendar.dateComponents([.year, .month], from: date)
+            guard let year = components.year, let month = components.month else {
+                return nil
+            }
+            return HolidayMonth(year: year, month: month)
+        }
+
+        return Array(Set(months)).sorted()
+    }
+
+    @MainActor
+    private func loadHolidays(for months: [HolidayMonth]) async {
+        var loadedByDate: [Date: [Holiday]] = [:]
+
+        for month in months {
+            guard !Task.isCancelled else { return }
+
+            do {
+                let holidays = try await HolidayService.shared.holidays(for: month)
+                for holiday in holidays where holiday.isHoliday {
+                    let day = calendar.startOfDay(for: holiday.date)
+                    loadedByDate[day, default: []].append(holiday)
+                }
+            } catch {
+                // Holiday data is optional. Calendar and event features stay available.
+                continue
+            }
+        }
+
+        guard !Task.isCancelled, months == visibleHolidayMonths else { return }
+        holidaysByDate = loadedByDate
     }
 
     private func openSchedule(for date: Date) {
@@ -215,23 +256,27 @@ private struct CalendarWeek: Identifiable {
 private struct CalendarWeekRow: View {
     let week: CalendarWeek
     let occurrences: [EventOccurrence]
+    let holidaysByDate: [Date: [Holiday]]
     let currentDate: Date
     let selectedDate: Date
     let calendar: Calendar
     let onSelectDate: (Date) -> Void
 
-    private let rowHeight: CGFloat = 100
-    private let barHeight: CGFloat = 15
-    private let barSpacing: CGFloat = 2
-    private let barTopPadding: CGFloat = 42
-    private let maximumVisibleSlots = 3
+    private let rowHeight = CalendarDayContentLayout.cellHeight
+    private let eventHeight: CGFloat = 13
+    private let eventSpacing: CGFloat = 1
+    private let maximumVisibleEventsPerDay = 3
 
     private var layout: WeekEventLayout {
         WeekEventLayout(
             week: week,
             occurrences: occurrences,
+            holidaysByDate: holidaysByDate,
             calendar: calendar,
-            maximumVisibleSlots: maximumVisibleSlots
+            rowHeight: rowHeight,
+            eventHeight: eventHeight,
+            eventSpacing: eventSpacing,
+            maximumVisibleEventsPerDay: maximumVisibleEventsPerDay
         )
     }
 
@@ -240,7 +285,10 @@ private struct CalendarWeekRow: View {
 
         ZStack(alignment: .topLeading) {
             HStack(spacing: 0) {
-                ForEach(week.dates, id: \.self) { date in
+                ForEach(
+                    Array(week.dates.enumerated()),
+                    id: \.element
+                ) { column, date in
                     CalendarDayCell(
                         date: date,
                         isCurrentMonth: calendar.isDate(
@@ -253,6 +301,10 @@ private struct CalendarWeekRow: View {
                             date,
                             inSameDayAs: selectedDate
                         ),
+                        holidays: holidaysByDate[
+                            calendar.startOfDay(for: date)
+                        ] ?? [],
+                        holidayTopOffset: eventLayout.holidayYOffsets[column],
                         calendar: calendar
                     )
                     .contentShape(Rectangle())
@@ -268,19 +320,18 @@ private struct CalendarWeekRow: View {
                 ForEach(eventLayout.visibleSegments) { segment in
                     CalendarEventBar(
                         occurrence: segment.occurrence,
-                        showsTitle: segment.showsTitle
+                        showsTitle: segment.showsTitle,
+                        isSingleDay: segment.isSingleDay
                     )
                     .frame(
                         width: cellWidth * CGFloat(
                             segment.endColumn - segment.startColumn + 1
                         ) - 4,
-                        height: barHeight
+                        height: eventHeight
                     )
                     .offset(
                         x: cellWidth * CGFloat(segment.startColumn) + 2,
-                        y: barTopPadding + CGFloat(segment.slot) * (
-                            barHeight + barSpacing
-                        )
+                        y: segment.yOffset
                     )
                 }
 
@@ -295,9 +346,8 @@ private struct CalendarWeekRow: View {
                             )
                             .offset(
                                 x: cellWidth * CGFloat(column) + 4,
-                                y: barTopPadding + CGFloat(maximumVisibleSlots) * (
-                                    barHeight + barSpacing
-                                )
+                                y: eventLayout.overflowYOffsets[column]
+                                    ?? rowHeight - eventHeight
                             )
                     }
                 }
@@ -311,23 +361,41 @@ private struct CalendarWeekRow: View {
 private struct CalendarEventBar: View {
     let occurrence: EventOccurrence
     let showsTitle: Bool
+    let isSingleDay: Bool
 
     private var eventColor: Color {
         EventColor(rawValue: occurrence.event.color)?.color ?? .gray
     }
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 3)
-                .fill(eventColor)
+        if isSingleDay {
+            HStack(spacing: 3) {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(eventColor)
+                    .frame(width: 3)
 
-            if showsTitle {
                 Text(occurrence.event.title)
-                    .font(.caption2)
-                    .foregroundStyle(.white)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .padding(.horizontal, 4)
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(eventColor)
+
+                if showsTitle {
+                    Text(occurrence.event.title)
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .padding(.horizontal, 4)
+                }
             }
         }
     }
@@ -335,22 +403,61 @@ private struct CalendarEventBar: View {
 
 private struct WeekEventLayout {
     let visibleSegments: [WeekEventSegment]
+    let holidayYOffsets: [Int: CGFloat]
     let overflowCounts: [Int: Int]
+    let overflowYOffsets: [Int: CGFloat]
 
     init(
         week: CalendarWeek,
         occurrences: [EventOccurrence],
+        holidaysByDate: [Date: [Holiday]],
         calendar: Calendar,
-        maximumVisibleSlots: Int
+        rowHeight: CGFloat,
+        eventHeight: CGFloat,
+        eventSpacing: CGFloat,
+        maximumVisibleEventsPerDay: Int
     ) {
         guard
             let weekStart = week.dates.first,
             let weekEnd = week.dates.last
         else {
             visibleSegments = []
+            holidayYOffsets = [:]
             overflowCounts = [:]
+            overflowYOffsets = [:]
             return
         }
+
+        let holidaysByColumn = Dictionary(
+            uniqueKeysWithValues: week.dates.enumerated().map { column, date in
+                (
+                    column,
+                    holidaysByDate[calendar.startOfDay(for: date)] ?? []
+                )
+            }
+        )
+        let headerEndYByColumn = Dictionary(
+            uniqueKeysWithValues: week.dates.enumerated().map { column, date in
+                (
+                    column,
+                    CalendarDayContentLayout.headerEndY(
+                        for: date,
+                        calendar: calendar
+                    )
+                )
+            }
+        )
+        let holidayHeightByColumn = Dictionary(
+            uniqueKeysWithValues: week.dates.enumerated().map { column, date in
+                (
+                    column,
+                    CalendarDayContentLayout.holidayHeight(
+                        for: date,
+                        holidays: holidaysByColumn[column] ?? []
+                    )
+                )
+            }
+        )
 
         let candidates = occurrences.compactMap { occurrence -> WeekEventCandidate? in
             let eventRange = occurrence.occupiedDayRange(calendar: calendar)
@@ -379,7 +486,11 @@ private struct WeekEventLayout {
                 occurrence: occurrence,
                 startColumn: startColumn,
                 endColumn: endColumn,
-                showsTitle: eventRange.lowerBound >= weekStart
+                showsTitle: eventRange.lowerBound >= weekStart,
+                isSingleDay: calendar.isDate(
+                    eventRange.lowerBound,
+                    inSameDayAs: eventRange.upperBound
+                )
             )
         }
         .sorted { first, second in
@@ -398,43 +509,182 @@ private struct WeekEventLayout {
             return first.occurrence.startDate < second.occurrence.startDate
         }
 
-        var slotEndColumns: [Int] = []
         var segments: [WeekEventSegment] = []
+        var visibleCounts: [Int: Int] = [:]
         var hiddenCounts: [Int: Int] = [:]
 
-        for candidate in candidates {
-            let availableSlot = slotEndColumns.firstIndex {
-                candidate.startColumn > $0
+        for candidate in candidates where !candidate.isSingleDay {
+            let columns = candidate.startColumn...candidate.endColumn
+            let hasReachedLimit = columns.contains {
+                visibleCounts[$0, default: 0] >= maximumVisibleEventsPerDay
             }
-            let slot: Int
-
-            if let availableSlot {
-                slot = availableSlot
-                slotEndColumns[availableSlot] = candidate.endColumn
-            } else {
-                slot = slotEndColumns.count
-                slotEndColumns.append(candidate.endColumn)
-            }
-
-            let segment = WeekEventSegment(
-                occurrence: candidate.occurrence,
-                startColumn: candidate.startColumn,
-                endColumn: candidate.endColumn,
-                slot: slot,
-                showsTitle: candidate.showsTitle
+            var yOffset = columns.compactMap {
+                headerEndYByColumn[$0]
+            }.max() ?? CalendarDayContentLayout.dateHeaderHeight
+            yOffset += CalendarDayContentLayout.contentSpacing
+            yOffset = Self.availableY(
+                startingAt: yOffset,
+                for: candidate,
+                among: segments,
+                eventHeight: eventHeight,
+                eventSpacing: eventSpacing
             )
 
-            if slot < maximumVisibleSlots {
-                segments.append(segment)
-            } else {
-                for column in candidate.startColumn...candidate.endColumn {
+            guard
+                !hasReachedLimit,
+                yOffset + eventHeight <= rowHeight
+            else {
+                for column in columns {
                     hiddenCounts[column, default: 0] += 1
+                }
+                continue
+            }
+
+            segments.append(
+                WeekEventSegment(
+                    occurrence: candidate.occurrence,
+                    startColumn: candidate.startColumn,
+                    endColumn: candidate.endColumn,
+                    yOffset: yOffset,
+                    showsTitle: candidate.showsTitle,
+                    isSingleDay: false
+                )
+            )
+            for column in columns {
+                visibleCounts[column, default: 0] += 1
+            }
+        }
+
+        var holidayOffsets: [Int: CGFloat] = [:]
+        for column in week.dates.indices {
+            guard (holidayHeightByColumn[column] ?? 0) > 0 else {
+                continue
+            }
+
+            let multiDayBottom = segments
+                .filter {
+                    !$0.isSingleDay &&
+                    $0.startColumn <= column &&
+                    $0.endColumn >= column
+                }
+                .map { $0.yOffset + eventHeight }
+                .max()
+
+            if let multiDayBottom {
+                holidayOffsets[column] = multiDayBottom + eventSpacing
+            }
+        }
+
+        for candidate in candidates where candidate.isSingleDay {
+            let column = candidate.startColumn
+            let hasReachedLimit =
+                visibleCounts[column, default: 0]
+                >= maximumVisibleEventsPerDay
+            let headerEnd =
+                headerEndYByColumn[column]
+                ?? CalendarDayContentLayout.dateHeaderHeight
+            let holidayHeight = holidayHeightByColumn[column] ?? 0
+            let multiDayBottom = segments
+                .filter {
+                    !$0.isSingleDay &&
+                    $0.startColumn <= column &&
+                    $0.endColumn >= column
+                }
+                .map { $0.yOffset + eventHeight }
+                .max()
+
+            var yOffset: CGFloat
+            if let holidayOffset = holidayOffsets[column] {
+                yOffset = holidayOffset + holidayHeight + eventSpacing
+            } else if holidayHeight > 0 {
+                yOffset = headerEnd + holidayHeight + eventSpacing
+            } else if let multiDayBottom {
+                yOffset = multiDayBottom + eventSpacing
+            } else {
+                yOffset = headerEnd + CalendarDayContentLayout.contentSpacing
+            }
+
+            yOffset = Self.availableY(
+                startingAt: yOffset,
+                for: candidate,
+                among: segments,
+                eventHeight: eventHeight,
+                eventSpacing: eventSpacing
+            )
+
+            guard
+                !hasReachedLimit,
+                yOffset + eventHeight <= rowHeight
+            else {
+                hiddenCounts[column, default: 0] += 1
+                continue
+            }
+
+            segments.append(
+                WeekEventSegment(
+                    occurrence: candidate.occurrence,
+                    startColumn: column,
+                    endColumn: column,
+                    yOffset: yOffset,
+                    showsTitle: candidate.showsTitle,
+                    isSingleDay: true
+                )
+            )
+            visibleCounts[column, default: 0] += 1
+        }
+
+        var overflowOffsets: [Int: CGFloat] = [:]
+        for column in hiddenCounts.keys {
+            let headerEnd =
+                headerEndYByColumn[column]
+                ?? CalendarDayContentLayout.dateHeaderHeight
+            let visibleBottom = segments
+                .filter { $0.startColumn <= column && $0.endColumn >= column }
+                .map { $0.yOffset + eventHeight + eventSpacing }
+                .max() ?? headerEnd
+            let holidayBottom = holidayOffsets[column].map {
+                $0 + (holidayHeightByColumn[column] ?? 0) + eventSpacing
+            } ?? headerEnd
+            overflowOffsets[column] = min(
+                max(visibleBottom, holidayBottom),
+                rowHeight - eventHeight
+            )
+        }
+
+        visibleSegments = segments
+        holidayYOffsets = holidayOffsets
+        overflowCounts = hiddenCounts
+        overflowYOffsets = overflowOffsets
+    }
+
+    private static func availableY(
+        startingAt initialY: CGFloat,
+        for candidate: WeekEventCandidate,
+        among segments: [WeekEventSegment],
+        eventHeight: CGFloat,
+        eventSpacing: CGFloat
+    ) -> CGFloat {
+        var yOffset = initialY
+        var foundCollision = true
+
+        while foundCollision {
+            foundCollision = false
+
+            for segment in segments where
+                candidate.startColumn <= segment.endColumn &&
+                candidate.endColumn >= segment.startColumn {
+                let segmentBottom = segment.yOffset + eventHeight
+                let candidateBottom = yOffset + eventHeight
+
+                if yOffset < segmentBottom + eventSpacing &&
+                    candidateBottom + eventSpacing > segment.yOffset {
+                    yOffset = segmentBottom + eventSpacing
+                    foundCollision = true
                 }
             }
         }
 
-        visibleSegments = segments
-        overflowCounts = hiddenCounts
+        return yOffset
     }
 }
 
@@ -443,14 +693,16 @@ private struct WeekEventCandidate {
     let startColumn: Int
     let endColumn: Int
     let showsTitle: Bool
+    let isSingleDay: Bool
 }
 
 private struct WeekEventSegment: Identifiable {
     let occurrence: EventOccurrence
     let startColumn: Int
     let endColumn: Int
-    let slot: Int
+    let yOffset: CGFloat
     let showsTitle: Bool
+    let isSingleDay: Bool
 
     var id: EventOccurrence.ID {
         occurrence.id
