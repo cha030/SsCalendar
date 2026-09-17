@@ -9,7 +9,6 @@ struct CalendarDayCell: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-
             if isToday {
                 Circle()
                     .fill(Color.accentColor)

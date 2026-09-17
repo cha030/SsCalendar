@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 enum EventColor: String, CaseIterable, Identifiable, Codable {
@@ -104,6 +105,7 @@ private struct EventRepeatSetting {
 
 struct EventEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     @State private var title = ""
     @State private var isAllDay = false
@@ -113,16 +115,55 @@ struct EventEditorView: View {
     @State private var reminderSetting = EventReminderSetting()
     @State private var repeatSetting = EventRepeatSetting()
     @State private var notes = ""
+    @State private var saveErrorMessage: String?
+    @State private var isPresentingDeleteConfirmation = false
+    @State private var isSaving = false
 
-    init(date: Date) {
-        _startDate = State(initialValue: date)
-        _endDate = State(
-            initialValue: Calendar.current.date(
-                byAdding: .hour,
-                value: 1,
-                to: date
-            ) ?? date
+    private let event: Event?
+
+    init(date: Date, event: Event? = nil) {
+        self.event = event
+
+        let calendar = Calendar.current
+        let selectedDay = calendar.startOfDay(for: date)
+        let defaultStartDate = calendar.date(
+            byAdding: .hour,
+            value: 7,
+            to: selectedDay
+        ) ?? selectedDay
+        let defaultEndDate = calendar.date(
+            byAdding: .hour,
+            value: 8,
+            to: selectedDay
+        ) ?? defaultStartDate
+
+        _title = State(initialValue: event?.title ?? "")
+        _isAllDay = State(initialValue: event?.isAllDay ?? false)
+        _startDate = State(initialValue: event?.startDate ?? defaultStartDate)
+        _endDate = State(initialValue: event?.endDate ?? defaultEndDate)
+        _eventColor = State(
+            initialValue: event.flatMap { EventColor(rawValue: $0.color) } ?? .blue
         )
+        _reminderSetting = State(
+            initialValue: EventReminderSetting(
+                option: event.flatMap {
+                    EventReminderOption(rawValue: $0.alarmOption)
+                } ?? .atStart,
+                customValue: max(1, event?.alarmCustomValue ?? 30),
+                customUnit: event.flatMap {
+                    ReminderOffsetUnit(rawValue: $0.alarmCustomUnit)
+                } ?? .minute
+            )
+        )
+        _repeatSetting = State(
+            initialValue: EventRepeatSetting(
+                unit: event.flatMap {
+                    EventRepeatUnit(rawValue: $0.repeatUnit)
+                } ?? .none,
+                interval: max(1, event?.repeatInterval ?? 1)
+            )
+        )
+        _notes = State(initialValue: event?.memo ?? "")
     }
 
     var body: some View {
@@ -141,6 +182,10 @@ struct EventEditorView: View {
                         ? .date
                         : [.date, .hourAndMinute]
                 )
+                .environment(
+                    \.locale,
+                    Locale(identifier: "ko_KR")
+                )
 
                 DatePicker(
                     "종료",
@@ -149,46 +194,46 @@ struct EventEditorView: View {
                         ? .date
                         : [.date, .hourAndMinute]
                 )
+                .environment(
+                    \.locale,
+                    Locale(identifier: "ko_KR")
+                )
             }
 
             Section {
-                NavigationLink {
-                    List {
+                HStack {
+                    Text("색상")
+
+                    Spacer()
+
+                    HStack(spacing: 14) {
                         ForEach(EventColor.allCases) { colorOption in
                             Button {
                                 eventColor = colorOption
                             } label: {
-                                HStack {
+                                ZStack {
                                     Circle()
                                         .fill(colorOption.color)
-                                        .frame(width: 14, height: 14)
-
-                                    Text(colorOption.rawValue)
-                                        .foregroundStyle(.primary)
-
-                                    Spacer()
+                                        .frame(width: 24, height: 24)
 
                                     if eventColor == colorOption {
+                                        Circle()
+                                            .stroke(.primary, lineWidth: 2)
+                                            .frame(width: 30, height: 30)
+
                                         Image(systemName: "checkmark")
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(.white)
                                     }
                                 }
+                                .frame(width: 30, height: 30)
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(colorOption.rawValue)
+                            .accessibilityValue(
+                                eventColor == colorOption ? "선택됨" : "선택 안 됨"
+                            )
                         }
-                    }
-                    .navigationTitle("색상")
-                    .navigationBarTitleDisplayMode(.inline)
-                } label: {
-                    HStack {
-                        Text("색상")
-
-                        Spacer()
-
-                        Circle()
-                            .fill(eventColor.color)
-                            .frame(width: 14, height: 14)
-
-                        Text(eventColor.rawValue)
-                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -270,9 +315,18 @@ struct EventEditorView: View {
                 TextEditor(text: $notes)
                     .frame(minHeight: 120)
             }
+
+            if event != nil {
+                Section {
+                    Button("일정 삭제", role: .destructive) {
+                        isPresentingDeleteConfirmation = true
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
         }
         .scrollDismissesKeyboard(.interactively)
-        .navigationTitle("새 일정")
+        .navigationTitle(event == nil ? "새 일정" : "일정 편집")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -283,10 +337,53 @@ struct EventEditorView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button("저장") {
-                    // 일정 저장 기능은 추후 연결합니다.
+                    Task {
+                        await saveEvent()
+                    }
                 }
+                .disabled(isSaving)
             }
         }
+        .alert(
+            "일정을 저장할 수 없습니다",
+            isPresented: saveErrorIsPresented
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+        .confirmationDialog(
+            deleteConfirmationTitle,
+            isPresented: $isPresentingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("삭제", role: .destructive) {
+                Task {
+                    await deleteEvent()
+                }
+            }
+
+            Button("취소", role: .cancel) {}
+        }
+    }
+
+    private var deleteConfirmationTitle: String {
+        if let event, event.repeatUnit != EventRepeatUnit.none.rawValue {
+            return "반복되는 모든 일정을 삭제하시겠습니까?"
+        }
+
+        return "이 일정을 삭제하시겠습니까?"
+    }
+
+    private var saveErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { saveErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    saveErrorMessage = nil
+                }
+            }
+        )
     }
 
     private var customReminderValue: Binding<Int> {
@@ -302,10 +399,91 @@ struct EventEditorView: View {
             set: { repeatSetting.interval = max(1, $0) }
         )
     }
+
+    private func saveEvent() async {
+        guard endDate >= startDate else {
+            saveErrorMessage = "종료 시간은 시작 시간보다 빠를 수 없습니다."
+            return
+        }
+
+        isSaving = true
+        let savedEvent: Event
+
+        if let event {
+            update(event)
+            savedEvent = event
+        } else {
+            let newEvent = Event(
+                title: title,
+                isAllDay: isAllDay,
+                startDate: startDate,
+                endDate: endDate,
+                color: eventColor.rawValue,
+                alarmOption: reminderSetting.option.rawValue,
+                alarmTimeIntervalBeforeStart: reminderSetting.timeIntervalBeforeStart,
+                alarmCustomValue: reminderSetting.customValue,
+                alarmCustomUnit: reminderSetting.customUnit.rawValue,
+                repeatUnit: repeatSetting.unit.rawValue,
+                repeatInterval: repeatSetting.interval,
+                memo: notes
+            )
+            modelContext.insert(newEvent)
+            savedEvent = newEvent
+        }
+
+        do {
+            try modelContext.save()
+            await NotificationManager.shared.rescheduleNotifications(
+                for: savedEvent
+            )
+            isSaving = false
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            isSaving = false
+            saveErrorMessage = "저장 중 오류가 발생했습니다. 다시 시도해 주세요."
+        }
+    }
+
+    private func update(_ event: Event) {
+        event.title = title
+        event.isAllDay = isAllDay
+        event.startDate = startDate
+        event.endDate = endDate
+        event.color = eventColor.rawValue
+        event.alarmOption = reminderSetting.option.rawValue
+        event.alarmTimeIntervalBeforeStart = reminderSetting.timeIntervalBeforeStart
+        event.alarmCustomValue = reminderSetting.customValue
+        event.alarmCustomUnit = reminderSetting.customUnit.rawValue
+        event.repeatUnit = repeatSetting.unit.rawValue
+        event.repeatInterval = repeatSetting.interval
+        event.memo = notes
+    }
+
+    private func deleteEvent() async {
+        guard let event else {
+            return
+        }
+
+        let eventID = event.id
+        modelContext.delete(event)
+
+        do {
+            try modelContext.save()
+            await NotificationManager.shared.cancelNotifications(
+                for: eventID
+            )
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveErrorMessage = "삭제 중 오류가 발생했습니다. 다시 시도해 주세요."
+        }
+    }
 }
 
 #Preview {
     NavigationStack {
         EventEditorView(date: Date())
     }
+    .modelContainer(for: Event.self, inMemory: true)
 }
