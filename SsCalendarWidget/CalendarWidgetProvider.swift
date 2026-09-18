@@ -36,6 +36,10 @@ struct CalendarWidgetProvider: TimelineProvider {
         let displayedMonth = WidgetMonthState.displayedMonthStart(now: date)
         let grid = CalendarWidgetCalendar.monthGrid(containing: displayedMonth)
         let calendar = CalendarWidgetCalendar.korean
+        let selectedDate = WidgetMonthState.selectedDate()
+            ?? (calendar.isDate(displayedMonth, equalTo: date, toGranularity: .month)
+                ? calendar.startOfDay(for: date)
+                : nil)
 
         do {
             let container = try WidgetDataStore.makeModelContainer()
@@ -88,7 +92,7 @@ struct CalendarWidgetProvider: TimelineProvider {
             return CalendarWidgetEntry(
                 date: date,
                 monthStart: grid.monthStart,
-                selectedDate: WidgetMonthState.selectedDate(),
+                selectedDate: selectedDate,
                 days: days,
                 occurrences: widgetOccurrences
             )

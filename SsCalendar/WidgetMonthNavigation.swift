@@ -116,7 +116,10 @@ struct CurrentWidgetMonthIntent: AppIntent {
     static let supportedModes: IntentModes = .background
 
     func perform() async throws -> some IntentResult {
-        if await WidgetMonthState.returnToCurrentMonth() {
+        let now = Date()
+        let monthChanged = await WidgetMonthState.returnToCurrentMonth(now: now)
+        let selectionChanged = await WidgetMonthState.select(date: now)
+        if monthChanged || selectionChanged {
             await MainActor.run {
                 WidgetCenter.shared.reloadTimelines(ofKind: CalendarWidgetConstants.kind)
             }

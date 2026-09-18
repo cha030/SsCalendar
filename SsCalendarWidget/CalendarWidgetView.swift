@@ -394,6 +394,7 @@ private struct CalendarWidgetExpandedDayView: View {
                 RoundedRectangle(cornerRadius: 5)
                     .stroke(Color.accentColor.opacity(0.65), lineWidth: 1)
                     .padding(1)
+                    .transition(.identity)
             }
         }
     }
@@ -495,6 +496,7 @@ private struct CalendarWidgetMediumDayView: View {
                 RoundedRectangle(cornerRadius: 4)
                     .stroke(Color.accentColor.opacity(0.65), lineWidth: 1)
                     .padding(1)
+                    .transition(.identity)
             }
         }
     }
