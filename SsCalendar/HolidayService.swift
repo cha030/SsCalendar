@@ -75,7 +75,31 @@ final class HolidayService {
             makeHoliday(from: $0)
         }
         cache[month] = holidays
+        updateSharedCache(with: holidays, for: month)
         return holidays
+    }
+
+    private func updateSharedCache(
+        with holidays: [Holiday],
+        for month: HolidayMonth
+    ) {
+        let records = holidays.map {
+            SharedHolidayRecord(
+                date: $0.date,
+                name: $0.name,
+                isHoliday: $0.isHoliday
+            )
+        }
+
+        guard let changed = try? SharedHolidayCache.store(
+            records,
+            year: month.year,
+            month: month.month
+        ), changed else {
+            return
+        }
+
+        WidgetReloadManager.reloadCalendar()
     }
 
     private func makeHoliday(

@@ -433,6 +433,7 @@ struct EventEditorView: View {
 
         do {
             try modelContext.save()
+            WidgetReloadManager.reloadCalendar()
             await NotificationManager.shared.rescheduleNotifications(
                 for: savedEvent
             )
@@ -470,6 +471,7 @@ struct EventEditorView: View {
 
         do {
             try modelContext.save()
+            WidgetReloadManager.reloadCalendar()
             await NotificationManager.shared.cancelNotifications(
                 for: eventID
             )

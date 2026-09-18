@@ -7,6 +7,9 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @State private var schedulePath: [Date] = []
     @State private var holidaysByDate: [Date: [Holiday]] = [:]
+    @State private var isPresentingSettings = false
+    @State private var newEventDate: Date?
+    @AppStorage(AppTheme.storageKey) private var selectedThemeRawValue = AppTheme.system.rawValue
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -51,6 +54,14 @@ struct CalendarView: View {
                         selectedDate = today
                     }
                     .font(.body)
+
+                    Button {
+                        isPresentingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.body)
+                    }
+                    .accessibilityLabel("설정")
                 }
                 .padding(.horizontal)
                 .padding(.top)
@@ -98,6 +109,24 @@ struct CalendarView: View {
             .task(id: visibleHolidayMonths) {
                 await loadHolidays(for: visibleHolidayMonths)
             }
+            .sheet(isPresented: $isPresentingSettings) {
+                ThemeSettingsView(
+                    selectedThemeRawValue: $selectedThemeRawValue
+                )
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: { newEventDate != nil },
+                    set: { if !$0 { newEventDate = nil } }
+                )
+            ) {
+                if let newEventDate {
+                    NavigationStack {
+                        EventEditorView(date: newEventDate)
+                    }
+                }
+            }
+            .onOpenURL(perform: handleDeepLink)
         }
     }
 
@@ -159,6 +188,41 @@ struct CalendarView: View {
     private func openSchedule(for date: Date) {
         schedulePath.append(date)
     }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "sscalendar" else { return }
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        guard
+            let dateString = components?.queryItems?.first(where: { $0.name == "date" })?.value,
+            let date = Self.deepLinkDateFormatter.date(from: dateString)
+        else {
+            return
+        }
+
+        currentDate = date
+        selectedDate = date
+
+        switch url.host {
+        case "month":
+            schedulePath.removeAll()
+        case "day":
+            schedulePath = [date]
+        case "new-event":
+            schedulePath.removeAll()
+            newEventDate = date
+        default:
+            break
+        }
+    }
+
+    private static let deepLinkDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 
     private func changeMonth(by value: Int) {
         if let newDate = calendar.date(

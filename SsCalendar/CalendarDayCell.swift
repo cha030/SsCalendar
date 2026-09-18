@@ -19,26 +19,10 @@ enum CalendarDayContentLayout {
         for holidays: [Holiday],
         on date: Date
     ) -> String? {
-        var names: [String] = []
-        let lunarDate = LunarCalendarService.lunarDate(for: date)
-
-        for holiday in holidays where holiday.isHoliday {
-            guard shouldDisplayHolidayName(
-                holiday.name,
-                lunarDate: lunarDate
-            ) else {
-                continue
-            }
-
-            let displayName = displayHolidayName(for: holiday.name)
-            guard !displayName.isEmpty, !names.contains(displayName) else {
-                continue
-            }
-            names.append(displayName)
-        }
-
-        guard !names.isEmpty else { return nil }
-        return names.joined(separator: "\n")
+        HolidayDisplayFormatter.title(
+            for: holidays.filter(\.isHoliday).map(\.name),
+            on: date
+        )
     }
 
     static func holidayLineCount(for title: String?) -> Int {
@@ -77,46 +61,6 @@ enum CalendarDayContentLayout {
             + contentSpacing
     }
 
-    private static func shouldDisplayHolidayName(
-        _ name: String,
-        lunarDate: LunarDate?
-    ) -> Bool {
-        guard let lunarDate else { return true }
-
-        if name == "설날" {
-            return lunarDate.month == 1 && lunarDate.day == 1
-        }
-
-        if name == "추석" {
-            return lunarDate.month == 8 && lunarDate.day == 15
-        }
-
-        return true
-    }
-
-    private static func displayHolidayName(for name: String) -> String {
-        if name == "1월1일" {
-            return "신정"
-        }
-
-        if name == "기독탄신일" {
-            return "크리스마스"
-        }
-
-        if let openingParenthesis = name.firstIndex(of: "(") {
-            let prefix = name[..<openingParenthesis]
-            let suffix = name[openingParenthesis...]
-            return "\(prefix)\n\(suffix)"
-        }
-
-        guard name.count > 5 else {
-            return name
-        }
-
-        let middleOffset = Int(ceil(Double(name.count) / 2))
-        let middleIndex = name.index(name.startIndex, offsetBy: middleOffset)
-        return "\(name[..<middleIndex])\n\(name[middleIndex...])"
-    }
 }
 
 struct CalendarDayCell: View {
