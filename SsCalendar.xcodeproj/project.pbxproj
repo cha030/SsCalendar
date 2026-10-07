@@ -388,6 +388,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SsCalendar/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "S's calendaR";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iPhone 캘린더(iCloud, Google, Exchange 등)의 일정을 S's calendaR 달력에 함께 표시하기 위해 캘린더 접근 권한이 필요합니다.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -432,6 +433,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SsCalendar/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "S's calendaR";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "iPhone 캘린더(iCloud, Google, Exchange 등)의 일정을 S's calendaR 달력에 함께 표시하기 위해 캘린더 접근 권한이 필요합니다.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
