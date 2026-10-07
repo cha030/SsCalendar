@@ -36,6 +36,7 @@
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* SsCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SsCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		04A82B5030762D2900412C9D /* PRODUCT_PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRODUCT_PLAN.md; sourceTree = "<group>"; };
 		04E87BF0305C304900E4FA82 /* SsCalendarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SsCalendarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		04E87BF2305C304900E4FA82 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		04E87BF4305C304900E4FA82 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -101,6 +102,7 @@
 				000000000000000000000010 /* SsCalendar */,
 				04E87BF6305C304900E4FA82 /* SsCalendarWidget */,
 				04E87BF1305C304900E4FA82 /* Frameworks */,
+				04A82B5030762D2900412C9D /* PRODUCT_PLAN.md */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
