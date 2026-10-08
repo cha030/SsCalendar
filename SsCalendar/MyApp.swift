@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 struct MyApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @AppStorage(AppTheme.storageKey) private var selectedThemeRawValue = AppTheme.system.rawValue
+    @Environment(\.scenePhase) private var scenePhase
     private let modelContainer: ModelContainer
 
     init() {
@@ -34,6 +35,10 @@ struct MyApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(selectedTheme.preferredColorScheme)
+                .onChange(of: scenePhase) { _, newPhase in
+                    guard newPhase == .active else { return }
+                    SystemCalendarService.shared.handleAppDidBecomeActive()
+                }
         }
         .modelContainer(modelContainer)
     }

@@ -66,6 +66,7 @@ struct SystemCalendarSettingsSection: View {
                     Task { await enable() }
                 } else {
                     isEnabled = false
+                    WidgetReloadManager.requestCalendarReload()
                 }
             }
         )
@@ -95,6 +96,7 @@ struct SystemCalendarSettingsSection: View {
         isRequesting = true
         let granted = await service.requestFullAccess()
         isEnabled = granted
+        WidgetReloadManager.requestCalendarReload()
         isRequesting = false
 
         // 처음 연동을 켰을 때 한 번만 캘린더 선택 화면을 안내한다(공휴일 중복 해소 안내 포함).

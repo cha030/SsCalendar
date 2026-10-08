@@ -1,10 +1,54 @@
+import CoreGraphics
 import Foundation
 import WidgetKit
+
+/// 시스템 캘린더 색상(sRGB, 0...1). 로컬 일정은 사용하지 않고 기존 colorName을 쓴다.
+/// 생성 시 값을 검증하므로, 잘못된 색상은 nil이 되어 colorName 기반 기본 색으로 표시된다.
+struct CalendarWidgetSystemColor: Hashable, Sendable {
+    let red: Double
+    let green: Double
+    let blue: Double
+    let opacity: Double
+
+    init?(red: Double, green: Double, blue: Double, opacity: Double = 1) {
+        let components = [red, green, blue, opacity]
+        guard components.allSatisfy({ $0.isFinite && (0...1).contains($0) }) else {
+            return nil
+        }
+
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.opacity = opacity
+    }
+
+    /// EKCalendar.cgColor 등 임의 색 공간의 CGColor를 sRGB로 변환한다. 변환할 수 없으면 nil.
+    init?(cgColor: CGColor?) {
+        guard
+            let cgColor,
+            let sRGB = CGColorSpace(name: CGColorSpace.sRGB),
+            let converted = cgColor.converted(to: sRGB, intent: .defaultIntent, options: nil),
+            let components = converted.components,
+            components.count >= 4
+        else {
+            return nil
+        }
+
+        self.init(
+            red: Double(components[0]),
+            green: Double(components[1]),
+            blue: Double(components[2]),
+            opacity: Double(components[3])
+        )
+    }
+}
 
 struct CalendarWidgetEvent: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let colorName: String
+    /// 시스템 캘린더 일정일 때만 설정한다. nil이면 colorName으로 색을 정한다.
+    var systemColor: CalendarWidgetSystemColor? = nil
 }
 
 struct CalendarWidgetOccurrence: Identifiable, Hashable, Sendable {
@@ -13,6 +57,8 @@ struct CalendarWidgetOccurrence: Identifiable, Hashable, Sendable {
     let colorName: String
     let firstDay: Date
     let lastDay: Date
+    /// 시스템 캘린더 일정일 때만 설정한다. nil이면 colorName으로 색을 정한다.
+    var systemColor: CalendarWidgetSystemColor? = nil
 
     var isMultiDay: Bool { firstDay != lastDay }
 }

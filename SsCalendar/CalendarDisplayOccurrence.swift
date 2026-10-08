@@ -72,20 +72,9 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
     }
 }
 
+// 앱/위젯 공유 파일(위젯 폴더에 심볼릭 링크). 앱 전용 타입(EventColor 등)에 의존하지 않는다.
+// 로컬 일정 변환 init(local:)은 앱 전용 CalendarDisplayOccurrence+Local.swift에 있다.
 extension CalendarDisplayOccurrence {
-    /// 기존 반복 엔진(EventOccurrenceService)이 만든 로컬 발생 일정을 표시 모델로 변환한다.
-    init(local occurrence: EventOccurrence) {
-        self.init(
-            id: "local:\(occurrence.event.id.uuidString):\(occurrence.startDate.timeIntervalSince1970)",
-            source: .local(eventID: occurrence.event.id),
-            title: occurrence.event.title,
-            isAllDay: occurrence.isAllDay,
-            startDate: occurrence.startDate,
-            endDate: occurrence.endDate,
-            color: EventColor(rawValue: occurrence.event.color)?.color ?? .gray
-        )
-    }
-
     /// 로컬/시스템 일정을 기존 EventOccurrenceService와 같은 기준(종일 우선, 시작 시각 순)으로 합친다.
     static func merged(
         local: [CalendarDisplayOccurrence],

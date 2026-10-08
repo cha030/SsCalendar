@@ -358,7 +358,7 @@ private struct CalendarWidgetExpandedDayView: View {
                     ForEach(Array(singleDayEvents.prefix(visibleEventCount))) { event in
                         HStack(spacing: 2) {
                             RoundedRectangle(cornerRadius: 1)
-                                .fill(CalendarWidgetColor.color(for: event.colorName))
+                                .fill(CalendarWidgetColor.color(for: event.colorName, systemColor: event.systemColor))
                                 .frame(width: 2, height: metrics.eventIndicatorHeight)
 
                             Text(event.title)
@@ -476,7 +476,7 @@ private struct CalendarWidgetMediumDayView: View {
             HStack(spacing: 2) {
                 ForEach(Array(day.events.prefix(3))) { event in
                     Circle()
-                        .fill(CalendarWidgetColor.color(for: event.colorName))
+                        .fill(CalendarWidgetColor.color(for: event.colorName, systemColor: event.systemColor))
                         .frame(width: 3.5, height: 3.5)
                 }
             }
@@ -519,7 +519,12 @@ private struct CalendarWidgetMultiDayBar: View {
     var body: some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 2)
-                .fill(CalendarWidgetColor.color(for: segment.occurrence.colorName))
+                .fill(
+                    CalendarWidgetColor.color(
+                        for: segment.occurrence.colorName,
+                        systemColor: segment.occurrence.systemColor
+                    )
+                )
 
             if segment.showsTitle {
                 Text(segment.occurrence.title)
@@ -787,6 +792,21 @@ private enum CalendarWidgetDeepLink {
 }
 
 private enum CalendarWidgetColor {
+    /// 시스템 캘린더 색이 있으면 그 색을, 없으면 기존 로컬 4색 규칙(colorName)을 사용한다.
+    static func color(for name: String, systemColor: CalendarWidgetSystemColor?) -> Color {
+        guard let systemColor else {
+            return color(for: name)
+        }
+
+        return Color(
+            .sRGB,
+            red: systemColor.red,
+            green: systemColor.green,
+            blue: systemColor.blue,
+            opacity: systemColor.opacity
+        )
+    }
+
     static func color(for name: String) -> Color {
         switch name {
         case "빨간색", "red": return .red
