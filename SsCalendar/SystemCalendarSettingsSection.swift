@@ -11,6 +11,7 @@ struct SystemCalendarSettingsSection: View {
     ) private var isEnabled = false
     @State private var isRequesting = false
     @State private var isPresentingSelectionIntro = false
+    @State private var defaultDestinationError: SystemCalendarAccessError?
 
     private let service = SystemCalendarService.shared
 
@@ -35,6 +36,8 @@ struct SystemCalendarSettingsSection: View {
                     LabeledContent("표시할 캘린더 선택", value: selectionSummary)
                 }
             }
+
+            defaultSaveDestinationSection
 
             if needsPermissionFromSettings {
                 Button("설정 앱에서 권한 허용하기") {
@@ -88,7 +91,76 @@ struct SystemCalendarSettingsSection: View {
         case .restricted:
             return "이 기기에서는 캘린더 접근이 제한되어 있습니다."
         default:
-            return "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 시스템 일정은 읽기 전용입니다."
+            return "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다."
+        }
+    }
+
+    @ViewBuilder
+    private var defaultSaveDestinationSection: some View {
+        let groups = service.writableCalendarGroups()
+
+        Picker("기본 저장 위치", selection: defaultSaveDestinationBinding) {
+            Label {
+                Text("SsCalendar")
+            } icon: {
+                Image(systemName: "iphone")
+                    .foregroundStyle(.secondary)
+            }
+            .tag(EventSaveDestination.local)
+
+            ForEach(groups) { group in
+                Section(group.title) {
+                    ForEach(group.calendars) { calendar in
+                        Label {
+                            Text(calendar.title)
+                        } icon: {
+                            Image(systemName: "circle.fill")
+                                .foregroundStyle(calendar.color)
+                        }
+                        .tag(
+                            EventSaveDestination.systemCalendar(
+                                calendarIdentifier: calendar.id
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        .pickerStyle(.navigationLink)
+
+        if let defaultDestinationIssue = service.defaultSaveDestinationIssue,
+           case .systemCalendar = service.storedDefaultSaveDestination {
+            Text(
+                "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 SsCalendar에 저장됩니다. \(defaultDestinationIssue.message)"
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
+
+        if let defaultDestinationError {
+            Text(defaultDestinationError.message)
+                .font(.footnote)
+                .foregroundStyle(.red)
+        }
+
+        Text("새 일정 작성 화면의 초기 저장 위치로 사용됩니다. 기존 일정의 저장 위치는 변경되지 않습니다.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+    }
+
+    private var defaultSaveDestinationBinding: Binding<EventSaveDestination> {
+        Binding(
+            get: { service.effectiveDefaultSaveDestination },
+            set: updateDefaultSaveDestination
+        )
+    }
+
+    private func updateDefaultSaveDestination(_ destination: EventSaveDestination) {
+        do {
+            try service.setDefaultSaveDestination(destination)
+            defaultDestinationError = nil
+        } catch {
+            defaultDestinationError = error
         }
     }
 

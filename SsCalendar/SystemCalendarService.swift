@@ -3,7 +3,7 @@ import Foundation
 import Observation
 import SwiftUI
 
-/// iOS 시스템 캘린더(EventKit) 읽기 전용 서비스.
+/// iOS 시스템 캘린더(EventKit) 서비스. 일정 수정·삭제는 Apple 일정 화면(EKEventViewController)이 수행한다.
 /// 일정은 복사·동기화하지 않고, 화면이 요청한 날짜 범위만 그때그때 조회해 표시 모델로 변환한다.
 @MainActor
 @Observable
@@ -44,24 +44,34 @@ final class SystemCalendarService {
     private static let hiddenCalendarIDsKey = SystemCalendarQuery.hiddenCalendarIDsKey
     /// 첫 연동 시 "표시할 캘린더 선택" 안내를 이미 보여줬는지 여부(App Group UserDefaults).
     private static let selectionIntroShownKey = SystemCalendarQuery.selectionIntroShownKey
+    /// 새 일정의 기본 저장 위치(App Group UserDefaults). 값이 없으면 SsCalendar 로컬이다.
+    private static let defaultSaveDestinationKey = "eventDefaultSaveDestination"
 
     /// 시스템 캘린더 데이터나 권한이 바뀔 때마다 증가한다. 화면은 이 값을 조회 트리거로 사용한다.
     private(set) var changeToken = 0
     private(set) var authorizationStatus: EKAuthorizationStatus
     private(set) var hiddenCalendarIDs: Set<String>
+    /// 사용자가 고른 기본 저장 위치(저장된 값 그대로). 실제로 쓸 수 있는지는 `effectiveDefaultSaveDestination`으로 판단한다.
+    private(set) var storedDefaultSaveDestination: EventSaveDestination
 
     @ObservationIgnored private let store = EKEventStore()
     @ObservationIgnored private let sharedDefaults = SystemCalendarService.settingsStore
     @ObservationIgnored private var changeObservation: Task<Void, Never>?
+    @ObservationIgnored private var activationRefreshTask: Task<Void, Never>?
 
     private init() {
         authorizationStatus = EKEventStore.authorizationStatus(for: .event)
         hiddenCalendarIDs = SystemCalendarQuery.hiddenCalendarIDs(in: sharedDefaults)
+        storedDefaultSaveDestination = sharedDefaults
+            .string(forKey: Self.defaultSaveDestinationKey)
+            .flatMap(EventSaveDestination.init(rawValue:)) ?? .local
         changeObservation = Task { [weak self] in
             let changes = NotificationCenter.default
                 .notifications(named: .EKEventStoreChanged)
                 .map { $0.name }
             for await _ in changes {
+                // 계정 제거·캘린더 삭제도 이 알림으로 전달된다. 권한 상태도 함께 다시 확인한다.
+                self?.authorizationStatus = EKEventStore.authorizationStatus(for: .event)
                 self?.changeToken += 1
                 WidgetReloadManager.requestCalendarReload()
             }
@@ -112,8 +122,19 @@ final class SystemCalendarService {
             return
         }
 
-        store.refreshSourcesIfNecessary()
-        WidgetReloadManager.requestCalendarReload()
+        activationRefreshTask?.cancel()
+        activationRefreshTask = Task { [weak self] in
+            // 앱 활성화 직후 EventKit의 외부 소스 반영이 끝날 시간을 비동기로 양보한다.
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled, let self else { return }
+
+            // 백그라운드 동안 바뀐 외부 일정의 오래된 EventKit 캐시를 버린 뒤 다시 동기화한다.
+            // refreshSourcesIfNecessary()는 원격 변경을 반영하면서도
+            // 이미 전달된 EKEvent 객체를 무효화하지 않는다.
+            self.store.refreshSourcesIfNecessary()
+            self.changeToken += 1
+            WidgetReloadManager.requestCalendarReload()
+        }
     }
 
     // MARK: - 표시할 캘린더 선택
@@ -171,6 +192,126 @@ final class SystemCalendarService {
 
     func markSelectionIntroShown() {
         sharedDefaults.set(true, forKey: Self.selectionIntroShownKey)
+    }
+
+    // MARK: - 쓰기 기반 (Phase 2)
+
+    /// 연동 ON이고 Full Access일 때만 시스템 캘린더에 쓸 수 있다. 연동 OFF면 로컬 저장만 제공한다.
+    private func ensureWritableAccess() throws(SystemCalendarAccessError) {
+        guard SystemCalendarQuery.isEnabled(in: sharedDefaults) else { throw .integrationDisabled }
+        guard hasFullAccess else { throw .accessDenied }
+    }
+
+    var canWriteToSystemCalendars: Bool {
+        (try? ensureWritableAccess()) != nil
+    }
+
+    /// 새 일정 저장 위치로 고를 수 있는 시스템 캘린더 목록. 쓸 수 없는 상태면 빈 배열.
+    func writableCalendarGroups() -> [SystemWritableCalendarSourceGroup] {
+        // 계정 추가·제거(EKEventStoreChanged) 시 다시 그려지도록 추적한다.
+        _ = changeToken
+        guard canWriteToSystemCalendars else { return [] }
+
+        return SystemCalendarWriteSupport.writableCalendarGroups(
+            in: store,
+            hiddenCalendarIDs: hiddenCalendarIDs
+        )
+    }
+
+    /// 저장 직전 검증. 로컬은 항상 통과하고, 시스템 캘린더는 쓸 수 없으면 오류를 던진다.
+    /// 실패 시 다른 캘린더나 로컬로 대신 저장하지 않는다.
+    func validateSaveDestination(_ destination: EventSaveDestination) throws(SystemCalendarAccessError) {
+        guard case .systemCalendar(let calendarIdentifier) = destination else { return }
+        try ensureWritableAccess()
+        _ = try SystemCalendarWriteSupport.validatedCalendar(
+            withIdentifier: calendarIdentifier,
+            in: store
+        )
+        guard isCalendarVisible(calendarIdentifier) else { throw .calendarHidden }
+    }
+
+    /// 새 일정을 시스템 캘린더에 저장한다. SwiftData에는 복사하지 않는다.
+    /// 저장 직전에 권한·캘린더 상태를 다시 확인하며, 실패해도 다른 캘린더나 로컬로 대신 저장하지 않는다.
+    func saveNewEvent(
+        _ draft: SystemEventDraft,
+        toCalendarWithIdentifier calendarIdentifier: String
+    ) throws(SystemCalendarAccessError) {
+        // 편집 중 계정이 제거되었을 수 있으므로 저장소의 최신 캘린더 목록으로 확인한다.
+        try validateSaveDestination(.systemCalendar(calendarIdentifier: calendarIdentifier))
+        let targetCalendar = try SystemCalendarWriteSupport.validatedCalendar(
+            withIdentifier: calendarIdentifier,
+            in: store
+        )
+
+        let event = EKEvent(eventStore: store)
+        SystemCalendarWriteSupport.apply(draft, to: event, in: targetCalendar)
+
+        do {
+            // 새 반복 일정은 시리즈 전체(규칙 포함)를 저장해야 하므로 futureEvents를 사용한다.
+            try store.save(
+                event,
+                span: draft.repeatRule == nil ? .thisEvent : .futureEvents,
+                commit: true
+            )
+        } catch {
+            throw .saveFailed
+        }
+
+        reloadAfterSystemEventChange()
+    }
+
+    /// 저장된 기본 저장 위치를 지금 쓸 수 없는 이유. 쓸 수 있거나 로컬이면 nil.
+    var defaultSaveDestinationIssue: SystemCalendarAccessError? {
+        _ = changeToken
+        do {
+            try validateSaveDestination(storedDefaultSaveDestination)
+            return nil
+        } catch {
+            return error
+        }
+    }
+
+    /// 새 일정 편집기의 초기 저장 위치. 저장된 기본값을 쓸 수 없으면(연동 OFF, 권한 거부, 계정 제거 등) 로컬이다.
+    /// 저장된 값은 지우지 않으므로 계정·권한이 돌아오면 다시 사용된다.
+    var effectiveDefaultSaveDestination: EventSaveDestination {
+        defaultSaveDestinationIssue == nil ? storedDefaultSaveDestination : .local
+    }
+
+    /// 기본 저장 위치를 바꾼다. 지금 쓸 수 없는 시스템 캘린더는 기본값으로 저장하지 않는다.
+    func setDefaultSaveDestination(_ destination: EventSaveDestination) throws(SystemCalendarAccessError) {
+        try validateSaveDestination(destination)
+        storedDefaultSaveDestination = destination
+        sharedDefaults.set(destination.rawValue, forKey: Self.defaultSaveDestinationKey)
+    }
+
+    /// 표시 중인 시스템 일정 발생분의 원본 EKEvent를 다시 조회한다(EKEventViewController 표시용).
+    /// 조회만 하며 일정을 변경하지 않는다.
+    func event(for reference: SystemCalendarEventReference) throws(SystemCalendarAccessError) -> EKEvent {
+        // 연동 OFF면 시스템 일정이 표시되지 않으므로 열 수도 없다.
+        guard SystemCalendarQuery.isEnabled(in: sharedDefaults) else { throw .integrationDisabled }
+        guard hasFullAccess else { throw .accessDenied }
+
+        do {
+            return try SystemCalendarWriteSupport.event(for: reference, in: store)
+        } catch .eventNotFound {
+            // 공유 store의 reset()은 그 store에서 얻은 모든 EKEvent를 무효화하므로,
+            // 현재 상세 화면이나 다른 화면의 참조를 깨뜨릴 수 있다. 실패한 조회만
+            // 독립된 저장소에서 원격 갱신 후 동일 식별자·발생 시각으로 한 번 재조회한다.
+            let retryStore = EKEventStore()
+            retryStore.refreshSourcesIfNecessary()
+            return try SystemCalendarWriteSupport.event(for: reference, in: retryStore)
+        }
+    }
+
+    /// Apple 일정 화면에서 수정·삭제를 허용할지 여부. 읽기 전용 캘린더의 일정은 보기만 허용한다.
+    func canModify(_ event: EKEvent) -> Bool {
+        canWriteToSystemCalendars && (event.calendar.map(SystemCalendarWriteSupport.isWritable) ?? false)
+    }
+
+    /// Apple 일정 화면이 닫힌 뒤 호출한다. EKEventStoreChanged 알림이 늦게 와도 화면과 위젯을 바로 갱신한다.
+    func reloadAfterSystemEventChange() {
+        changeToken += 1
+        WidgetReloadManager.requestCalendarReload()
     }
 
     // MARK: - 일정 조회

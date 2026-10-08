@@ -101,6 +101,24 @@ private struct EventRepeatSetting {
 
         return "\(interval)\(unit.rawValue)마다"
     }
+
+    /// 시스템 캘린더(EventKit) 저장용 반복 규칙. 반복 안 함이면 nil.
+    var systemRepeatRule: (frequency: SystemEventDraft.RepeatFrequency, interval: Int)? {
+        let frequency: SystemEventDraft.RepeatFrequency
+        switch unit {
+        case .none:
+            return nil
+        case .day:
+            frequency = .daily
+        case .week:
+            frequency = .weekly
+        case .month:
+            frequency = .monthly
+        case .year:
+            frequency = .yearly
+        }
+        return (frequency, max(1, interval))
+    }
 }
 
 struct EventEditorView: View {
@@ -118,8 +136,13 @@ struct EventEditorView: View {
     @State private var saveErrorMessage: String?
     @State private var isPresentingDeleteConfirmation = false
     @State private var isSaving = false
+    /// 새 일정의 저장 위치. 기존 일정 편집에서는 항상 .local이며 변경할 수 없다.
+    @State private var saveDestination: EventSaveDestination
 
     private let event: Event?
+    private let systemCalendar = SystemCalendarService.shared
+    /// 저장된 기본 저장 위치를 쓸 수 없어 로컬로 선택했을 때의 안내 문구. 편집기를 연 시점에 한 번 정한다.
+    private let defaultDestinationNotice: String?
 
     init(date: Date, event: Event? = nil) {
         self.event = event
@@ -164,6 +187,31 @@ struct EventEditorView: View {
             )
         )
         _notes = State(initialValue: event?.memo ?? "")
+
+        let systemCalendar = SystemCalendarService.shared
+        _saveDestination = State(
+            initialValue: event == nil ? systemCalendar.effectiveDefaultSaveDestination : .local
+        )
+        // 연동 OFF는 사용자가 직접 끈 상태이므로 안내하지 않고, 기존 로컬 생성 방식만 보여준다.
+        // 저장된 기본값은 지우지 않으므로 계정·권한이 돌아오면 다시 기본 저장 위치로 쓰인다.
+        if event == nil,
+           let issue = systemCalendar.defaultSaveDestinationIssue,
+           issue != .integrationDisabled {
+            defaultDestinationNotice = "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. \(issue.message)"
+        } else {
+            defaultDestinationNotice = nil
+        }
+    }
+
+    /// 새 일정이고, 연동 ON·Full Access이며, 표시 중인 쓰기 가능한 캘린더가 있을 때만 저장 위치를 고를 수 있다.
+    private var writableCalendarGroups: [SystemWritableCalendarSourceGroup] {
+        guard event == nil else { return [] }
+        return systemCalendar.writableCalendarGroups()
+    }
+
+    private var isSavingToSystemCalendar: Bool {
+        if case .systemCalendar = saveDestination { return true }
+        return false
     }
 
     var body: some View {
@@ -200,39 +248,44 @@ struct EventEditorView: View {
                 )
             }
 
-            Section {
-                HStack {
-                    Text("색상")
+            saveDestinationSection
 
-                    Spacer()
+            // 시스템 캘린더 일정은 원본 캘린더 색상을 사용하므로 색상 선택을 숨긴다.
+            if !isSavingToSystemCalendar {
+                Section {
+                    HStack {
+                        Text("색상")
 
-                    HStack(spacing: 14) {
-                        ForEach(EventColor.allCases) { colorOption in
-                            Button {
-                                eventColor = colorOption
-                            } label: {
-                                ZStack {
-                                    Circle()
-                                        .fill(colorOption.color)
-                                        .frame(width: 24, height: 24)
+                        Spacer()
 
-                                    if eventColor == colorOption {
+                        HStack(spacing: 14) {
+                            ForEach(EventColor.allCases) { colorOption in
+                                Button {
+                                    eventColor = colorOption
+                                } label: {
+                                    ZStack {
                                         Circle()
-                                            .stroke(.primary, lineWidth: 2)
-                                            .frame(width: 30, height: 30)
+                                            .fill(colorOption.color)
+                                            .frame(width: 24, height: 24)
 
-                                        Image(systemName: "checkmark")
-                                            .font(.caption2.bold())
-                                            .foregroundStyle(.white)
+                                        if eventColor == colorOption {
+                                            Circle()
+                                                .stroke(.primary, lineWidth: 2)
+                                                .frame(width: 30, height: 30)
+
+                                            Image(systemName: "checkmark")
+                                                .font(.caption2.bold())
+                                                .foregroundStyle(.white)
+                                        }
                                     }
+                                    .frame(width: 30, height: 30)
                                 }
-                                .frame(width: 30, height: 30)
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(colorOption.rawValue)
+                                .accessibilityValue(
+                                    eventColor == colorOption ? "선택됨" : "선택 안 됨"
+                                )
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(colorOption.rawValue)
-                            .accessibilityValue(
-                                eventColor == colorOption ? "선택됨" : "선택 안 됨"
-                            )
                         }
                     }
                 }
@@ -367,6 +420,69 @@ struct EventEditorView: View {
         }
     }
 
+    @ViewBuilder
+    private var saveDestinationSection: some View {
+        let groups = writableCalendarGroups
+
+        if !groups.isEmpty {
+            Section {
+                Picker("저장 위치", selection: $saveDestination) {
+                    Label {
+                        Text("SsCalendar")
+                    } icon: {
+                        Image(systemName: "iphone")
+                            .foregroundStyle(.secondary)
+                    }
+                    .tag(EventSaveDestination.local)
+
+                    ForEach(groups) { group in
+                        Section(group.title) {
+                            ForEach(group.calendars) { calendar in
+                                Label {
+                                    Text(calendar.title)
+                                } icon: {
+                                    Image(systemName: "circle.fill")
+                                        .foregroundStyle(calendar.color)
+                                }
+                                .tag(
+                                    EventSaveDestination.systemCalendar(
+                                        calendarIdentifier: calendar.id
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+                .pickerStyle(.navigationLink)
+            } footer: {
+                if let defaultDestinationNotice {
+                    Text(defaultDestinationNotice)
+                } else if isSavingToSystemCalendar {
+                    Text("iPhone 캘린더에 저장되며, 캘린더 색상이 적용됩니다.")
+                }
+            }
+        } else if let defaultDestinationNotice {
+            Section {
+                Text(defaultDestinationNotice)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// 시스템 캘린더 저장용 입력값. 알림은 EKAlarm, 반복은 EKRecurrenceRule로 변환된다.
+    private var systemEventDraft: SystemEventDraft {
+        SystemEventDraft(
+            title: title,
+            isAllDay: isAllDay,
+            startDate: startDate,
+            endDate: endDate,
+            notes: notes,
+            alarmOffsetBeforeStart: reminderSetting.timeIntervalBeforeStart,
+            repeatRule: repeatSetting.systemRepeatRule
+        )
+    }
+
     private var deleteConfirmationTitle: String {
         if let event, event.repeatUnit != EventRepeatUnit.none.rawValue {
             return "반복되는 모든 일정을 삭제하시겠습니까?"
@@ -403,6 +519,11 @@ struct EventEditorView: View {
     private func saveEvent() async {
         guard endDate >= startDate else {
             saveErrorMessage = "종료 시간은 시작 시간보다 빠를 수 없습니다."
+            return
+        }
+
+        if event == nil, case .systemCalendar(let calendarIdentifier) = saveDestination {
+            saveToSystemCalendar(calendarIdentifier)
             return
         }
 
@@ -443,6 +564,24 @@ struct EventEditorView: View {
             modelContext.rollback()
             isSaving = false
             saveErrorMessage = "저장 중 오류가 발생했습니다. 다시 시도해 주세요."
+        }
+    }
+
+    /// EventKit에 직접 저장한다. SwiftData와 로컬 알림(NotificationManager)은 사용하지 않는다.
+    /// 실패하면 로컬로 대신 저장하지 않고 오류만 표시하며, 화면을 닫지 않아 입력 내용이 유지된다.
+    private func saveToSystemCalendar(_ calendarIdentifier: String) {
+        isSaving = true
+
+        do {
+            try systemCalendar.saveNewEvent(
+                systemEventDraft,
+                toCalendarWithIdentifier: calendarIdentifier
+            )
+            isSaving = false
+            dismiss()
+        } catch {
+            isSaving = false
+            saveErrorMessage = "\(error.message) 입력한 내용은 그대로 유지됩니다."
         }
     }
 

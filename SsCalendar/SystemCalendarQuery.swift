@@ -101,15 +101,26 @@ enum SystemCalendarQuery {
         let color = event.calendar?.cgColor.map { Color(cgColor: $0) } ?? .gray
         let eventStartDate = event.startDate ?? Date()
         let eventEndDate = event.endDate ?? eventStartDate
-        // EventKit의 종일 일정 endDate는 종료일 다음 날 00:00인 exclusive 경계다.
-        // 표시 모델은 종일 종료일을 inclusive로 다루므로 마지막 표시 시각으로 보정한다.
+        // EventKit 종일 일정의 endDate는 보통 마지막 날 23:59:59이지만, 계정에 따라 다음 날 00:00일 수 있다.
+        // 1초를 빼면 두 경우 모두 마지막 날 안에 들어오므로 inclusive 종료일로 다루는 표시 모델과 맞는다.
         let displayEndDate = event.isAllDay
             ? eventEndDate.addingTimeInterval(-1)
             : eventEndDate
 
         return CalendarDisplayOccurrence(
             id: "system:\(identifier):\(eventStartDate.timeIntervalSince1970)",
-            source: .system(calendarTitle: calendarTitle),
+            source: .system(
+                calendarTitle: calendarTitle,
+                reference: SystemCalendarEventReference(
+                    eventIdentifier: event.eventIdentifier,
+                    calendarItemIdentifier: event.calendarItemIdentifier,
+                    externalIdentifier: event.calendarItemExternalIdentifier,
+                    calendarIdentifier: event.calendar?.calendarIdentifier,
+                    startDate: eventStartDate,
+                    occurrenceDate: event.occurrenceDate,
+                    isRecurring: event.hasRecurrenceRules
+                )
+            ),
             title: event.title ?? "",
             isAllDay: event.isAllDay,
             startDate: eventStartDate,

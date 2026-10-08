@@ -7,8 +7,8 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
     enum Source: Hashable {
         /// SsCalendar(SwiftData) 일정. 편집 시 이 ID로 원본 `Event`를 찾는다.
         case local(eventID: UUID)
-        /// iOS 시스템 캘린더 일정. 이번 단계에서는 읽기 전용이다.
-        case system(calendarTitle: String)
+        /// iOS 시스템 캘린더 일정. 원본은 EventKit에만 있으며 `reference`로 발생분을 다시 조회한다.
+        case system(calendarTitle: String, reference: SystemCalendarEventReference)
     }
 
     /// 출처 접두어(`local:` / `system:`)를 붙여 서로 충돌하지 않는 ID.
@@ -27,6 +27,11 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
 
     var localEventID: UUID? {
         if case .local(let eventID) = source { return eventID }
+        return nil
+    }
+
+    var systemEventReference: SystemCalendarEventReference? {
+        if case .system(_, let reference) = source { return reference }
         return nil
     }
 
@@ -70,6 +75,22 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
         ) ?? firstDay
         return firstDay...max(firstDay, previousDay)
     }
+}
+
+/// 시스템 캘린더 일정 발생분의 원본 식별 정보. EKEvent 객체 대신 값만 보관한다(SwiftData에 저장하지 않음).
+/// `EKEventStore.event(withIdentifier:)`는 반복 일정의 첫 발생분만 돌려주고, 일정의 캘린더가 바뀌면
+/// `eventIdentifier`도 바뀔 수 있으므로 여러 식별자와 발생 시각을 함께 보관해 특정 발생분을 다시 찾는다.
+struct SystemCalendarEventReference: Hashable {
+    let eventIdentifier: String?
+    let calendarItemIdentifier: String
+    /// 서버(iCloud·Google 등)가 부여한 식별자. 캘린더 이동 후 eventIdentifier가 바뀐 경우의 보조 키다.
+    let externalIdentifier: String?
+    let calendarIdentifier: String?
+    /// 조회 시점의 발생분 시작 시각.
+    let startDate: Date
+    /// 반복 일정의 원래 발생 시각. 개별 발생분을 다른 시각으로 옮겨도(detached) 변하지 않는다.
+    let occurrenceDate: Date?
+    let isRecurring: Bool
 }
 
 // 앱/위젯 공유 파일(위젯 폴더에 심볼릭 링크). 앱 전용 타입(EventColor 등)에 의존하지 않는다.

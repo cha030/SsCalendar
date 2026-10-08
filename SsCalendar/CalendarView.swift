@@ -15,7 +15,13 @@ struct CalendarView: View {
         store: SystemCalendarService.settingsStore
     ) private var isSystemCalendarEnabled = false
     @State private var systemOccurrences: [CalendarDisplayOccurrence] = []
-    private let systemCalendar = SystemCalendarService.shared
+    @State private var systemCalendar = SystemCalendarService.shared
+
+    let systemCalendarRefreshGeneration: Int
+
+    init(systemCalendarRefreshGeneration: Int = 0) {
+        self.systemCalendarRefreshGeneration = systemCalendarRefreshGeneration
+    }
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -110,7 +116,10 @@ struct CalendarView: View {
                 Spacer()
             }
             .navigationDestination(for: Date.self) { date in
-                DayScheduleView(date: date)
+                DayScheduleView(
+                    date: date,
+                    systemCalendarRefreshGeneration: systemCalendarRefreshGeneration
+                )
             }
             .task(id: visibleHolidayMonths) {
                 await loadHolidays(for: visibleHolidayMonths)
@@ -178,7 +187,8 @@ struct CalendarView: View {
         SystemCalendarFetchKey(
             interval: visibleInterval,
             isEnabled: isSystemCalendarEnabled,
-            changeToken: systemCalendar.changeToken
+            changeToken: systemCalendar.changeToken,
+            refreshGeneration: systemCalendarRefreshGeneration
         )
     }
 
@@ -354,6 +364,7 @@ private struct SystemCalendarFetchKey: Equatable {
     let interval: DateInterval?
     let isEnabled: Bool
     let changeToken: Int
+    let refreshGeneration: Int
 }
 
 private struct CalendarWeek: Identifiable {
