@@ -6,6 +6,12 @@ struct DayScheduleView: View {
     @Query(sort: \Event.startDate, order: .forward) private var events: [Event]
     @State private var isPresentingEventEditor = false
     @State private var selectedEvent: Event?
+    @AppStorage(
+        SystemCalendarService.isEnabledStorageKey,
+        store: SystemCalendarService.settingsStore
+    ) private var isSystemCalendarEnabled = false
+    @State private var systemOccurrences: [CalendarDisplayOccurrence] = []
+    private let systemCalendar = SystemCalendarService.shared
 
     let date: Date
 
@@ -19,7 +25,7 @@ struct DayScheduleView: View {
         )
     }
 
-    private var orderedOccurrences: [EventOccurrence] {
+    private var dayInterval: DateInterval? {
         let calendar = Calendar.current
         let dayStart = calendar.startOfDay(for: date)
 
@@ -28,29 +34,62 @@ struct DayScheduleView: View {
             value: 1,
             to: dayStart
         ) else {
+            return nil
+        }
+
+        return DateInterval(start: dayStart, end: nextDayStart)
+    }
+
+    private var orderedOccurrences: [CalendarDisplayOccurrence] {
+        guard let dayInterval else {
             return []
         }
 
-        return EventOccurrenceService.occurrences(
+        let localOccurrences = EventOccurrenceService.occurrences(
             for: events,
-            intersecting: DateInterval(
-                start: dayStart,
-                end: nextDayStart
-            ),
-            calendar: calendar
+            intersecting: dayInterval,
+            calendar: Calendar.current
         )
+        .map { CalendarDisplayOccurrence(local: $0) }
+
+        return CalendarDisplayOccurrence.merged(
+            local: localOccurrences,
+            system: isSystemCalendarEnabled ? systemOccurrences : []
+        )
+    }
+
+    private var systemCalendarFetchKey: DaySystemCalendarFetchKey {
+        DaySystemCalendarFetchKey(
+            interval: dayInterval,
+            isEnabled: isSystemCalendarEnabled,
+            changeToken: systemCalendar.changeToken
+        )
+    }
+
+    private func loadSystemOccurrences(for key: DaySystemCalendarFetchKey) {
+        guard key.isEnabled, let interval = key.interval else {
+            systemOccurrences = []
+            return
+        }
+
+        systemOccurrences = systemCalendar.occurrences(in: interval)
     }
 
     var body: some View {
         ZStack {
             List {
                 ForEach(orderedOccurrences) { occurrence in
-                    Button {
-                        selectedEvent = occurrence.event
-                    } label: {
+                    if let eventID = occurrence.localEventID {
+                        Button {
+                            selectedEvent = events.first { $0.id == eventID }
+                        } label: {
+                            EventRow(occurrence: occurrence)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        // 시스템 캘린더 일정은 이번 단계에서 읽기 전용이다.
                         EventRow(occurrence: occurrence)
                     }
-                    .buttonStyle(.plain)
                 }
             }
 
@@ -59,6 +98,9 @@ struct DayScheduleView: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
+        }
+        .task(id: systemCalendarFetchKey) {
+            loadSystemOccurrences(for: systemCalendarFetchKey)
         }
         .navigationBarBackButtonHidden()
         .toolbar {
@@ -98,11 +140,17 @@ struct DayScheduleView: View {
     }
 }
 
+private struct DaySystemCalendarFetchKey: Equatable {
+    let interval: DateInterval?
+    let isEnabled: Bool
+    let changeToken: Int
+}
+
 private struct EventRow: View {
-    let occurrence: EventOccurrence
+    let occurrence: CalendarDisplayOccurrence
 
     private var eventColor: Color {
-        EventColor(rawValue: occurrence.event.color)?.color ?? .gray
+        occurrence.color
     }
 
     private var timeDescription: String {
@@ -141,13 +189,22 @@ private struct EventRow: View {
                 .frame(width: 4)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(occurrence.event.title)
+                Text(occurrence.title)
                     .font(.body)
                     .foregroundStyle(.primary)
 
                 Text(timeDescription)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+
+                if case .system(let calendarTitle) = occurrence.source {
+                    HStack(spacing: 3) {
+                        Image(systemName: "calendar")
+                        Text(calendarTitle.isEmpty ? "iPhone 캘린더" : calendarTitle)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()

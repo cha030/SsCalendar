@@ -36,6 +36,8 @@ struct ThemeSettingsView: View {
                         )
                     }
                 }
+
+                SystemCalendarSettingsSection()
             }
             .navigationTitle("설정")
             .navigationBarTitleDisplayMode(.inline)

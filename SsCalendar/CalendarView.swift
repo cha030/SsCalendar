@@ -10,6 +10,12 @@ struct CalendarView: View {
     @State private var isPresentingSettings = false
     @State private var newEventDate: Date?
     @AppStorage(AppTheme.storageKey) private var selectedThemeRawValue = AppTheme.system.rawValue
+    @AppStorage(
+        SystemCalendarService.isEnabledStorageKey,
+        store: SystemCalendarService.settingsStore
+    ) private var isSystemCalendarEnabled = false
+    @State private var systemOccurrences: [CalendarDisplayOccurrence] = []
+    private let systemCalendar = SystemCalendarService.shared
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -109,6 +115,9 @@ struct CalendarView: View {
             .task(id: visibleHolidayMonths) {
                 await loadHolidays(for: visibleHolidayMonths)
             }
+            .task(id: systemCalendarFetchKey) {
+                loadSystemOccurrences(for: systemCalendarFetchKey)
+            }
             .sheet(isPresented: $isPresentingSettings) {
                 ThemeSettingsView(
                     selectedThemeRawValue: $selectedThemeRawValue
@@ -130,7 +139,7 @@ struct CalendarView: View {
         }
     }
 
-    private var visibleOccurrences: [EventOccurrence] {
+    private var visibleInterval: DateInterval? {
         guard
             let firstDate = visibleDates.first,
             let lastDate = visibleDates.last,
@@ -140,14 +149,46 @@ struct CalendarView: View {
                 to: lastDate
             )
         else {
+            return nil
+        }
+
+        return DateInterval(start: firstDate, end: rangeEnd)
+    }
+
+    /// 로컬(SwiftData) 반복 전개 결과와 시스템 캘린더 일정을 표시 모델 기준으로 합친다.
+    private var visibleOccurrences: [CalendarDisplayOccurrence] {
+        guard let visibleInterval else {
             return []
         }
 
-        return EventOccurrenceService.occurrences(
+        let localOccurrences = EventOccurrenceService.occurrences(
             for: events,
-            intersecting: DateInterval(start: firstDate, end: rangeEnd),
+            intersecting: visibleInterval,
             calendar: calendar
         )
+        .map { CalendarDisplayOccurrence(local: $0) }
+
+        return CalendarDisplayOccurrence.merged(
+            local: localOccurrences,
+            system: isSystemCalendarEnabled ? systemOccurrences : []
+        )
+    }
+
+    private var systemCalendarFetchKey: SystemCalendarFetchKey {
+        SystemCalendarFetchKey(
+            interval: visibleInterval,
+            isEnabled: isSystemCalendarEnabled,
+            changeToken: systemCalendar.changeToken
+        )
+    }
+
+    private func loadSystemOccurrences(for key: SystemCalendarFetchKey) {
+        guard key.isEnabled, let interval = key.interval else {
+            systemOccurrences = []
+            return
+        }
+
+        systemOccurrences = systemCalendar.occurrences(in: interval)
     }
 
     private var visibleHolidayMonths: [HolidayMonth] {
@@ -309,6 +350,12 @@ struct CalendarView: View {
     }
 }
 
+private struct SystemCalendarFetchKey: Equatable {
+    let interval: DateInterval?
+    let isEnabled: Bool
+    let changeToken: Int
+}
+
 private struct CalendarWeek: Identifiable {
     let dates: [Date]
 
@@ -319,7 +366,7 @@ private struct CalendarWeek: Identifiable {
 
 private struct CalendarWeekRow: View {
     let week: CalendarWeek
-    let occurrences: [EventOccurrence]
+    let occurrences: [CalendarDisplayOccurrence]
     let holidaysByDate: [Date: [Holiday]]
     let currentDate: Date
     let selectedDate: Date
@@ -423,12 +470,12 @@ private struct CalendarWeekRow: View {
 }
 
 private struct CalendarEventBar: View {
-    let occurrence: EventOccurrence
+    let occurrence: CalendarDisplayOccurrence
     let showsTitle: Bool
     let isSingleDay: Bool
 
     private var eventColor: Color {
-        EventColor(rawValue: occurrence.event.color)?.color ?? .gray
+        occurrence.color
     }
 
     var body: some View {
@@ -438,7 +485,7 @@ private struct CalendarEventBar: View {
                     .fill(eventColor)
                     .frame(width: 3)
 
-                Text(occurrence.event.title)
+                Text(occurrence.title)
                     .font(.system(size: 11))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
@@ -453,7 +500,7 @@ private struct CalendarEventBar: View {
                     .fill(eventColor)
 
                 if showsTitle {
-                    Text(occurrence.event.title)
+                    Text(occurrence.title)
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundStyle(.white)
                         .lineLimit(1)
@@ -473,7 +520,7 @@ private struct WeekEventLayout {
 
     init(
         week: CalendarWeek,
-        occurrences: [EventOccurrence],
+        occurrences: [CalendarDisplayOccurrence],
         holidaysByDate: [Date: [Holiday]],
         calendar: Calendar,
         rowHeight: CGFloat,
@@ -753,7 +800,7 @@ private struct WeekEventLayout {
 }
 
 private struct WeekEventCandidate {
-    let occurrence: EventOccurrence
+    let occurrence: CalendarDisplayOccurrence
     let startColumn: Int
     let endColumn: Int
     let showsTitle: Bool
@@ -761,14 +808,14 @@ private struct WeekEventCandidate {
 }
 
 private struct WeekEventSegment: Identifiable {
-    let occurrence: EventOccurrence
+    let occurrence: CalendarDisplayOccurrence
     let startColumn: Int
     let endColumn: Int
     let yOffset: CGFloat
     let showsTitle: Bool
     let isSingleDay: Bool
 
-    var id: EventOccurrence.ID {
+    var id: String {
         occurrence.id
     }
 }
