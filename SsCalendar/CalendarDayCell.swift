@@ -7,6 +7,13 @@ enum CalendarDayContentLayout {
     static let holidayLineHeight: CGFloat = 14
     static let contentSpacing: CGFloat = 1
 
+    /// 단일 날짜 일정 제목(CalendarEventBar)에 쓰는 폰트 크기. 2줄 확장 여부를 실제 텍스트 너비로
+    /// 판단할 때도 같은 크기를 써야 측정값과 실제 렌더링이 어긋나지 않는다.
+    static let singleDayEventFontSize: CGFloat = 11
+    /// 단일 날짜 일정 막대 한 칸의 너비 중, 색상 구분선과 여백이 차지해 실제 제목에는 쓸 수 없는 폭.
+    /// (칸 간 여백 4pt + 막대 안 HStack의 RoundedRectangle 3pt + spacing 3pt.)
+    static let singleDayEventChromeWidth: CGFloat = 10
+
     static func lunarText(for date: Date, calendar: Calendar) -> String? {
         guard calendar.component(.weekday, from: date) == 1 else {
             return nil

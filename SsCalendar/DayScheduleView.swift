@@ -2,6 +2,12 @@ import EventKit
 import SwiftData
 import SwiftUI
 
+/// 좌우 스와이프로 넘어갈 때 어느 쪽에서 들어오고 나가는지. 전환 애니메이션 방향에만 쓴다.
+private enum DayNavigationDirection {
+    case toNextDay
+    case toPreviousDay
+}
+
 struct DayScheduleView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Event.startDate, order: .forward) private var events: [Event]
@@ -16,16 +22,28 @@ struct DayScheduleView: View {
     @State private var systemEventError: SystemCalendarAccessError?
     @State private var systemCalendar = SystemCalendarService.shared
 
-    let date: Date
-    let systemCalendarRefreshGeneration: Int
+    /// 화면에 실제로 표시 중인 날짜. 처음엔 `date`로 시작하지만, 좌우 스와이프로 바뀐다
+    /// (화면을 닫았다 다시 열지 않고 날짜·일정 목록만 갱신하기 위해 전달받은 값을 그대로 쓰지 않는다).
+    @State private var currentDate: Date
+    @State private var navigationDirection: DayNavigationDirection = .toNextDay
 
-    init(date: Date, systemCalendarRefreshGeneration: Int = 0) {
-        self.date = date
+    let systemCalendarRefreshGeneration: Int
+    /// 스와이프로 다른 날짜를 보게 될 때마다 호출된다. 월간 달력(CalendarView)이 자신의
+    /// 선택 날짜·표시 중인 달을 같이 갱신해 두면, 이 화면을 닫았을 때 바로 동기화돼 있다.
+    private let onNavigateToDate: (Date) -> Void
+
+    init(
+        date: Date,
+        systemCalendarRefreshGeneration: Int = 0,
+        onNavigateToDate: @escaping (Date) -> Void = { _ in }
+    ) {
+        _currentDate = State(initialValue: date)
         self.systemCalendarRefreshGeneration = systemCalendarRefreshGeneration
+        self.onNavigateToDate = onNavigateToDate
     }
 
     private var dateTitle: String {
-        date.formatted(
+        currentDate.formatted(
             Date.FormatStyle()
                 .month(.defaultDigits)
                 .day()
@@ -36,7 +54,7 @@ struct DayScheduleView: View {
 
     private var dayInterval: DateInterval? {
         let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: date)
+        let dayStart = calendar.startOfDay(for: currentDate)
 
         guard let nextDayStart = calendar.date(
             byAdding: .day,
@@ -47,6 +65,51 @@ struct DayScheduleView: View {
         }
 
         return DateInterval(start: dayStart, end: nextDayStart)
+    }
+
+    /// 하루 앞/뒤로 이동한다. Calendar 기반 날짜 연산이라 월말·연말도 자연히 처리된다.
+    private func navigate(by dayDelta: Int) {
+        guard let newDate = Calendar.current.date(
+            byAdding: .day,
+            value: dayDelta,
+            to: currentDate
+        ) else {
+            return
+        }
+
+        navigationDirection = dayDelta > 0 ? .toNextDay : .toPreviousDay
+        withAnimation(.easeInOut(duration: 0.22)) {
+            currentDate = newDate
+        }
+        onNavigateToDate(newDate)
+    }
+
+    /// 세로 스크롤과 헷갈리지 않도록, 끝난 뒤 가로 이동량이 세로 이동량보다 뚜렷이 크고
+    /// 최소 거리를 넘었을 때만 스와이프로 인정한다. List의 스크롤 제스처를 막지 않도록
+    /// `simultaneousGesture`로 붙여 세로 스크롤은 항상 그대로 동작한다.
+    private var daySwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 24, coordinateSpace: .local)
+            .onEnded { value in
+                let horizontal = value.translation.width
+                let vertical = value.translation.height
+
+                guard
+                    abs(horizontal) > 60,
+                    abs(horizontal) > abs(vertical) * 2
+                else {
+                    return
+                }
+
+                // 오른쪽으로 스와이프(이전 날짜)는 화면 왼쪽 가장자리에서 시작하는 iOS 기본
+                // "뒤로 가기" 엣지 스와이프와 시작 지점이 겹친다. 이 영역에서 시작한 제스처는
+                // 시스템 뒤로 가기에 양보하고 날짜는 바꾸지 않는다.
+                let isEdgeSwipeBackZone = value.startLocation.x < 24
+                guard horizontal < 0 || !isEdgeSwipeBackZone else {
+                    return
+                }
+
+                navigate(by: horizontal < 0 ? 1 : -1)
+            }
     }
 
     private var orderedOccurrences: [CalendarDisplayOccurrence] {
@@ -149,13 +212,31 @@ struct DayScheduleView: View {
                     }
                 }
             }
+            // 날짜가 바뀔 때마다 새 목록으로 취급해 전환 애니메이션이 자연스럽게 적용되게 한다.
+            // 탭·상세 보기·편집·삭제는 List 내부 동작이라 이 변경과 무관하게 그대로 유지된다.
+            .id(currentDate)
+            .transition(
+                .asymmetric(
+                    insertion: .move(
+                        edge: navigationDirection == .toNextDay ? .trailing : .leading
+                    ).combined(with: .opacity),
+                    removal: .move(
+                        edge: navigationDirection == .toNextDay ? .leading : .trailing
+                    ).combined(with: .opacity)
+                )
+            )
 
             if orderedOccurrences.isEmpty {
                 Text("일정이 없습니다.")
                     .font(.body)
                     .foregroundStyle(.secondary)
+                    .id(currentDate)
+                    .transition(.opacity)
             }
         }
+        // List 고유의 세로 스크롤 제스처를 막지 않도록 simultaneousGesture로 붙인다.
+        // onEnded에서 가로/세로 이동량을 비교해 뚜렷한 가로 스와이프일 때만 날짜를 바꾼다.
+        .simultaneousGesture(daySwipeGesture)
         .task(id: systemCalendarFetchKey) {
             loadSystemOccurrences(for: systemCalendarFetchKey)
         }
@@ -173,6 +254,11 @@ struct DayScheduleView: View {
             ToolbarItem(placement: .principal) {
                 Text(dateTitle)
                     .font(.headline)
+                    // navigate(by:)가 currentDate 변경을 withAnimation으로 감싸므로, 그 값을 읽는
+                    // 이 제목도 같은 애니메이션 트랜잭션을 물려받아 글자 폭이 바뀔 때(예: "금요일"→
+                    // "토요일") 잠깐 왼쪽으로 밀렸다 돌아오는 것처럼 보였다. 날짜 변경은 List 쪽만
+                    // 자연스럽게 전환되면 되므로, 제목은 애니메이션 없이 즉시 바뀌도록 명시적으로 끈다.
+                    .animation(nil, value: currentDate)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
@@ -186,7 +272,7 @@ struct DayScheduleView: View {
         }
         .sheet(isPresented: $isPresentingEventEditor) {
             NavigationStack {
-                EventEditorView(date: date)
+                EventEditorView(date: currentDate)
             }
         }
         .sheet(item: $selectedEvent) { event in
