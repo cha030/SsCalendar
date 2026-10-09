@@ -153,7 +153,7 @@ final class SystemCalendarService {
             .map { sourceID, calendars in
                 SystemCalendarSourceGroup(
                     id: sourceID,
-                    title: calendars.first?.source?.title ?? "기타",
+                    title: calendars.first?.source?.title ?? String(localized: "기타"),
                     calendars: calendars
                         .map { calendar in
                             SystemCalendarInfo(

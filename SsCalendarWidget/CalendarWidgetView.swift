@@ -7,7 +7,15 @@ struct CalendarWidgetView: View {
     let entry: CalendarWidgetEntry
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
-    private let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
+    private var weekdaySymbols: [String] {
+        displayCalendar.veryShortStandaloneWeekdaySymbols
+    }
+
+    private var displayCalendar: Calendar {
+        var calendar = CalendarWidgetCalendar.korean
+        calendar.locale = Locale.current
+        return calendar
+    }
 
     var body: some View {
         VStack(spacing: sectionSpacing) {
@@ -138,15 +146,14 @@ struct CalendarWidgetView: View {
     }
 
     private var monthTitle: String {
-        let calendar = CalendarWidgetCalendar.korean
-        let displayed = calendar.dateComponents([.year, .month], from: entry.monthStart)
+        let calendar = displayCalendar
+        let displayed = calendar.dateComponents([.year], from: entry.monthStart)
         let current = calendar.dateComponents([.year], from: Date())
-        let month = displayed.month ?? 1
 
         if displayed.year == current.year {
-            return "\(month)월"
+            return entry.monthStart.formatted(.dateTime.month(.wide).locale(calendar.locale ?? .current))
         }
-        return "\(displayed.year ?? 1)년 \(month)월"
+        return entry.monthStart.formatted(.dateTime.year().month(.wide).locale(calendar.locale ?? .current))
     }
 
     private func weekdayColor(at index: Int) -> Color {
@@ -400,7 +407,7 @@ private struct CalendarWidgetExpandedDayView: View {
     }
 
     private var dateNumber: some View {
-        Text(day.date, format: .dateTime.day())
+        Text(String(calendar.component(.day, from: day.date)))
             .font(
                 .system(
                     size: metrics.dateFontSize,
@@ -454,7 +461,7 @@ private struct CalendarWidgetMediumDayView: View {
         VStack(spacing: 2) {
             ZStack {
                 Link(destination: CalendarWidgetDeepLink.dayURL(for: day.date)) {
-                    Text(day.date, format: .dateTime.day())
+                    Text(String(calendar.component(.day, from: day.date)))
                         .font(
                             .system(
                                 size: 10,

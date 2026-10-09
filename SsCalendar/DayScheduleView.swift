@@ -30,7 +30,7 @@ struct DayScheduleView: View {
                 .month(.defaultDigits)
                 .day()
                 .weekday(.wide)
-                .locale(Locale(identifier: "ko_KR"))
+                .locale(Locale.current)
         )
     }
 
@@ -234,7 +234,7 @@ private struct EventRow: View {
 
     private var timeDescription: String {
         if occurrence.isAllDay {
-            return "종일"
+            return String(localized: "종일")
         }
 
         if Calendar.current.isDate(
@@ -244,7 +244,7 @@ private struct EventRow: View {
             let timeStyle = Date.FormatStyle()
                 .hour(.defaultDigits(amPM: .abbreviated))
                 .minute(.twoDigits)
-                .locale(Locale(identifier: "ko_KR"))
+                .locale(Locale.current)
             let startTime = occurrence.startDate.formatted(timeStyle)
             let endTime = occurrence.endDate.formatted(timeStyle)
             return "\(startTime) – \(endTime)"
@@ -255,7 +255,7 @@ private struct EventRow: View {
             .day(.defaultDigits)
             .hour(.defaultDigits(amPM: .abbreviated))
             .minute(.twoDigits)
-            .locale(Locale(identifier: "ko_KR"))
+            .locale(Locale.current)
         let startDateTime = occurrence.startDate.formatted(dateTimeStyle)
         let endDateTime = occurrence.endDate.formatted(dateTimeStyle)
         return "\(startDateTime) – \(endDateTime)"
@@ -279,7 +279,7 @@ private struct EventRow: View {
                 if case .system(let calendarTitle, _) = occurrence.source {
                     HStack(spacing: 3) {
                         Image(systemName: "calendar")
-                        Text(calendarTitle.isEmpty ? "iPhone 캘린더" : calendarTitle)
+                        Text(calendarTitle.isEmpty ? String(localized: "iPhone 캘린더") : calendarTitle)
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)

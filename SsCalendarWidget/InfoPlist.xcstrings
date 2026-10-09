@@ -3,36 +3,51 @@
   "strings" : {
     "CFBundleDisplayName" : {
       "comment" : "Bundle display name",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "SsCalendarWidget"
+            "state" : "machine_translated",
+            "value" : "SsCalendar Widget"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SsCalendar"
           }
         }
       }
     },
     "CFBundleName" : {
       "comment" : "Bundle name",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "SsCalendarWidgetExtension"
+            "state" : "machine_translated",
+            "value" : "SsCalendar Widget Extension"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "SsCalendar"
           }
         }
       }
     },
     "NSHumanReadableCopyright" : {
       "comment" : "Copyright (human-readable)",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : ""
+            "state" : "machine_translated",
+            "value" : "© SsCalendar"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "© SsCalendar"
           }
         }
       }

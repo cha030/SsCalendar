@@ -21,11 +21,16 @@
     },
     "CFBundleName" : {
       "comment" : "Bundle name",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "machine_translated",
+            "value" : "SsCalendar"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
             "value" : "SsCalendar"
           }
         }
@@ -33,12 +38,17 @@
     },
     "NSCalendarsFullAccessUsageDescription" : {
       "comment" : "Privacy - Calendars Full Access Usage Description",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "iPhone 캘린더(iCloud, Google, Exchange 등)의 일정을 S's calendaR 달력에 함께 표시하기 위해 캘린더 접근 권한이 필요합니다."
+            "state" : "machine_translated",
+            "value" : "SsCalendar needs calendar access to display events from your iPhone calendars (iCloud, Google, Exchange, and more) alongside your SsCalendar calendar."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iPhone 캘린더(iCloud, Google, Exchange 등)의 일정을 SsCalendar 달력에 함께 표시하려면 캘린더 접근 권한이 필요합니다."
           }
         }
       }

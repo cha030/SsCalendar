@@ -38,6 +38,21 @@ struct ThemeSettingsView: View {
                 }
 
                 SystemCalendarSettingsSection()
+
+                Section("언어") {
+                    Button {
+                        openAppSettings()
+                    } label: {
+                        LabeledContent {
+                            Text(currentAppLanguageName)
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            Label("앱 언어", systemImage: "globe")
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .navigationTitle("설정")
             .navigationBarTitleDisplayMode(.inline)
@@ -50,6 +65,17 @@ struct ThemeSettingsView: View {
             }
         }
         .preferredColorScheme(resolvedColorScheme)
+    }
+
+    private var currentAppLanguageName: String {
+        let languageCode = Bundle.main.preferredLocalizations.first ?? "en"
+        return Locale(identifier: languageCode).localizedString(forLanguageCode: languageCode)
+            ?? languageCode
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     private var selectedTheme: AppTheme {

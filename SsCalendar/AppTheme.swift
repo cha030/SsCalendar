@@ -12,11 +12,11 @@ enum AppTheme: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .system:
-            "시스템"
+            String(localized: "시스템")
         case .light:
-            "라이트"
+            String(localized: "라이트")
         case .dark:
-            "다크"
+            String(localized: "다크")
         }
     }
 

@@ -2,34 +2,164 @@
   "sourceLanguage" : "en",
   "strings" : {
     "+%lld" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "+%lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "+%lld"
+          }
+        }
+      }
     },
     "날짜" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Date"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "날짜"
+          }
+        }
+      }
     },
     "날짜 선택" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Select Date"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "날짜 선택"
+          }
+        }
+      }
     },
     "다음 달" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Next Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "다음 달"
+          }
+        }
+      }
     },
     "선택한 날짜에 일정 추가" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Add Event on Selected Date"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "선택한 날짜에 일정 추가"
+          }
+        }
+      }
     },
     "월간 캘린더" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Monthly Calendar"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "월간 캘린더"
+          }
+        }
+      }
     },
     "이번 달 날짜와 저장된 일정을 한눈에 확인합니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See this month's dates and saved events at a glance."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "이번 달 날짜와 저장된 일정을 한눈에 확인합니다."
+          }
+        }
+      }
     },
     "이전 달" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Previous Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "이전 달"
+          }
+        }
+      }
     },
     "현재 달" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Current Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "현재 달"
+          }
+        }
+      }
     },
     "현재 달로 돌아가기" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Go to Current Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "현재 달로 돌아가기"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

@@ -5,154 +5,1557 @@
 
     },
     "%lld" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld개월마다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Every %lld months"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld개월마다"
+          }
+        }
+      }
+    },
+    "%lld년마다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Every %lld years"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld년마다"
+          }
+        }
+      }
     },
     "%lld월" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld월"
+          }
+        }
+      }
+    },
+    "%lld일마다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Every %lld days"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld일마다"
+          }
+        }
+      }
+    },
+    "%lld주마다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Every %lld weeks"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld주마다"
+          }
+        }
+      }
     },
     "+%lld" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "+%lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "+%lld"
+          }
+        }
+      }
+    },
+    "1시간 전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "1 hour before"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1시간 전"
+          }
+        }
+      }
+    },
+    "1일 전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "1 day before"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1일 전"
+          }
+        }
+      }
+    },
+    "10분 전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "10 minutes before"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "10분 전"
+          }
+        }
+      }
+    },
+    "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Show events from calendars connected to your iPhone, including iCloud, Google, and Exchange. Tap an event to view it, and edit or delete events in calendars that support changes."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다."
+          }
+        }
+      }
+    },
+    "iPhone 캘린더" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "iPhone Calendar"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iPhone 캘린더"
+          }
+        }
+      }
+    },
+    "iPhone 캘린더 연동이 꺼져 있습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "iPhone Calendar integration is turned off."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "iPhone 캘린더 연동이 꺼져 있습니다."
+          }
+        }
+      }
     },
     "iPhone 캘린더 일정 표시" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Show iPhone Calendar events"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "iPhone 캘린더 일정 표시"
+          }
+        }
+      }
     },
     "iPhone 캘린더에 저장되며, 캘린더 색상이 적용됩니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Saved to iPhone Calendar with the calendar’s color applied."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "iPhone 캘린더에 저장되며, 캘린더 색상이 적용됩니다."
+          }
+        }
+      }
     },
     "SsCalendar" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SsCalendar"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SsCalendar"
+          }
+        }
+      }
     },
     "SsCalendar는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SsCalendar displays holidays separately. If a holiday appears more than once, turn off the corresponding holiday calendar in the list."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "SsCalendar는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요."
+          }
+        }
+      }
     },
     "간격" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Interval"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "간격"
+          }
+        }
+      }
     },
     "값" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Value"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "값"
+          }
+        }
+      }
+    },
+    "개월" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "개월"
+          }
+        }
+      }
     },
     "기본 저장 위치" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Default Save Location"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "기본 저장 위치"
+          }
+        }
+      }
+    },
+    "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "The selected default save location is unavailable, so this event will be saved to SsCalendar. %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. %@"
+          }
+        }
+      }
     },
     "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 SsCalendar에 저장됩니다. %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "The selected default save location is unavailable, so new events will be saved to SsCalendar. %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 SsCalendar에 저장됩니다. %@"
+          }
+        }
+      }
+    },
+    "기타" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Other"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "기타"
+          }
+        }
+      }
     },
     "날짜" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Date"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "날짜"
+          }
+        }
+      }
     },
     "날짜 선택" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Select Date"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "날짜 선택"
+          }
+        }
+      }
+    },
+    "년" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "year"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "년"
+          }
+        }
+      }
     },
     "다음 달" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Next Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "다음 달"
+          }
+        }
+      }
+    },
+    "다크" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Dark"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "다크"
+          }
+        }
+      }
     },
     "뒤로가기" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Back"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "뒤로가기"
+          }
+        }
+      }
+    },
+    "라이트" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Light"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "라이트"
+          }
+        }
+      }
     },
     "메모" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Notes"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "메모"
+          }
+        }
+      }
     },
     "반복" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Repeat"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "반복"
+          }
+        }
+      }
     },
     "반복 간격" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Repeat Interval"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "반복 간격"
+          }
+        }
+      }
+    },
+    "반복 안 함" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Does Not Repeat"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "반복 안 함"
+          }
+        }
+      }
+    },
+    "반복되는 모든 일정을 삭제하시겠습니까?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Delete all recurring events?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "반복되는 모든 일정을 삭제하시겠습니까?"
+          }
+        }
+      }
+    },
+    "보라색" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Purple"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "보라색"
+          }
+        }
+      }
+    },
+    "분 전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "minutes before"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "분 전"
+          }
+        }
+      }
+    },
+    "빨간색" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Red"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "빨간색"
+          }
+        }
+      }
     },
     "삭제" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Delete"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "삭제"
+          }
+        }
+      }
+    },
+    "삭제 중 오류가 발생했습니다. 다시 시도해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "An error occurred while deleting. Please try again."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "삭제 중 오류가 발생했습니다. 다시 시도해 주세요."
+          }
+        }
+      }
     },
     "새 일정" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "New Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "새 일정"
+          }
+        }
+      }
     },
     "새 일정 작성 화면의 초기 저장 위치로 사용됩니다. 기존 일정의 저장 위치는 변경되지 않습니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Used as the initial save location for new events. Existing event locations aren’t changed."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "새 일정 작성 화면의 초기 저장 위치로 사용됩니다. 기존 일정의 저장 위치는 변경되지 않습니다."
+          }
+        }
+      }
     },
     "색상" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Color"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "색상"
+          }
+        }
+      }
     },
     "선택 안 됨" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Not Selected"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "선택 안 됨"
+          }
+        }
+      }
     },
     "선택됨" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Selected"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "선택됨"
+          }
+        }
+      }
+    },
+    "선택한 캘린더가 '표시할 캘린더 선택'에서 꺼져 있습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "The selected calendar is turned off in “Select Calendars to Display.”"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "선택한 캘린더가 '표시할 캘린더 선택'에서 꺼져 있습니다."
+          }
+        }
+      }
+    },
+    "선택한 캘린더를 찾을 수 없습니다. 계정이 제거되었거나 캘린더가 삭제되었을 수 있습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "The selected calendar could not be found. Its account may have been removed or the calendar may have been deleted."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "선택한 캘린더를 찾을 수 없습니다. 계정이 제거되었거나 캘린더가 삭제되었을 수 있습니다."
+          }
+        }
+      }
     },
     "설정" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Settings"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "설정"
+          }
+        }
+      }
     },
     "설정 앱에서 권한 허용하기" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Allow Access in Settings"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "설정 앱에서 권한 허용하기"
+          }
+        }
+      }
+    },
+    "시간 전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "hours before"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "시간 전"
+          }
+        }
+      }
+    },
+    "시스템" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "System"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "시스템"
+          }
+        }
+      }
     },
     "시작" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Start"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "시작"
+          }
+        }
+      }
     },
     "알림" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Alert"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "알림"
+          }
+        }
+      }
     },
     "알림 시점" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Alert Time"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "알림 시점"
+          }
+        }
+      }
+    },
+    "앱 언어" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "App Language"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "앱 언어"
+          }
+        }
+      }
+    },
+    "언어" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Language"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "언어"
+          }
+        }
+      }
+    },
+    "없음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "None"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "없음"
+          }
+        }
+      }
     },
     "오늘" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Today"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "오늘"
+          }
+        }
+      }
     },
     "완료" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Done"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "완료"
+          }
+        }
+      }
+    },
+    "이 기기에서는 캘린더 접근이 제한되어 있습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Calendar access is restricted on this device."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 기기에서는 캘린더 접근이 제한되어 있습니다."
+          }
+        }
+      }
+    },
+    "이 일정을 삭제하시겠습니까?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Delete this event?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 일정을 삭제하시겠습니까?"
+          }
+        }
+      }
+    },
+    "이 캘린더는 수정할 수 없습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "This calendar cannot be edited."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 캘린더는 수정할 수 없습니다."
+          }
+        }
+      }
     },
     "이전 달" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Previous Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "이전 달"
+          }
+        }
+      }
+    },
+    "일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "day"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일"
+          }
+        }
+      }
+    },
+    "일 전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "days before"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일 전"
+          }
+        }
+      }
     },
     "일정 삭제" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Delete Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "일정 삭제"
+          }
+        }
+      }
+    },
+    "일정 시작 시간" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "At Event Start Time"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일정 시작 시간"
+          }
+        }
+      }
     },
     "일정 추가" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Add Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "일정 추가"
+          }
+        }
+      }
     },
     "일정 편집" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Edit Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "일정 편집"
+          }
+        }
+      }
     },
     "일정을 열 수 없습니다" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Unable to Open Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "일정을 열 수 없습니다"
+          }
+        }
+      }
     },
     "일정을 저장할 수 없습니다" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Unable to Save Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "일정을 저장할 수 없습니다"
+          }
+        }
+      }
+    },
+    "일정을 찾을 수 없습니다. 다른 기기에서 삭제되었거나 변경되었을 수 있습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "The event could not be found. It may have been deleted or changed on another device."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일정을 찾을 수 없습니다. 다른 기기에서 삭제되었거나 변경되었을 수 있습니다."
+          }
+        }
+      }
+    },
+    "일정이 곧 시작됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Your event is about to start."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일정이 곧 시작됩니다."
+          }
+        }
+      }
     },
     "일정이 없습니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No Events."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "일정이 없습니다."
+          }
+        }
+      }
     },
     "저장" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Save"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "저장"
+          }
+        }
+      }
     },
     "저장 위치" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Save to"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "저장 위치"
+          }
+        }
+      }
+    },
+    "저장 중 오류가 발생했습니다. 다시 시도해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "An error occurred while saving. Please try again."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "저장 중 오류가 발생했습니다. 다시 시도해 주세요."
+          }
+        }
+      }
     },
     "제목" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Title"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "제목"
+          }
+        }
+      }
     },
     "종료" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "End"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "종료"
+          }
+        }
+      }
+    },
+    "종료 시간은 시작 시간보다 빠를 수 없습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "The end time cannot be earlier than the start time."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "종료 시간은 시작 시간보다 빠를 수 없습니다."
+          }
+        }
+      }
+    },
+    "종일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "All-day"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "종일"
+          }
+        }
+      }
+    },
+    "주" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "week"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "주"
+          }
+        }
+      }
+    },
+    "직접 설정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Custom"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "직접 설정"
+          }
+        }
+      }
+    },
+    "초록색" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Green"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "초록색"
+          }
+        }
+      }
     },
     "취소" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cancel"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "취소"
+          }
+        }
+      }
     },
     "캘린더" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Calendar"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "캘린더"
+          }
+        }
+      }
+    },
+    "캘린더 접근 권한이 없습니다. 설정 앱에서 권한을 허용해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Calendar access is not available. Allow access in Settings."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "캘린더 접근 권한이 없습니다. 설정 앱에서 권한을 허용해 주세요."
+          }
+        }
+      }
+    },
+    "캘린더 접근 권한이 없어 iPhone 캘린더 일정을 표시할 수 없습니다. 설정 앱에서 '전체 접근'을 허용해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Calendar access is unavailable, so iPhone Calendar events cannot be displayed. Allow Full Access in Settings."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "캘린더 접근 권한이 없어 iPhone 캘린더 일정을 표시할 수 없습니다. 설정 앱에서 '전체 접근'을 허용해 주세요."
+          }
+        }
+      }
+    },
+    "캘린더에 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "The event could not be saved to the calendar. Please try again later."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "캘린더에 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."
+          }
+        }
+      }
+    },
+    "파란색" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Blue"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "파란색"
+          }
+        }
+      }
     },
     "표시할 수 있는 캘린더가 없습니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No Calendars Available."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "표시할 수 있는 캘린더가 없습니다."
+          }
+        }
+      }
     },
     "표시할 캘린더 선택" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Select Calendars to Display"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "표시할 캘린더 선택"
+          }
+        }
+      }
     },
     "하루 종일" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "All-day"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "하루 종일"
+          }
+        }
+      }
     },
     "현재 달" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Current Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "현재 달"
+          }
+        }
+      }
     },
     "화면 모드" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "View Mode"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "화면 모드"
+          }
+        }
+      }
     },
     "확인" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "OK"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "확인"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

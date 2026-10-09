@@ -87,11 +87,11 @@ struct SystemCalendarSettingsSection: View {
     private var footerText: String {
         switch service.authorizationStatus {
         case .denied, .writeOnly:
-            return "캘린더 접근 권한이 없어 iPhone 캘린더 일정을 표시할 수 없습니다. 설정 앱에서 '전체 접근'을 허용해 주세요."
+            return String(localized: "캘린더 접근 권한이 없어 iPhone 캘린더 일정을 표시할 수 없습니다. 설정 앱에서 '전체 접근'을 허용해 주세요.")
         case .restricted:
-            return "이 기기에서는 캘린더 접근이 제한되어 있습니다."
+            return String(localized: "이 기기에서는 캘린더 접근이 제한되어 있습니다.")
         default:
-            return "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다."
+            return String(localized: "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다.")
         }
     }
 

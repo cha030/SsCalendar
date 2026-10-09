@@ -65,19 +65,19 @@ enum SystemCalendarAccessError: Error, Equatable {
     var message: String {
         switch self {
         case .integrationDisabled:
-            return "iPhone 캘린더 연동이 꺼져 있습니다."
+            return String(localized: "iPhone 캘린더 연동이 꺼져 있습니다.")
         case .accessDenied:
-            return "캘린더 접근 권한이 없습니다. 설정 앱에서 권한을 허용해 주세요."
+            return String(localized: "캘린더 접근 권한이 없습니다. 설정 앱에서 권한을 허용해 주세요.")
         case .calendarNotFound:
-            return "선택한 캘린더를 찾을 수 없습니다. 계정이 제거되었거나 캘린더가 삭제되었을 수 있습니다."
+            return String(localized: "선택한 캘린더를 찾을 수 없습니다. 계정이 제거되었거나 캘린더가 삭제되었을 수 있습니다.")
         case .calendarReadOnly:
-            return "이 캘린더는 수정할 수 없습니다."
+            return String(localized: "이 캘린더는 수정할 수 없습니다.")
         case .calendarHidden:
-            return "선택한 캘린더가 '표시할 캘린더 선택'에서 꺼져 있습니다."
+            return String(localized: "선택한 캘린더가 '표시할 캘린더 선택'에서 꺼져 있습니다.")
         case .eventNotFound:
-            return "일정을 찾을 수 없습니다. 다른 기기에서 삭제되었거나 변경되었을 수 있습니다."
+            return String(localized: "일정을 찾을 수 없습니다. 다른 기기에서 삭제되었거나 변경되었을 수 있습니다.")
         case .saveFailed:
-            return "캘린더에 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."
+            return String(localized: "캘린더에 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
         }
     }
 }
@@ -149,7 +149,7 @@ enum SystemCalendarWriteSupport {
             .map { sourceID, calendars in
                 SystemWritableCalendarSourceGroup(
                     id: sourceID,
-                    title: calendars.first?.source?.title ?? "기타",
+                    title: calendars.first?.source?.title ?? String(localized: "기타"),
                     calendars: calendars
                         .map { calendar in
                             SystemWritableCalendarInfo(

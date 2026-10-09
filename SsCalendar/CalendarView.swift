@@ -25,13 +25,15 @@ struct CalendarView: View {
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = Locale(identifier: "ko_KR")
+        calendar.locale = Locale.current
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
         calendar.firstWeekday = 1
         return calendar
     }
 
-    private let weekdays = ["일", "월", "화", "수", "목", "금", "토"]
+    private var weekdays: [String] {
+        calendar.veryShortStandaloneWeekdaySymbols
+    }
 
     var body: some View {
         let occurrences = visibleOccurrences
@@ -46,7 +48,7 @@ struct CalendarView: View {
                             .font(.title3)
                     }
 
-                    Text("\(calendar.component(.month, from: currentDate))월")
+                    Text(currentDate.formatted(.dateTime.month(.wide).locale(calendar.locale ?? .current)))
                         .font(.title)
                         .fontWeight(.semibold)
                         .frame(minWidth: 70)

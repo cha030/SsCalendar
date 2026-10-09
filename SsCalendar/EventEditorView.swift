@@ -9,6 +9,15 @@ enum EventColor: String, CaseIterable, Identifiable, Codable {
 
     var id: Self { self }
 
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .blue: "파란색"
+        case .red: "빨간색"
+        case .green: "초록색"
+        case .purple: "보라색"
+        }
+    }
+
     var color: Color {
         switch self {
         case .blue:
@@ -32,6 +41,17 @@ private enum EventReminderOption: String, CaseIterable, Identifiable {
     case custom = "직접 설정"
 
     var id: Self { self }
+
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .none: "없음"
+        case .atStart: "일정 시작 시간"
+        case .tenMinutesBefore: "10분 전"
+        case .oneHourBefore: "1시간 전"
+        case .oneDayBefore: "1일 전"
+        case .custom: "직접 설정"
+        }
+    }
 }
 
 private enum ReminderOffsetUnit: String, CaseIterable, Identifiable {
@@ -40,6 +60,14 @@ private enum ReminderOffsetUnit: String, CaseIterable, Identifiable {
     case day = "일 전"
 
     var id: Self { self }
+
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .minute: "분 전"
+        case .hour: "시간 전"
+        case .day: "일 전"
+        }
+    }
 
     var seconds: TimeInterval {
         switch self {
@@ -84,6 +112,16 @@ private enum EventRepeatUnit: String, CaseIterable, Identifiable {
     case year = "년"
 
     var id: Self { self }
+
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .none: "반복 안 함"
+        case .day: "일"
+        case .week: "주"
+        case .month: "개월"
+        case .year: "년"
+        }
+    }
 }
 
 private struct EventRepeatSetting {
@@ -94,12 +132,19 @@ private struct EventRepeatSetting {
         unit != .none
     }
 
-    var summary: String {
-        guard isRepeating else {
-            return EventRepeatUnit.none.rawValue
+    var summary: LocalizedStringResource {
+        switch unit {
+        case .none:
+            return "반복 안 함"
+        case .day:
+            return "\(interval)일마다"
+        case .week:
+            return "\(interval)주마다"
+        case .month:
+            return "\(interval)개월마다"
+        case .year:
+            return "\(interval)년마다"
         }
-
-        return "\(interval)\(unit.rawValue)마다"
     }
 
     /// 시스템 캘린더(EventKit) 저장용 반복 규칙. 반복 안 함이면 nil.
@@ -197,7 +242,7 @@ struct EventEditorView: View {
         if event == nil,
            let issue = systemCalendar.defaultSaveDestinationIssue,
            issue != .integrationDisabled {
-            defaultDestinationNotice = "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. \(issue.message)"
+            defaultDestinationNotice = String(localized: "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. \(issue.message)")
         } else {
             defaultDestinationNotice = nil
         }
@@ -232,7 +277,7 @@ struct EventEditorView: View {
                 )
                 .environment(
                     \.locale,
-                    Locale(identifier: "ko_KR")
+                    Locale.current
                 )
 
                 DatePicker(
@@ -244,7 +289,7 @@ struct EventEditorView: View {
                 )
                 .environment(
                     \.locale,
-                    Locale(identifier: "ko_KR")
+                    Locale.current
                 )
             }
 
@@ -281,7 +326,7 @@ struct EventEditorView: View {
                                     .frame(width: 30, height: 30)
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(colorOption.rawValue)
+                                .accessibilityLabel(Text(colorOption.localizedTitle))
                                 .accessibilityValue(
                                     eventColor == colorOption ? "선택됨" : "선택 안 됨"
                                 )
@@ -294,7 +339,7 @@ struct EventEditorView: View {
             Section {
                 Picker("알림", selection: $reminderSetting.option) {
                     ForEach(EventReminderOption.allCases) { option in
-                        Text(option.rawValue)
+                        Text(option.localizedTitle)
                             .tag(option)
                     }
                 }
@@ -313,7 +358,7 @@ struct EventEditorView: View {
 
                             Picker("", selection: $reminderSetting.customUnit) {
                                 ForEach(ReminderOffsetUnit.allCases) { unit in
-                                    Text(unit.rawValue)
+                                    Text(unit.localizedTitle)
                                         .tag(unit)
                                 }
                             }
@@ -333,7 +378,7 @@ struct EventEditorView: View {
             Section {
                 Picker("반복", selection: $repeatSetting.unit) {
                     ForEach(EventRepeatUnit.allCases) { unit in
-                        Text(unit.rawValue)
+                        Text(unit.localizedTitle)
                             .tag(unit)
                     }
                 }
@@ -485,10 +530,10 @@ struct EventEditorView: View {
 
     private var deleteConfirmationTitle: String {
         if let event, event.repeatUnit != EventRepeatUnit.none.rawValue {
-            return "반복되는 모든 일정을 삭제하시겠습니까?"
+            return String(localized: "반복되는 모든 일정을 삭제하시겠습니까?")
         }
 
-        return "이 일정을 삭제하시겠습니까?"
+        return String(localized: "이 일정을 삭제하시겠습니까?")
     }
 
     private var saveErrorIsPresented: Binding<Bool> {
@@ -518,7 +563,7 @@ struct EventEditorView: View {
 
     private func saveEvent() async {
         guard endDate >= startDate else {
-            saveErrorMessage = "종료 시간은 시작 시간보다 빠를 수 없습니다."
+            saveErrorMessage = String(localized: "종료 시간은 시작 시간보다 빠를 수 없습니다.")
             return
         }
 
@@ -563,7 +608,7 @@ struct EventEditorView: View {
         } catch {
             modelContext.rollback()
             isSaving = false
-            saveErrorMessage = "저장 중 오류가 발생했습니다. 다시 시도해 주세요."
+            saveErrorMessage = String(localized: "저장 중 오류가 발생했습니다. 다시 시도해 주세요.")
         }
     }
 
@@ -617,7 +662,7 @@ struct EventEditorView: View {
             dismiss()
         } catch {
             modelContext.rollback()
-            saveErrorMessage = "삭제 중 오류가 발생했습니다. 다시 시도해 주세요."
+            saveErrorMessage = String(localized: "삭제 중 오류가 발생했습니다. 다시 시도해 주세요.")
         }
     }
 }

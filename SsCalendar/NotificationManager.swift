@@ -116,7 +116,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         for schedule in schedules {
             let content = UNMutableNotificationContent()
             content.title = schedule.title
-            content.body = "일정이 곧 시작됩니다."
+            content.body = String(localized: "일정이 곧 시작됩니다.")
             content.sound = .default
 
             var dateComponents = Calendar.current.dateComponents(
