@@ -621,6 +621,17 @@
         }
       }
     },
+    "닫기" : {
+      "comment" : "연간 달력 닫기 버튼",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Close"
+          }
+        }
+      }
+    },
     "대한민국" : {
       "localizations" : {
         "ko" : {
@@ -1122,6 +1133,7 @@
       }
     },
     "완료" : {
+      "comment" : "연도 직접 입력 완료",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1570,6 +1582,7 @@
       }
     },
     "취소" : {
+      "comment" : "연도 직접 입력 취소",
       "localizations" : {
         "en" : {
           "stringUnit" : {

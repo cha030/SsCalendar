@@ -667,3 +667,80 @@ struct WeekEventLayoutTests {
         #expect(result.visibleSegments[0].height == twoLineEventHeight) // 2줄 이상으로는 늘어나지 않는다.
     }
 }
+
+@Suite("YearMiniMonthGrid")
+struct YearMiniMonthGridTests {
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        calendar.firstWeekday = 1
+        return calendar
+    }()
+
+    private func day(_ date: Date?) -> Int? {
+        guard let date else { return nil }
+        return calendar.component(.day, from: date)
+    }
+
+    @Test("항상 42칸(6행×7열)을 만든다")
+    func alwaysProducesFortyTwoCells() {
+        let grid = YearMiniMonthGrid(year: 2026, month: 1, calendar: calendar)
+        #expect(grid.days.count == 42)
+    }
+
+    @Test("2026년 1월 1일은 목요일이라 앞에 4칸의 공백(일~수)이 와야 한다")
+    func januaryTwentyTwentySixStartsOnThursday() {
+        // 2026-01-01은 목요일(일요일 시작 기준으로 0=일,1=월,2=화,3=수,4=목 → 앞 공백 4칸).
+        let grid = YearMiniMonthGrid(year: 2026, month: 1, calendar: calendar)
+
+        #expect(grid.days[0] == nil)
+        #expect(grid.days[1] == nil)
+        #expect(grid.days[2] == nil)
+        #expect(grid.days[3] == nil)
+        #expect(day(grid.days[4]) == 1)
+        #expect(day(grid.days[34]) == 31) // 4(앞 공백) + 31(마지막 날) - 1 = 34
+        #expect(grid.days[35] == nil) // 31일 이후로는 다시 공백
+    }
+
+    @Test("윤년 2024년 2월은 29일까지 정확히 표시되고 2025년 2월은 28일까지만 표시된다")
+    func leapYearFebruaryShowsTwentyNineDaysNonLeapShowsTwentyEight() {
+        let leapGrid = YearMiniMonthGrid(year: 2024, month: 2, calendar: calendar)
+        let nonLeapGrid = YearMiniMonthGrid(year: 2025, month: 2, calendar: calendar)
+
+        let leapDayCount = leapGrid.days.compactMap { $0 }.count
+        let nonLeapDayCount = nonLeapGrid.days.compactMap { $0 }.count
+
+        #expect(leapDayCount == 29)
+        #expect(nonLeapDayCount == 28)
+
+        let leapLastDay = leapGrid.days.compactMap(day).max()
+        let nonLeapLastDay = nonLeapGrid.days.compactMap(day).max()
+        #expect(leapLastDay == 29)
+        #expect(nonLeapLastDay == 28)
+    }
+
+    @Test("연말(12월)과 연초(1월) 경계에서도 각 달의 날짜 수가 정확하다")
+    func yearBoundaryMonthsHaveCorrectDayCounts() {
+        let december = YearMiniMonthGrid(year: 2026, month: 12, calendar: calendar)
+        let january = YearMiniMonthGrid(year: 2027, month: 1, calendar: calendar)
+
+        #expect(december.days.compactMap { $0 }.count == 31)
+        #expect(january.days.compactMap { $0 }.count == 31)
+    }
+
+    @Test("모든 달에서 그리드 칸 위치(요일 열)가 실제 요일과 일치한다")
+    func everyCellsColumnMatchesItsActualWeekday() {
+        // 1~12월을 모두 훑어, nil이 아닌 각 칸의 실제 요일이 그 칸의 열 위치(0=일~6=토)와
+        // 맞는지 확인한다. 윤년 2월(2024)도 포함해 월 경계·요일 정렬 둘 다 검증한다.
+        for month in 1...12 {
+            let grid = YearMiniMonthGrid(year: 2024, month: month, calendar: calendar)
+
+            for (index, date) in grid.days.enumerated() {
+                guard let date else { continue }
+                let column = index % YearMiniMonthGrid.columnCount
+                let weekday = calendar.component(.weekday, from: date) // 1=일...7=토
+                #expect(weekday - 1 == column)
+            }
+        }
+    }
+}
