@@ -765,7 +765,8 @@ private struct CalendarWidgetWeekMetrics {
 
 }
 
-private enum CalendarWidgetDeepLink {
+// Today 위젯(TodayWidget.swift)도 dayURL(for:)을 재사용하므로 파일 범위보다 넓게 연다.
+enum CalendarWidgetDeepLink {
     static func monthURL(for date: Date) -> URL {
         url(host: "month", date: date)
     }

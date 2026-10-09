@@ -525,6 +525,22 @@
         }
       }
     },
+    "끄면 잠금화면 Today 위젯에 실제 일정 제목 대신 \"일정 있음\"만 표시됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "When turned off, the Lock Screen Today widget shows “Event Scheduled” instead of the actual event title."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "끄면 잠금화면 Today 위젯에 실제 일정 제목 대신 \"일정 있음\"만 표시됩니다."
+          }
+        }
+      }
+    },
     "날짜" : {
       "localizations" : {
         "en" : {
@@ -1169,22 +1185,6 @@
         }
       }
     },
-    "이전 달" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Previous Month"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "이전 달"
-          }
-        }
-      }
-    },
     "일" : {
       "localizations" : {
         "en" : {
@@ -1197,6 +1197,22 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "일"
+          }
+        }
+      }
+    },
+    "이전 달" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Previous Month"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "이전 달"
           }
         }
       }
@@ -1357,6 +1373,38 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "일정이 없습니다."
+          }
+        }
+      }
+    },
+    "잠금화면 위젯" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Lock Screen Widget"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "잠금화면 위젯"
+          }
+        }
+      }
+    },
+    "잠금화면 일정 제목 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Show Event Titles on Lock Screen"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "잠금화면 일정 제목 표시"
           }
         }
       }

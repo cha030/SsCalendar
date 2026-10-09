@@ -107,12 +107,61 @@
         }
       }
     },
+    "Next — 다음 일정" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Next — Upcoming Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next — 다음 일정"
+          }
+        }
+      }
+    },
     "Thanksgiving Day" : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "추수감사절"
+          }
+        }
+      }
+    },
+    "Today — 두 번째 일정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Today — Second Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Today — 두 번째 일정"
+          }
+        }
+      }
+    },
+    "Today — 첫 번째 일정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Today — First Event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Today — 첫 번째 일정"
           }
         }
       }
@@ -169,6 +218,23 @@
         }
       }
     },
+    "다음" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Next"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "다음"
+          }
+        }
+      }
+    },
     "다음 달" : {
       "localizations" : {
         "en" : {
@@ -185,12 +251,44 @@
         }
       }
     },
+    "다음 일정 없음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No upcoming events"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "다음 일정 없음"
+          }
+        }
+      }
+    },
     "대한민국" : {
       "localizations" : {
         "ko" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "대한민국"
+          }
+        }
+      }
+    },
+    "디자인 리뷰" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Design Review"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "디자인 리뷰"
           }
         }
       }
@@ -217,6 +315,39 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "선택한 날짜에 일정 추가"
+          }
+        }
+      }
+    },
+    "오늘 일정" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Today's Schedule"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "오늘 일정"
+          }
+        }
+      }
+    },
+    "오늘 일정 없음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No events today"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "오늘 일정 없음"
           }
         }
       }
@@ -269,6 +400,120 @@
         }
       }
     },
+    "일정 있음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Event Scheduled"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "일정 있음"
+          }
+        }
+      }
+    },
+    "잠금화면에서 Today 다음으로 가까운 일정을 확인합니다." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See the event coming up after Today, right on your Lock Screen."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "잠금화면에서 Today 다음으로 가까운 일정을 확인합니다."
+          }
+        }
+      }
+    },
+    "잠금화면에서 그다음으로 가까운 일정을 확인합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See the event coming up after that one, right on your Lock Screen."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "잠금화면에서 그다음으로 가까운 일정을 확인합니다."
+          }
+        }
+      }
+    },
+    "잠금화면에서 진행 중이거나 가장 가까운 일정 하나를 확인합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See the event that's happening now or coming up next, right on your Lock Screen."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "잠금화면에서 진행 중이거나 가장 가까운 일정 하나를 확인합니다."
+          }
+        }
+      }
+    },
+    "잠금화면에서 진행 중인 일정과 다음 일정을 확인합니다." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See your current and next event on the Lock Screen."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "잠금화면에서 진행 중인 일정과 다음 일정을 확인합니다."
+          }
+        }
+      }
+    },
+    "종일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "All-day"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "종일"
+          }
+        }
+      }
+    },
+    "진행" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Now"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "진행"
+          }
+        }
+      }
+    },
     "현재 달" : {
       "localizations" : {
         "en" : {
@@ -297,6 +542,22 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "현재 달로 돌아가기"
+          }
+        }
+      }
+    },
+    "회의" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Meeting"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "회의"
           }
         }
       }

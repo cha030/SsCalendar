@@ -12,5 +12,7 @@ import SwiftUI
 struct SsCalendarWidgetBundle: WidgetBundle {
     var body: some Widget {
         SsCalendarWidget()
+        TodayWidget()
+        NextWidget()
     }
 }

@@ -41,6 +41,8 @@ struct ThemeSettingsView: View {
 
                 SystemCalendarSettingsSection()
 
+                TodayWidgetSettingsSection()
+
                 Section("공휴일 국가") {
                     Picker("공휴일 국가", selection: $holidayCountryRawValue) {
                         ForEach(HolidayCountry.allCases) { country in
