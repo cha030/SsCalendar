@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (Observed)" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@ (대체공휴일)"
+          }
+        }
+      }
+    },
     "+%lld" : {
       "localizations" : {
         "en" : {
@@ -13,6 +23,116 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "+%lld"
+          }
+        }
+      }
+    },
+    "Christmas Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "크리스마스"
+          }
+        }
+      }
+    },
+    "Columbus Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "콜럼버스의 날"
+          }
+        }
+      }
+    },
+    "Independence Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "독립기념일"
+          }
+        }
+      }
+    },
+    "Juneteenth" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "준틴스"
+          }
+        }
+      }
+    },
+    "Labor Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "노동절"
+          }
+        }
+      }
+    },
+    "Martin Luther King Jr. Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "마틴 루터 킹 주니어의 날"
+          }
+        }
+      }
+    },
+    "Memorial Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "메모리얼 데이"
+          }
+        }
+      }
+    },
+    "New Year's Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "신정"
+          }
+        }
+      }
+    },
+    "Thanksgiving Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "추수감사절"
+          }
+        }
+      }
+    },
+    "Veterans Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "재향군인의 날"
+          }
+        }
+      }
+    },
+    "Washington's Birthday" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "워싱턴 탄생일"
           }
         }
       }
@@ -61,6 +181,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "다음 달"
+          }
+        }
+      }
+    },
+    "대한민국" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "대한민국"
+          }
+        }
+      }
+    },
+    "미국" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "미국"
           }
         }
       }

@@ -4,6 +4,16 @@
     "" : {
 
     },
+    "%@ (Observed)" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@ (대체공휴일)"
+          }
+        }
+      }
+    },
     "%lld" : {
       "localizations" : {
         "en" : {
@@ -165,6 +175,26 @@
         }
       }
     },
+    "Christmas Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "크리스마스"
+          }
+        }
+      }
+    },
+    "Columbus Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "콜럼버스의 날"
+          }
+        }
+      }
+    },
     "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다." : {
       "localizations" : {
         "en" : {
@@ -177,6 +207,16 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다."
+          }
+        }
+      }
+    },
+    "Independence Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "독립기념일"
           }
         }
       }
@@ -245,6 +285,56 @@
         }
       }
     },
+    "Juneteenth" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "준틴스 데이"
+          }
+        }
+      }
+    },
+    "Labor Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "노동절"
+          }
+        }
+      }
+    },
+    "Martin Luther King Jr. Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "마틴 루터 킹 주니어의 날"
+          }
+        }
+      }
+    },
+    "Memorial Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "메모리얼 데이"
+          }
+        }
+      }
+    },
+    "New Year's Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "신정"
+          }
+        }
+      }
+    },
     "SsCalendar" : {
       "localizations" : {
         "en" : {
@@ -273,6 +363,36 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "SsCalendar는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요."
+          }
+        }
+      }
+    },
+    "Thanksgiving Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "추수감사절"
+          }
+        }
+      }
+    },
+    "Veterans Day" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "재향군인의 날"
+          }
+        }
+      }
+    },
+    "Washington's Birthday" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "워싱턴 탄생일"
           }
         }
       }
@@ -321,6 +441,22 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "개월"
+          }
+        }
+      }
+    },
+    "공휴일 국가" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Country"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "국가"
           }
         }
       }
@@ -469,6 +605,16 @@
         }
       }
     },
+    "대한민국" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "대한민국"
+          }
+        }
+      }
+    },
     "뒤로가기" : {
       "localizations" : {
         "en" : {
@@ -513,6 +659,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "메모"
+          }
+        }
+      }
+    },
+    "미국" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "미국"
           }
         }
       }

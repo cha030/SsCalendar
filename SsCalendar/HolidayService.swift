@@ -9,15 +9,28 @@ final class HolidayService {
     )
 
     private let session: URLSession
-    private var cache: [HolidayMonth: [Holiday]] = [:]
+    private var cache: [String: [Holiday]] = [:]
 
     init(session: URLSession = .shared) {
         self.session = session
     }
 
-    func holidays(for month: HolidayMonth) async throws -> [Holiday] {
-        if let cachedHolidays = cache[month] {
+    func holidays(
+        for month: HolidayMonth,
+        country: HolidayCountry
+    ) async throws -> [Holiday] {
+        let cacheKey = "\(country.rawValue)-\(month.year)-\(month.month)"
+        if let cachedHolidays = cache[cacheKey] {
             return cachedHolidays
+        }
+
+        if country == .unitedStates {
+            let holidays = USFederalHolidayCalculator.records(for: month).map {
+                Holiday(date: $0.date, name: $0.name, isHoliday: $0.isHoliday)
+            }
+            cache[cacheKey] = holidays
+            updateSharedCache(with: holidays, for: month, country: country)
+            return holidays
         }
 
         guard let apiKey = AppConfig.holidayAPIKey else {
@@ -74,14 +87,15 @@ final class HolidayService {
         let holidays = parserDelegate.items.compactMap {
             makeHoliday(from: $0)
         }
-        cache[month] = holidays
-        updateSharedCache(with: holidays, for: month)
+        cache[cacheKey] = holidays
+        updateSharedCache(with: holidays, for: month, country: country)
         return holidays
     }
 
     private func updateSharedCache(
         with holidays: [Holiday],
-        for month: HolidayMonth
+        for month: HolidayMonth,
+        country: HolidayCountry
     ) {
         let records = holidays.map {
             SharedHolidayRecord(
@@ -93,6 +107,7 @@ final class HolidayService {
 
         guard let changed = try? SharedHolidayCache.store(
             records,
+            country: country,
             year: month.year,
             month: month.month
         ), changed else {

@@ -10,15 +10,8 @@ struct Holiday: Identifiable, Hashable {
     }
 }
 
-struct HolidayMonth: Hashable, Comparable, Sendable {
-    let year: Int
-    let month: Int
-
-    static func < (lhs: HolidayMonth, rhs: HolidayMonth) -> Bool {
-        if lhs.year != rhs.year {
-            return lhs.year < rhs.year
-        }
-
-        return lhs.month < rhs.month
-    }
+struct HolidayFetchKey: Hashable, Sendable {
+    let country: HolidayCountry
+    let months: [HolidayMonth]
+    let refreshGeneration: Int
 }

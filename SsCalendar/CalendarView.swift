@@ -7,6 +7,7 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @State private var schedulePath: [Date] = []
     @State private var holidaysByDate: [Date: [Holiday]] = [:]
+    @State private var holidayRefreshGeneration = 0
     @State private var isPresentingSettings = false
     @State private var newEventDate: Date?
     @AppStorage(AppTheme.storageKey) private var selectedThemeRawValue = AppTheme.system.rawValue
@@ -14,6 +15,10 @@ struct CalendarView: View {
         SystemCalendarService.isEnabledStorageKey,
         store: SystemCalendarService.settingsStore
     ) private var isSystemCalendarEnabled = false
+    @AppStorage(
+        HolidayCountry.storageKey,
+        store: HolidayCountry.settingsStore
+    ) private var holidayCountryRawValue = HolidayCountry.southKorea.rawValue
     @State private var systemOccurrences: [CalendarDisplayOccurrence] = []
     @State private var systemCalendar = SystemCalendarService.shared
 
@@ -123,15 +128,20 @@ struct CalendarView: View {
                     systemCalendarRefreshGeneration: systemCalendarRefreshGeneration
                 )
             }
-            .task(id: visibleHolidayMonths) {
-                await loadHolidays(for: visibleHolidayMonths)
+            .task(id: holidayFetchKey) {
+                await loadHolidays(
+                    for: holidayFetchKey.months,
+                    country: holidayFetchKey.country
+                )
             }
             .task(id: systemCalendarFetchKey) {
                 loadSystemOccurrences(for: systemCalendarFetchKey)
             }
             .sheet(isPresented: $isPresentingSettings) {
                 ThemeSettingsView(
-                    selectedThemeRawValue: $selectedThemeRawValue
+                    selectedThemeRawValue: $selectedThemeRawValue,
+                    holidayCountryRawValue: $holidayCountryRawValue,
+                    onHolidayCountryChanged: syncHolidayCountryFromSettings
                 )
             }
             .sheet(
@@ -147,7 +157,27 @@ struct CalendarView: View {
                 }
             }
             .onOpenURL(perform: handleDeepLink)
+            .onChange(of: holidayCountryRawValue) { _, _ in
+                holidaysByDate = [:]
+            }
         }
+    }
+
+    private var holidayCountry: HolidayCountry {
+        HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea
+    }
+
+    private var holidayFetchKey: HolidayFetchKey {
+        HolidayFetchKey(
+            country: holidayCountry,
+            months: visibleHolidayMonths,
+            refreshGeneration: holidayRefreshGeneration
+        )
+    }
+
+    private func syncHolidayCountryFromSettings() {
+        holidaysByDate = [:]
+        holidayRefreshGeneration += 1
     }
 
     private var visibleInterval: DateInterval? {
@@ -216,14 +246,20 @@ struct CalendarView: View {
     }
 
     @MainActor
-    private func loadHolidays(for months: [HolidayMonth]) async {
+    private func loadHolidays(
+        for months: [HolidayMonth],
+        country: HolidayCountry
+    ) async {
         var loadedByDate: [Date: [Holiday]] = [:]
 
         for month in months {
             guard !Task.isCancelled else { return }
 
             do {
-                let holidays = try await HolidayService.shared.holidays(for: month)
+                let holidays = try await HolidayService.shared.holidays(
+                    for: month,
+                    country: country
+                )
                 for holiday in holidays where holiday.isHoliday {
                     let day = calendar.startOfDay(for: holiday.date)
                     loadedByDate[day, default: []].append(holiday)
@@ -234,7 +270,9 @@ struct CalendarView: View {
             }
         }
 
-        guard !Task.isCancelled, months == visibleHolidayMonths else { return }
+        guard !Task.isCancelled,
+              country == holidayCountry,
+              months == visibleHolidayMonths else { return }
         holidaysByDate = loadedByDate
     }
 

@@ -76,7 +76,11 @@ struct CalendarWidgetProvider: TimelineProvider {
                 local: localItems,
                 system: systemItems(in: grid.interval, calendar: calendar)
             )
-            let holidaysByDate = Dictionary(grouping: SharedHolidayCache.records()) {
+            let holidayRecords = holidayRecords(
+                for: HolidayCountry.selected(in: HolidayCountry.settingsStore),
+                in: grid
+            )
+            let holidaysByDate = Dictionary(grouping: holidayRecords) {
                 calendar.startOfDay(for: $0.date)
             }
             let widgetOccurrences = items.map(\.widgetOccurrence)
@@ -120,6 +124,27 @@ struct CalendarWidgetProvider: TimelineProvider {
 
         return SystemCalendarQuery.enabledResults(in: interval, defaults: defaults)
             .map { CalendarWidgetItem(system: $0, calendar: calendar) }
+    }
+
+    @MainActor
+    private func holidayRecords(
+        for country: HolidayCountry,
+        in grid: (monthStart: Date, interval: DateInterval, dates: [Date])
+    ) -> [SharedHolidayRecord] {
+        switch country {
+        case .southKorea:
+            return SharedHolidayCache.records(for: country)
+        case .unitedStates:
+            let calendar = CalendarWidgetCalendar.korean
+            let months = Set(grid.dates.compactMap { date -> HolidayMonth? in
+                let components = calendar.dateComponents([.year, .month], from: date)
+                guard let year = components.year, let month = components.month else {
+                    return nil
+                }
+                return HolidayMonth(year: year, month: month)
+            })
+            return months.flatMap { USFederalHolidayCalculator.records(for: $0) }
+        }
     }
 }
 

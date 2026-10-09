@@ -4,6 +4,8 @@ import UIKit
 struct ThemeSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedThemeRawValue: String
+    @Binding var holidayCountryRawValue: String
+    var onHolidayCountryChanged: () -> Void = {}
 
     var body: some View {
         NavigationStack {
@@ -38,6 +40,19 @@ struct ThemeSettingsView: View {
                 }
 
                 SystemCalendarSettingsSection()
+
+                Section("공휴일 국가") {
+                    Picker("공휴일 국가", selection: $holidayCountryRawValue) {
+                        ForEach(HolidayCountry.allCases) { country in
+                            Text(country.localizedTitle)
+                                .tag(country.rawValue)
+                        }
+                    }
+                    .onChange(of: holidayCountryRawValue) { _, _ in
+                        WidgetReloadManager.requestCalendarReload()
+                        onHolidayCountryChanged()
+                    }
+                }
 
                 Section("언어") {
                     Button {
@@ -96,6 +111,7 @@ struct ThemeSettingsView: View {
 
 #Preview {
     ThemeSettingsView(
-        selectedThemeRawValue: .constant(AppTheme.system.rawValue)
+        selectedThemeRawValue: .constant(AppTheme.system.rawValue),
+        holidayCountryRawValue: .constant(HolidayCountry.southKorea.rawValue)
     )
 }
