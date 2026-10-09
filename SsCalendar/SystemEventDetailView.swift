@@ -10,6 +10,21 @@ struct SystemEventPresentation: Identifiable {
     let allowsEditing: Bool
 }
 
+private final class SystemEventNavigationController: UINavigationController {
+    override func viewWillAppear(_ animated: Bool) {
+        setToolbarHidden(true, animated: false)
+        super.viewWillAppear(animated)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        if !isToolbarHidden {
+            setToolbarHidden(true, animated: false)
+        }
+    }
+}
+
 /// Apple 기본 일정 상세 화면(EKEventViewController).
 /// 수정·삭제와 반복 일정의 "이 이벤트만 / 이후 모든 이벤트" 선택은 Apple UI가 직접 처리한다.
 /// 따라서 반드시 사용자가 탭한 발생분(EKEvent)을 넘겨야 한다.
@@ -24,7 +39,7 @@ struct SystemEventDetailView: UIViewControllerRepresentable {
         controller.allowsEditing = presentation.allowsEditing
         controller.delegate = context.coordinator
         // Done·Edit 버튼은 내비게이션 바에 표시되므로 내비게이션 컨트롤러로 감싼다.
-        return UINavigationController(rootViewController: controller)
+        return SystemEventNavigationController(rootViewController: controller)
     }
 
     func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
