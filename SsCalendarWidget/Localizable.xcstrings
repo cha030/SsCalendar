@@ -47,6 +47,46 @@
         }
       }
     },
+    "D-Day" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "D-Day"
+          }
+        }
+      }
+    },
+    "D-Day — 가장 가까운 일정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "D-Day — Closest Event"
+          }
+        }
+      }
+    },
+    "D-Day — 두 번째로 가까운 일정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "D-Day — Second Closest Event"
+          }
+        }
+      }
+    },
+    "D-Day 일정 없음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No D-Day events"
+          }
+        }
+      }
+    },
     "Independence Day" : {
       "localizations" : {
         "ko" : {
@@ -218,6 +258,16 @@
         }
       }
     },
+    "다가오는 D-Day 일정을 홈 화면에서 확인합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See upcoming D-Day events on your Home Screen."
+          }
+        }
+      }
+    },
     "다음" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -303,6 +353,16 @@
         }
       }
     },
+    "생일 파티" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Birthday Party"
+          }
+        }
+      }
+    },
     "선택한 날짜에 일정 추가" : {
       "localizations" : {
         "en" : {
@@ -315,6 +375,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "선택한 날짜에 일정 추가"
+          }
+        }
+      }
+    },
+    "여행" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Trip"
           }
         }
       }
@@ -433,6 +503,16 @@
         }
       }
     },
+    "잠금화면에서 가장 가까운 D-Day 일정을 확인합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See the closest D-Day event, right on your Lock Screen."
+          }
+        }
+      }
+    },
     "잠금화면에서 그다음으로 가까운 일정을 확인합니다." : {
       "localizations" : {
         "en" : {
@@ -445,6 +525,16 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "잠금화면에서 그다음으로 가까운 일정을 확인합니다."
+          }
+        }
+      }
+    },
+    "잠금화면에서 두 번째로 가까운 D-Day 일정을 확인합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "See the second closest D-Day event, right on your Lock Screen."
           }
         }
       }

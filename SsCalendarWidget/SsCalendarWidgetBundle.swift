@@ -14,5 +14,8 @@ struct SsCalendarWidgetBundle: WidgetBundle {
         SsCalendarWidget()
         TodayWidget()
         NextWidget()
+        DDayWidget()
+        DDayNextWidget()
+        DDayHomeWidget()
     }
 }

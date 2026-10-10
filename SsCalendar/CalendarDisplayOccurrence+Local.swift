@@ -7,11 +7,12 @@ extension CalendarDisplayOccurrence {
         self.init(
             id: "local:\(occurrence.event.id.uuidString):\(occurrence.startDate.timeIntervalSince1970)",
             source: .local(eventID: occurrence.event.id),
-            title: occurrence.event.title,
+            title: occurrence.title,
             isAllDay: occurrence.isAllDay,
             startDate: occurrence.startDate,
             endDate: occurrence.endDate,
-            color: EventColor(rawValue: occurrence.event.color)?.color ?? .gray
+            color: EventColor(rawValue: occurrence.colorName)?.color ?? .gray,
+            originalStartDate: occurrence.originalStartDate
         )
     }
 }

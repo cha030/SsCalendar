@@ -10,9 +10,14 @@ private enum DayNavigationDirection {
 
 struct DayScheduleView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Event.startDate, order: .forward) private var events: [Event]
+    /// 외부 일정의 D-Day 설정(Step 5-2). 외부 캘린더 원본은 건드리지 않고, 이 로컬 데이터만 읽고 쓴다.
+    @Query private var externalDDaySettings: [ExternalEventDDaySetting]
+    /// 반복 일정의 개별 수정·삭제 예외(Step 5-2).
+    @Query private var occurrenceExceptions: [EventOccurrenceException]
     @State private var isPresentingEventEditor = false
-    @State private var selectedEvent: Event?
+    @State private var selectedLocalEvent: SelectedLocalEvent?
     @AppStorage(
         SystemCalendarService.isEnabledStorageKey,
         store: SystemCalendarService.settingsStore
@@ -120,7 +125,8 @@ struct DayScheduleView: View {
         let localOccurrences = EventOccurrenceService.occurrences(
             for: events,
             intersecting: dayInterval,
-            calendar: Calendar.current
+            calendar: Calendar.current,
+            exceptions: occurrenceExceptions
         )
         .map { CalendarDisplayOccurrence(local: $0) }
 
@@ -146,6 +152,61 @@ struct DayScheduleView: View {
         }
 
         systemOccurrences = systemCalendar.occurrences(in: interval)
+    }
+
+    /// 이 발생분의 D-Day 미리보기 배지 문구. 켜져 있지 않거나 이미 지난 일정이면 nil(배지 숨김).
+    /// 로컬은 Event.isDDayEnabled를, 외부 일정은 ExternalEventDDaySetting을 각각 확인한다.
+    private func dDayText(for occurrence: CalendarDisplayOccurrence) -> String? {
+        let isEnabled: Bool
+        if let eventID = occurrence.localEventID {
+            isEnabled = events.first { $0.id == eventID }?.isDDayEnabled ?? false
+        } else if let reference = occurrence.systemEventReference {
+            isEnabled = ExternalDDayStore.isEnabled(for: reference, in: externalDDaySettings)
+        } else {
+            isEnabled = false
+        }
+        guard isEnabled else { return nil }
+
+        let days = DDayCalculator.daysRemaining(until: occurrence.startDate, calendar: Calendar.current)
+        guard days >= 0 else { return nil }
+        return DDayCalculator.displayText(forDaysRemaining: days)
+    }
+
+    /// 이 발생분에 이미 적용돼 있던 개별 수정·삭제 예외를 찾는다. 초 단위 오차를 허용해
+    /// 비교한다(EventOccurrenceService가 같은 기준으로 만든 값이라 정상적으로는 오차가 없다).
+    private func existingException(
+        eventID: UUID,
+        originalOccurrenceStartDate: Date
+    ) -> EventOccurrenceException? {
+        occurrenceExceptions.first {
+            $0.eventID == eventID &&
+            abs($0.originalOccurrenceStartDate.timeIntervalSince(originalOccurrenceStartDate)) < 1
+        }
+    }
+
+    private func isExternalDDayEnabled(_ occurrence: CalendarDisplayOccurrence) -> Bool {
+        guard let reference = occurrence.systemEventReference else { return false }
+        return ExternalDDayStore.isEnabled(for: reference, in: externalDDaySettings)
+    }
+
+    /// 외부 일정의 D-Day를 켜거나 끈다. 외부 캘린더 원본(EKEvent)은 건드리지 않고, SsCalendar
+    /// 로컬 설정(ExternalEventDDaySetting)만 upsert한다 — 같은 일정을 중복 생성하지 않는다.
+    private func toggleExternalDDay(for occurrence: CalendarDisplayOccurrence) {
+        guard let reference = occurrence.systemEventReference else { return }
+
+        ExternalDDayStore.setEnabled(
+            !isExternalDDayEnabled(occurrence),
+            for: reference,
+            existingSettings: externalDDaySettings,
+            context: modelContext
+        )
+
+        do {
+            try modelContext.save()
+            WidgetReloadManager.reloadCalendar()
+        } catch {
+            modelContext.rollback()
+        }
     }
 
     /// 탭한 발생분의 원본을 다시 조회해 Apple 일정 화면을 연다.
@@ -196,19 +257,51 @@ struct DayScheduleView: View {
                 ForEach(orderedOccurrences) { occurrence in
                     if let eventID = occurrence.localEventID {
                         Button {
-                            selectedEvent = events.first { $0.id == eventID }
+                            // 반복 일정은 모든 발생분이 같은 Event를 공유하므로(eventID 동일),
+                            // 탭한 발생분(occurrence)의 실제 날짜도 함께 넘겨야 한다 — Event만
+                            // 넘기면 항상 시리즈 원본 시작일(event.startDate)만 보이는 문제가 있었다.
+                            // originalStartDate는 개별 수정(override) 이전의 "원래" 발생 슬롯이라
+                            // 예외 식별 키로 쓴다(이미 한 번 override된 발생분을 다시 열 때도
+                            // 같은 예외 레코드를 찾아 갱신하기 위함, Step 5-2 개별 수정·삭제).
+                            if let event = events.first(where: { $0.id == eventID }) {
+                                selectedLocalEvent = SelectedLocalEvent(
+                                    event: event,
+                                    occurrenceStartDate: occurrence.startDate,
+                                    occurrenceEndDate: occurrence.endDate,
+                                    originalOccurrenceStartDate: occurrence.originalStartDate,
+                                    existingException: existingException(
+                                        eventID: event.id,
+                                        originalOccurrenceStartDate: occurrence.originalStartDate
+                                    )
+                                )
+                            }
                         } label: {
-                            EventRow(occurrence: occurrence)
+                            EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
                         }
                         .buttonStyle(.plain)
                     } else {
-                        // 시스템 캘린더 일정은 Apple 일정 화면에서 보기·수정·삭제한다.
+                        // 시스템 캘린더 일정은 Apple 일정 화면에서 보기·수정·삭제한다. D-Day는
+                        // EKEventViewController를 건드리지 않고, 길게 눌러 여는 메뉴로 별도 제공한다.
+                        // (스와이프 액션은 날짜 이동 스와이프 제스처와 충돌해 날짜가 같이 넘어가
+                        // 버리는 문제가 있어 길게 누르기 방식으로 바꿨다 — 좌우 스와이프는 날짜
+                        // 이동 전용으로만 남긴다.)
                         Button {
                             openSystemEvent(occurrence)
                         } label: {
-                            EventRow(occurrence: occurrence)
+                            EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                toggleExternalDDay(for: occurrence)
+                            } label: {
+                                if isExternalDDayEnabled(occurrence) {
+                                    Label("D-Day 해제", systemImage: "flag.slash")
+                                } else {
+                                    Label("D-Day 설정", systemImage: "flag")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -275,10 +368,20 @@ struct DayScheduleView: View {
                 EventEditorView(date: currentDate)
             }
         }
-        .sheet(item: $selectedEvent) { event in
+        .sheet(item: $selectedLocalEvent) { selection in
             NavigationStack {
-                EventEditorView(date: event.startDate, event: event)
+                EventEditorView(
+                    date: selection.occurrenceStartDate,
+                    event: selection.event,
+                    occurrenceEndDate: selection.occurrenceEndDate,
+                    recurrenceSlotDate: selection.originalOccurrenceStartDate,
+                    existingException: selection.existingException
+                )
             }
+            // selection.id는 일정 ID+발생 시각을 함께 묶으므로, 다른 발생분을 연달아 선택했을 때
+            // SwiftUI가 직전 시트의 내용을 그대로 재사용해 첫 번째 진입에서 이전 발생분이 보이는
+            // 문제(.sheet(item:)의 알려진 재사용 동작)를 막는다 — 값이 다르면 항상 새 화면으로 취급된다.
+            .id(selection.id)
         }
         .sheet(item: $presentedSystemEvent, onDismiss: {
             // Done·삭제·초대 응답·스와이프 닫기 모두 이 경로로 끝난다.
@@ -311,8 +414,32 @@ private struct DaySystemCalendarFetchKey: Equatable {
     let refreshGeneration: Int
 }
 
+/// 자체 일정 편집 화면을 열 때 "어떤 Event"뿐 아니라 "그중 탭한 발생분(occurrence)이 언제인지"도
+/// 함께 넘긴다. 반복 일정은 모든 발생분이 같은 Event를 공유하므로, 발생분 날짜를 같이 들고 있지
+/// 않으면 항상 시리즈 원본 시작일(event.startDate)만 열리는 문제가 있었다.
+private struct SelectedLocalEvent: Identifiable {
+    let event: Event
+    let occurrenceStartDate: Date
+    let occurrenceEndDate: Date
+    /// 반복 규칙이 원래 계산한 이 발생분의 시작 시각(개별 수정 override 이전). 이미 한 번
+    /// override된 발생분을 다시 열어도 항상 같은 예외 레코드를 찾을 수 있도록, 예외 식별 키는
+    /// 항상 이 값을 쓴다(Step 5-2 개별 수정·삭제).
+    let originalOccurrenceStartDate: Date
+    /// 이 발생분에 이미 적용돼 있던 개별 수정 예외(있으면). 편집 화면을 열 때 override된 값을
+    /// 그대로 보여주는 데 쓴다.
+    let existingException: EventOccurrenceException?
+
+    /// 같은 일정의 다른 발생분을 연달아 열어도 매번 새 시트로 인식되도록, 일정 ID와 원래 발생
+    /// 시각을 함께 묶는다(일정 ID만 쓰면 같은 반복 일정의 다른 발생분을 구분할 수 없다).
+    var id: String {
+        "\(event.id.uuidString)-\(originalOccurrenceStartDate.timeIntervalSince1970)"
+    }
+}
+
 private struct EventRow: View {
     let occurrence: CalendarDisplayOccurrence
+    /// D-Day 미리보기 배지("D-3" 등). nil이면 배지를 보여주지 않는다(D-Day 꺼짐 또는 지난 일정).
+    let dDayText: String?
 
     private var eventColor: Color {
         occurrence.color
@@ -373,6 +500,15 @@ private struct EventRow: View {
             }
 
             Spacer()
+
+            if let dDayText {
+                Text(dDayText)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.orange))
+            }
         }
         .padding(.vertical, 4)
         // plain 버튼은 그려진 글자만 탭되므로, Spacer를 포함한 행 전체를 탭 영역으로 지정한다.
@@ -384,5 +520,10 @@ private struct EventRow: View {
     NavigationStack {
         DayScheduleView(date: Date())
     }
-    .modelContainer(for: Event.self, inMemory: true)
+    // 이 화면이 ExternalEventDDaySetting도 @Query로 읽으므로(Step 5-2), 미리보기 컨테이너
+    // 스키마에도 같이 등록해야 한다 — 빠지면 캔버스에서 스키마 조회 오류로 중단된다.
+    .modelContainer(
+        for: [Event.self, ExternalEventDDaySetting.self, EventOccurrenceException.self],
+        inMemory: true
+    )
 }

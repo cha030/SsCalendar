@@ -18,7 +18,7 @@ enum SharedModelContainer {
     )
 
     static func makeSharedContainer() throws -> ModelContainer {
-        let schema = Schema([Event.self])
+        let schema = Schema([Event.self, ExternalEventDDaySetting.self, EventOccurrenceException.self])
         let storeURL = try sharedStoreURL()
         let configuration = ModelConfiguration(
             "Shared",
@@ -85,7 +85,7 @@ enum SharedModelContainer {
     }
 
     private static func makeLegacyContainer() throws -> ModelContainer {
-        let schema = Schema([Event.self])
+        let schema = Schema([Event.self, ExternalEventDDaySetting.self, EventOccurrenceException.self])
         let configuration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
@@ -161,7 +161,9 @@ private extension Event {
             repeatUnit: repeatUnit,
             repeatInterval: repeatInterval,
             memo: memo,
-            createdAt: createdAt
+            createdAt: createdAt,
+            isDDayEnabled: isDDayEnabled,
+            repeatEndDate: repeatEndDate
         )
     }
 }

@@ -4,6 +4,8 @@ import UIKit
 
 struct CalendarView: View {
     @Query(sort: \Event.startDate, order: .forward) private var events: [Event]
+    /// 반복 일정의 개별 수정·삭제 예외(Step 5-2). 월간 달력 표시에도 반영한다.
+    @Query private var occurrenceExceptions: [EventOccurrenceException]
     @State private var currentDate = Date()
     @State private var selectedDate = Date()
     @State private var schedulePath: [Date] = []
@@ -145,6 +147,13 @@ struct CalendarView: View {
                         selectedDate = navigatedDate
                     }
                 )
+                // NavigationStack이 schedulePath를 교체(예: 위젯 딥링크로 [이전 날짜] → [새 날짜])할 때,
+                // 배열 모양(길이 1 → 1)이 그대로라 SwiftUI가 이전 목적지 화면의 인스턴스·@State를
+                // 재사용해 버리는 경우가 있었다(DayScheduleView의 _currentDate = State(initialValue:)가
+                // 다시 적용되지 않아 이전 날짜가 그대로 남는 문제). date를 명시적 식별자로 지정해
+                // 날짜가 다르면 항상 완전히 새 화면으로 취급되게 한다 — 날짜 선택·위젯 이동 오류의
+                // 근본 원인(목적지 뷰 상태 재사용)을 직접 없애는 수정이다.
+                .id(date)
             }
             .task(id: holidayFetchKey) {
                 await loadHolidays(
@@ -267,7 +276,8 @@ struct CalendarView: View {
         let localOccurrences = EventOccurrenceService.occurrences(
             for: events,
             intersecting: visibleInterval,
-            calendar: calendar
+            calendar: calendar,
+            exceptions: occurrenceExceptions
         )
         .map { CalendarDisplayOccurrence(local: $0) }
 
@@ -354,6 +364,10 @@ struct CalendarView: View {
 
         currentDate = date
         selectedDate = date
+        // 위젯 등 외부에서 들어온 딥링크는 그 시점에 확정된 대상으로 정확히 이동해야 하므로,
+        // 이전에 남아 있을 수 있는 "새 일정 추가" 상태부터 먼저 비운다(아래 switch에서
+        // new-event면 다시 채운다).
+        newEventDate = nil
 
         switch url.host {
         case "month":
@@ -832,14 +846,29 @@ struct WeekEventLayout {
         }
         let denseDayThreshold = 2
 
+        // 이 칸에 일정이 maximumVisibleEventsPerDay개를 넘으면 "+N" 배지도 한 줄 자리(eventHeight)가
+        // 그대로 필요하다. 헤더(최소 38pt) + 4개(56pt)만으로도 이미 94pt라 102pt 칸에 배지 한 줄을
+        // 더 넣을 자리가 없다 — 그 상태에서 배지를 억지로 그리면 다음 주 칸과 겹친다(실측으로 확인).
+        // 그래서 배지가 필요한 칸은 보여줄 수 있는 한도를 하나 줄여(3개) 배지 자리를 미리 비워 둔다.
+        // 정확히 maximumVisibleEventsPerDay개뿐이라 배지가 필요 없는 칸은 그대로 4개를 다 보여준다.
+        let effectiveMaxVisibleByColumn: [Int: Int] = Dictionary(
+            uniqueKeysWithValues: (0..<week.dates.count).map { column in
+                let total = totalEventCountByColumn[column] ?? 0
+                let effectiveMax = total > maximumVisibleEventsPerDay
+                    ? maximumVisibleEventsPerDay - 1
+                    : maximumVisibleEventsPerDay
+                return (column, effectiveMax)
+            }
+        )
+
         var segments: [WeekEventSegment] = []
         var visibleCounts: [Int: Int] = [:]
         var hiddenCounts: [Int: Int] = [:]
 
         for candidate in candidates where !candidate.isSingleDay {
             let columns = candidate.startColumn...candidate.endColumn
-            let hasReachedLimit = columns.contains {
-                visibleCounts[$0, default: 0] >= maximumVisibleEventsPerDay
+            let hasReachedLimit = columns.contains { column in
+                visibleCounts[column, default: 0] >= (effectiveMaxVisibleByColumn[column] ?? maximumVisibleEventsPerDay)
             }
             var baseY = columns.compactMap {
                 headerEndYByColumn[$0]
@@ -912,15 +941,17 @@ struct WeekEventLayout {
 
         for candidate in candidates where candidate.isSingleDay {
             let column = candidate.startColumn
+            let effectiveMax = effectiveMaxVisibleByColumn[column] ?? maximumVisibleEventsPerDay
             let hasReachedLimit =
                 visibleCounts[column, default: 0]
-                >= maximumVisibleEventsPerDay
+                >= effectiveMax
 
             processedSingleDayCountByColumn[column, default: 0] += 1
-            // 실제로 보일 수 있는 한도(maximumVisibleEventsPerDay)를 넘는 일정까지 자리를 비워 둘 필요는 없다.
+            // 실제로 보일 수 있는 한도(effectiveMax — "+N" 배지가 필요한 칸은 그 자리만큼 줄어든다)를
+            // 넘는 일정까지 자리를 비워 둘 필요는 없다.
             let visibleTotalForColumn = min(
                 totalSingleDayCountByColumn[column] ?? 0,
-                maximumVisibleEventsPerDay
+                effectiveMax
             )
             let remainingAfterThis = max(
                 0,
@@ -1030,10 +1061,12 @@ struct WeekEventLayout {
             let holidayBottom = holidayOffsets[column].map {
                 $0 + (holidayHeightByColumn[column] ?? 0) + eventSpacing
             } ?? headerEnd
-            overflowOffsets[column] = min(
-                max(visibleBottom, holidayBottom),
-                rowHeight - eventHeight
-            )
+            // 보이는 일정·공휴일과 겹치지 않는 것이 최우선이다. effectiveMaxVisibleByColumn이 배지
+            // 자리를 미리 비워 두므로, 이 값은 평소 rowHeight - eventHeight 안에 자연히 들어온다.
+            // (과거엔 여기서 rowHeight - eventHeight로 추가 clamp했는데, 그 상한이 실제 콘텐츠
+            // 바닥보다 낮아지는 경우 배지가 보이는 일정과 겹치는 버그가 있었다 — 이제는 애초에
+            // 그런 상황이 생기지 않으므로 clamp 없이 콘텐츠 바로 아래에 둔다.)
+            overflowOffsets[column] = max(visibleBottom, holidayBottom)
         }
 
         visibleSegments = segments

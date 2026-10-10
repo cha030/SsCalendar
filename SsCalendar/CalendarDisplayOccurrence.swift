@@ -19,6 +19,31 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
     let startDate: Date
     let endDate: Date
     let color: Color
+    /// 반복 규칙이 원래 계산한 발생 시작 시각(개별 수정 override 이전). 개별 수정되지 않았거나
+    /// 시스템 일정이면 startDate와 같다. 자체 반복 일정의 특정 발생분을 식별(개별 수정·삭제
+    /// 예외 매칭)하는 데 쓰인다(Step 5-2).
+    var originalStartDate: Date { _originalStartDate ?? startDate }
+    private let _originalStartDate: Date?
+
+    init(
+        id: String,
+        source: Source,
+        title: String,
+        isAllDay: Bool,
+        startDate: Date,
+        endDate: Date,
+        color: Color,
+        originalStartDate: Date? = nil
+    ) {
+        self.id = id
+        self.source = source
+        self.title = title
+        self.isAllDay = isAllDay
+        self.startDate = startDate
+        self.endDate = endDate
+        self.color = color
+        self._originalStartDate = originalStartDate
+    }
 
     var isSystem: Bool {
         if case .system = source { return true }

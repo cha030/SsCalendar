@@ -1,0 +1,1 @@
+../SsCalendar/EventOccurrenceException.swift

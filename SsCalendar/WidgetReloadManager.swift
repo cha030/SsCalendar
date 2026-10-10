@@ -12,6 +12,9 @@ enum WidgetReloadManager {
         WidgetCenter.shared.reloadTimelines(ofKind: CalendarWidgetConstants.kind)
         WidgetCenter.shared.reloadTimelines(ofKind: TodayWidgetConstants.kind)
         WidgetCenter.shared.reloadTimelines(ofKind: TodayWidgetConstants.nextKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: DDayWidgetConstants.lockScreenKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: DDayWidgetConstants.lockScreenNextKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: DDayWidgetConstants.homeKind)
     }
 
     /// 짧은 시간에 몰린 변경 알림을 하나의 갱신 요청으로 합친다.
@@ -29,6 +32,9 @@ enum WidgetReloadManager {
             WidgetCenter.shared.reloadTimelines(ofKind: CalendarWidgetConstants.kind)
             WidgetCenter.shared.reloadTimelines(ofKind: TodayWidgetConstants.kind)
             WidgetCenter.shared.reloadTimelines(ofKind: TodayWidgetConstants.nextKind)
+            WidgetCenter.shared.reloadTimelines(ofKind: DDayWidgetConstants.lockScreenKind)
+            WidgetCenter.shared.reloadTimelines(ofKind: DDayWidgetConstants.lockScreenNextKind)
+            WidgetCenter.shared.reloadTimelines(ofKind: DDayWidgetConstants.homeKind)
             pendingReloadTask = nil
         }
     }

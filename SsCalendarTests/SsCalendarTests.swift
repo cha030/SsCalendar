@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import SwiftUI
 import Testing
 
@@ -413,8 +414,26 @@ struct WeekEventLayoutTests {
         assertNoOverflowOrOverlap(result.visibleSegments)
     }
 
-    @Test("세로 공간이 넉넉하면 하루 5개 일정 중 4개까지 보이고 다섯 번째는 +N으로 넘어간다")
-    func fifthEventOverflowsWhenFourFitButFirstFourStaySafe() throws {
+    @Test("일정이 정확히 4개뿐이면(+N 배지가 필요 없음) 4개 모두 보인다")
+    func exactlyFourEventsAllVisibleWithNoOverflowBadge() {
+        let events = [
+            timedOccurrence(id: "a", dayOffset: 4, startHour: 8, endHour: 9),
+            timedOccurrence(id: "b", dayOffset: 4, startHour: 10, endHour: 11),
+            timedOccurrence(id: "c", dayOffset: 4, startHour: 12, endHour: 13),
+            timedOccurrence(id: "d", dayOffset: 4, startHour: 14, endHour: 15)
+        ]
+        let result = layout(occurrences: events)
+
+        #expect(result.visibleSegments.count == 4)
+        #expect(result.overflowCounts[4] == nil)
+        assertNoOverflowOrOverlap(result.visibleSegments)
+    }
+
+    @Test("""
+    하루 5개 일정은 "+N" 배지 한 줄 자리가 필요해 3개까지만 보이고 나머지 2개는 +N으로 넘어간다 \
+    (헤더+4개 일정만으로 이미 칸이 꽉 차 배지가 들어갈 자리가 없다 — 실측으로 확인된 물리적 한계)
+    """)
+    func fifthEventReservesRoomForOverflowBadgeByShowingOnlyThree() throws {
         let events = [
             timedOccurrence(id: "a", dayOffset: 4, startHour: 8, endHour: 9),
             timedOccurrence(id: "b", dayOffset: 4, startHour: 10, endHour: 11),
@@ -424,11 +443,13 @@ struct WeekEventLayoutTests {
         ]
         let result = layout(occurrences: events)
 
-        #expect(result.visibleSegments.count == 4)
-        #expect(result.overflowCounts[4] == 1)
+        #expect(result.visibleSegments.count == 3)
+        #expect(result.overflowCounts[4] == 2)
         assertNoOverflowOrOverlap(result.visibleSegments)
 
-        // "+N"이 보이는 일정과 겹치지 않도록, 가장 아래 보이는 일정보다 아래(또는 칸 안)에 와야 한다.
+        // "+N" 배지는 보이는 일정과 겹치지 않아야 하고, 102pt 칸 안에도 들어가야 한다 — 이번에
+        // 고친 effectiveMaxVisibleByColumn 덕분에 둘 다 만족해야 한다(이전엔 배지 자리를
+        // 미리 비워 두지 않아 겹치는 버그가 있었다).
         let bottomMost = result.visibleSegments
             .filter { $0.startColumn <= 4 && $0.endColumn >= 4 }
             .map { $0.yOffset + $0.height }
@@ -742,5 +763,905 @@ struct YearMiniMonthGridTests {
                 #expect(weekday - 1 == column)
             }
         }
+    }
+}
+
+@Suite("DDayCalculator")
+struct DDayCalculatorTests {
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return calendar
+    }()
+
+    private func date(year: Int, month: Int, day: Int, hour: Int = 12) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    @Test("10일 남았으면 daysRemaining이 10이다")
+    func tenDaysRemaining() {
+        let now = date(year: 2026, month: 1, day: 1)
+        let target = date(year: 2026, month: 1, day: 11)
+        #expect(DDayCalculator.daysRemaining(until: target, now: now, calendar: calendar) == 10)
+    }
+
+    @Test("당일(같은 날짜)이면 시각과 무관하게 0이다")
+    func sameDayIsZeroRegardlessOfTime() {
+        let now = date(year: 2026, month: 1, day: 1, hour: 23)
+        let target = date(year: 2026, month: 1, day: 1, hour: 1)
+        #expect(DDayCalculator.daysRemaining(until: target, now: now, calendar: calendar) == 0)
+        #expect(DDayCalculator.displayText(forDaysRemaining: 0) == String(localized: "D-Day"))
+    }
+
+    @Test("지난 날짜는 음수이고 isPast가 true다")
+    func pastDateIsNegativeAndIsPast() {
+        let now = date(year: 2026, month: 1, day: 10)
+        let target = date(year: 2026, month: 1, day: 1)
+        let days = DDayCalculator.daysRemaining(until: target, now: now, calendar: calendar)
+        #expect(days == -9)
+        #expect(DDayCalculator.isPast(targetDate: target, now: now, calendar: calendar))
+    }
+
+    @Test("연도 경계를 넘어가도 정확히 계산된다(2025-12-28 → 2026-01-02)")
+    func crossesYearBoundary() {
+        let now = date(year: 2025, month: 12, day: 28)
+        let target = date(year: 2026, month: 1, day: 2)
+        #expect(DDayCalculator.daysRemaining(until: target, now: now, calendar: calendar) == 5)
+    }
+
+    @Test("윤년 2월 29일을 정확히 지나 계산된다(2024-02-27 → 2024-03-01)")
+    func crossesLeapDay() {
+        let now = date(year: 2024, month: 2, day: 27)
+        let target = date(year: 2024, month: 3, day: 1)
+        #expect(DDayCalculator.daysRemaining(until: target, now: now, calendar: calendar) == 3)
+    }
+
+    @Test("월말 경계를 정확히 넘어간다(1월 31일 → 2월 1일)")
+    func crossesMonthEnd() {
+        let now = date(year: 2026, month: 1, day: 31)
+        let target = date(year: 2026, month: 2, day: 1)
+        #expect(DDayCalculator.daysRemaining(until: target, now: now, calendar: calendar) == 1)
+    }
+
+    @Test("표시 문자열은 양수일 때 D-N, 0 이하일 때 D-Day다")
+    func displayTextFormat() {
+        #expect(DDayCalculator.displayText(forDaysRemaining: 10) == "D-10")
+        #expect(DDayCalculator.displayText(forDaysRemaining: 1) == "D-1")
+        #expect(DDayCalculator.displayText(forDaysRemaining: 0) == String(localized: "D-Day"))
+    }
+}
+
+@Suite("SystemCalendarEventReference D-Day 시리즈 매칭 (Step 5-2 반복 보완)")
+struct SystemCalendarEventReferenceDDayMatchingTests {
+    private func reference(
+        eventIdentifier: String? = "event-1",
+        calendarItemIdentifier: String = "item-1",
+        externalIdentifier: String? = nil,
+        startDate: Date = Date(),
+        occurrenceDate: Date? = nil,
+        isRecurring: Bool = false
+    ) -> SystemCalendarEventReference {
+        SystemCalendarEventReference(
+            eventIdentifier: eventIdentifier,
+            calendarItemIdentifier: calendarItemIdentifier,
+            externalIdentifier: externalIdentifier,
+            calendarIdentifier: "cal-1",
+            startDate: startDate,
+            occurrenceDate: occurrenceDate,
+            isRecurring: isRecurring
+        )
+    }
+
+    @Test("반복이 아닌 일정은 eventIdentifier만 같아도 같은 시리즈로 본다")
+    func nonRecurringMatchesByEventIdentifier() {
+        let a = reference(eventIdentifier: "same", startDate: Date())
+        let b = reference(eventIdentifier: "same", startDate: Date().addingTimeInterval(3_600))
+        #expect(a.matchesSeries(of: b))
+    }
+
+    @Test("eventIdentifier가 없으면 calendarItemIdentifier로 같은 시리즈인지 판단한다")
+    func fallsBackToCalendarItemIdentifier() {
+        let a = reference(eventIdentifier: nil, calendarItemIdentifier: "item-x")
+        let b = reference(eventIdentifier: nil, calendarItemIdentifier: "item-x")
+        #expect(a.matchesSeries(of: b))
+    }
+
+    @Test("식별자가 모두 다르면 같은 시리즈가 아니다")
+    func differentIdentifiersAreNotSameSeries() {
+        let a = reference(eventIdentifier: "a", calendarItemIdentifier: "item-a")
+        let b = reference(eventIdentifier: "b", calendarItemIdentifier: "item-b")
+        #expect(!a.matchesSeries(of: b))
+    }
+
+    @Test("확정된 반복 정책: 같은 시리즈면 발생 시각이 달라도(서로 다른 회차) 같은 시리즈로 본다")
+    func recurringSeriesMatchesRegardlessOfOccurrenceDate() {
+        let day1 = Date()
+        let day2 = Date().addingTimeInterval(86_400 * 7)
+        let a = reference(calendarItemIdentifier: "series-1", startDate: day1, isRecurring: true)
+        let b = reference(calendarItemIdentifier: "series-1", startDate: day2, isRecurring: true)
+        // Step 5-2 반복 보완: D-Day는 발생분이 아니라 시리즈 전체에 적용된다.
+        #expect(a.matchesSeries(of: b))
+    }
+
+    @Test("모든 식별자가 다르면 occurrenceDate가 우연히 같아도 다른 시리즈로 본다(매칭은 식별자만 본다)")
+    func differentSeriesWithSameOccurrenceDateAreNotConfused() {
+        let occurrence = Date()
+        let a = reference(
+            eventIdentifier: "event-a", calendarItemIdentifier: "series-1",
+            occurrenceDate: occurrence, isRecurring: true
+        )
+        let b = reference(
+            eventIdentifier: "event-b", calendarItemIdentifier: "series-2",
+            occurrenceDate: occurrence, isRecurring: true
+        )
+        #expect(!a.matchesSeries(of: b))
+    }
+}
+
+@Suite("EventOccurrenceService.nextOccurrenceDate (Step 5-2 반복 보완)")
+struct NextOccurrenceDateTests {
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return calendar
+    }()
+
+    private func date(year: Int, month: Int, day: Int, hour: Int = 9) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    @Test("반복하지 않는 일정은 nil을 반환한다(호출하는 쪽에서 시작일을 그대로 쓴다)")
+    func nonRepeatingReturnsNil() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 1, day: 1),
+            repeatUnit: "반복 안 함",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2026, month: 1, day: 1),
+            calendar: calendar
+        )
+        #expect(result == nil)
+    }
+
+    @Test("매년 반복되는 생일: 생일 전날은 올해 생일이 다음 발생일이다")
+    func yearlyBirthdayDayBefore() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 10, day: 20),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2026, month: 10, day: 19),
+            calendar: calendar
+        )
+        let expected = date(year: 2026, month: 10, day: 20)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("매년 반복되는 생일: 당일은 당일 자신이 다음 발생일이다(D-Day)")
+    func yearlyBirthdayOnTheDay() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 10, day: 20),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2026, month: 10, day: 20),
+            calendar: calendar
+        )
+        let expected = date(year: 2026, month: 10, day: 20)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("매년 반복되는 생일: 생일 다음 날은 내년 생일이 다음 발생일이다")
+    func yearlyBirthdayDayAfterRollsToNextYear() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 10, day: 20),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2026, month: 10, day: 21),
+            calendar: calendar
+        )
+        let expected = date(year: 2027, month: 10, day: 20)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("매일 반복: 오늘도 다음 발생일로 포함된다")
+    func dailyIncludesToday() {
+        let today = date(year: 2026, month: 3, day: 15)
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2026, month: 1, day: 1),
+            repeatUnit: "일",
+            repeatInterval: 1,
+            onOrAfter: today,
+            calendar: calendar
+        )
+        #expect(result.map { calendar.isDate($0, inSameDayAs: today) } == true)
+    }
+
+    @Test("매주 반복: 시작일보다 과거에서 조회해도 과거 시작일 자체를 반환한다")
+    func weeklyFromThePast() {
+        let start = date(year: 2026, month: 6, day: 1)
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: start,
+            repeatUnit: "주",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2020, month: 1, day: 1),
+            calendar: calendar
+        )
+        #expect(result.map { calendar.isDate($0, inSameDayAs: start) } == true)
+    }
+
+    @Test("매월 반복: 월말(31일) 기준 반복은 31일이 없는 달을 건너뛰고 다음 31일을 찾는다")
+    func monthlyOnThirtyFirstSkipsShorterMonths() {
+        // 4월은 30일까지라 31일이 없다 — 기존 월간 반복 규칙(validatedDate)이 건너뛴다.
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2026, month: 1, day: 31),
+            repeatUnit: "개월",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2026, month: 4, day: 1),
+            calendar: calendar
+        )
+        let expected = date(year: 2026, month: 5, day: 31)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("윤년 2월 29일 매년 반복: 평년에는 건너뛰고 다음 2월 29일(윤년)을 찾는다")
+    func yearlyOnLeapDaySkipsNonLeapYears() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2024, month: 2, day: 29),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2025, month: 1, day: 1),
+            calendar: calendar
+        )
+        let expected = date(year: 2028, month: 2, day: 29)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("연도 경계: 12월 반복 일정이 다음 해 1월로 자연스럽게 넘어간다")
+    func crossesYearBoundary() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2025, month: 12, day: 31),
+            repeatUnit: "개월",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2026, month: 1, day: 1),
+            calendar: calendar
+        )
+        // 1월엔 31일이 있으므로(건너뛰지 않음) 1월 31일이 다음 발생일이다.
+        let expected = date(year: 2026, month: 1, day: 31)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+}
+
+@MainActor
+@Suite("ExternalDDayStore 레거시 발생분 단위 데이터 호환 (Step 5-2 반복 보완)")
+struct ExternalDDayStoreLegacyCompatibilityTests {
+    private func makeContext() throws -> ModelContext {
+        let container = try ModelContainer(
+            for: ExternalEventDDaySetting.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        return ModelContext(container)
+    }
+
+    private func reference(
+        calendarItemIdentifier: String = "series-1",
+        startDate: Date = Date(),
+        isRecurring: Bool = true
+    ) -> SystemCalendarEventReference {
+        SystemCalendarEventReference(
+            eventIdentifier: "event-1",
+            calendarItemIdentifier: calendarItemIdentifier,
+            externalIdentifier: nil,
+            calendarIdentifier: "cal-1",
+            startDate: startDate,
+            occurrenceDate: nil,
+            isRecurring: isRecurring
+        )
+    }
+
+    @Test("과거 발생분 단위로 저장된 레코드가 여러 개 있어도, 하나라도 켜져 있으면 켜진 것으로 본다")
+    func anyEnabledLegacyRecordCountsAsEnabled() throws {
+        let context = try makeContext()
+        // 과거 정책(발생분 단위)으로 저장됐다고 가정한 두 레코드: 같은 시리즈, 다른 발생 시각, 다른 켬끔 값.
+        let off = ExternalEventDDaySetting(
+            eventIdentifier: "event-1", calendarItemIdentifier: "series-1", externalIdentifier: nil,
+            calendarIdentifier: "cal-1", occurrenceStartDate: Date(), occurrenceDate: nil,
+            isRecurring: true, isEnabled: false
+        )
+        let on = ExternalEventDDaySetting(
+            eventIdentifier: "event-1", calendarItemIdentifier: "series-1", externalIdentifier: nil,
+            calendarIdentifier: "cal-1", occurrenceStartDate: Date().addingTimeInterval(86_400 * 30), occurrenceDate: nil,
+            isRecurring: true, isEnabled: true
+        )
+        context.insert(off)
+        context.insert(on)
+        try context.save()
+
+        let settings = try context.fetch(FetchDescriptor<ExternalEventDDaySetting>())
+        #expect(ExternalDDayStore.isEnabled(for: reference(), in: settings))
+    }
+
+    @Test("켬끔을 저장하면 같은 시리즈의 기존 레코드를 모두 같은 값으로 맞춘다(삭제하지 않는다)")
+    func setEnabledUpdatesAllMatchingLegacyRecordsWithoutDeleting() throws {
+        let context = try makeContext()
+        let first = ExternalEventDDaySetting(
+            eventIdentifier: "event-1", calendarItemIdentifier: "series-1", externalIdentifier: nil,
+            calendarIdentifier: "cal-1", occurrenceStartDate: Date(), occurrenceDate: nil,
+            isRecurring: true, isEnabled: true
+        )
+        let second = ExternalEventDDaySetting(
+            eventIdentifier: "event-1", calendarItemIdentifier: "series-1", externalIdentifier: nil,
+            calendarIdentifier: "cal-1", occurrenceStartDate: Date().addingTimeInterval(86_400 * 30), occurrenceDate: nil,
+            isRecurring: true, isEnabled: true
+        )
+        context.insert(first)
+        context.insert(second)
+        try context.save()
+
+        let settings = try context.fetch(FetchDescriptor<ExternalEventDDaySetting>())
+        ExternalDDayStore.setEnabled(false, for: reference(), existingSettings: settings, context: context)
+
+        #expect(settings.allSatisfy { !$0.isEnabled })
+        // 레코드를 지우지 않고 값만 맞췄는지 확인한다(기존 데이터 삭제 금지 원칙).
+        let afterCount = try context.fetch(FetchDescriptor<ExternalEventDDaySetting>()).count
+        #expect(afterCount == 2)
+    }
+
+    @Test("매칭되는 설정이 없으면 정확히 하나만 새로 만든다(중복 생성 방지)")
+    func setEnabledCreatesExactlyOneWhenNoneExist() throws {
+        let context = try makeContext()
+        let created = ExternalDDayStore.setEnabled(true, for: reference(), existingSettings: [], context: context)
+        try context.save()
+
+        #expect(created.isEnabled)
+        let all = try context.fetch(FetchDescriptor<ExternalEventDDaySetting>())
+        #expect(all.count == 1)
+    }
+
+    @Test("반복 시리즈의 다른 발생분(발생 시각만 다름)도 같은 설정으로 매칭된다")
+    func matchesAcrossDifferentOccurrencesOfSameSeries() throws {
+        let context = try makeContext()
+        let setting = ExternalDDayStore.setEnabled(
+            true,
+            for: reference(startDate: Date()),
+            existingSettings: [],
+            context: context
+        )
+        try context.save()
+
+        let laterOccurrence = reference(startDate: Date().addingTimeInterval(86_400 * 365))
+        let settings = try context.fetch(FetchDescriptor<ExternalEventDDaySetting>())
+        #expect(ExternalDDayStore.isEnabled(for: laterOccurrence, in: settings))
+        #expect(settings.first?.id == setting.id)
+    }
+}
+
+@MainActor
+@Suite("DDayWidgetSource.bestMatchingOccurrences — 외부 반복 시리즈 매칭·중복 제거 (Step 5-2 최종 보완)")
+struct DDayWidgetSourceMatchingTests {
+    private func reference(
+        eventIdentifier: String?,
+        calendarItemIdentifier: String,
+        startDate: Date,
+        isRecurring: Bool = true
+    ) -> SystemCalendarEventReference {
+        SystemCalendarEventReference(
+            eventIdentifier: eventIdentifier,
+            calendarItemIdentifier: calendarItemIdentifier,
+            externalIdentifier: nil,
+            calendarIdentifier: "cal-1",
+            startDate: startDate,
+            occurrenceDate: startDate,
+            isRecurring: isRecurring
+        )
+    }
+
+    private func occurrence(
+        title: String,
+        startDate: Date,
+        reference: SystemCalendarEventReference
+    ) -> CalendarDisplayOccurrence {
+        CalendarDisplayOccurrence(
+            id: "system:\(reference.calendarItemIdentifier):\(startDate.timeIntervalSince1970)",
+            source: .system(calendarTitle: "테스트 캘린더", reference: reference),
+            title: title,
+            isAllDay: false,
+            startDate: startDate,
+            endDate: startDate.addingTimeInterval(3_600),
+            color: .blue
+        )
+    }
+
+    private func setting(
+        eventIdentifier: String?,
+        calendarItemIdentifier: String,
+        occurrenceStartDate: Date,
+        isRecurring: Bool = true,
+        isEnabled: Bool = true
+    ) -> ExternalEventDDaySetting {
+        ExternalEventDDaySetting(
+            eventIdentifier: eventIdentifier,
+            calendarItemIdentifier: calendarItemIdentifier,
+            externalIdentifier: nil,
+            calendarIdentifier: "cal-1",
+            occurrenceStartDate: occurrenceStartDate,
+            occurrenceDate: occurrenceStartDate,
+            isRecurring: isRecurring,
+            isEnabled: isEnabled
+        )
+    }
+
+    @Test("같은 반복 시리즈의 여러 발생분 중 가장 이른 것만 남긴다(중복 표시 방지)")
+    func keepsOnlyEarliestOccurrencePerSeries() {
+        let early = Date()
+        let later = Date().addingTimeInterval(86_400 * 365)
+        let ref1 = reference(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", startDate: early)
+        let ref2 = reference(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", startDate: later)
+
+        let occurrences = [
+            occurrence(title: "생일", startDate: later, reference: ref2),
+            occurrence(title: "생일", startDate: early, reference: ref1)
+        ]
+        let settings = [setting(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", occurrenceStartDate: early)]
+
+        let result = DDayWidgetSource.bestMatchingOccurrences(from: occurrences, enabledSettings: settings)
+
+        #expect(result.count == 1)
+        #expect(result.first?.startDate == early)
+    }
+
+    @Test("서로 다른 두 반복 시리즈가 각각 매칭되고 서로 섞이지 않는다")
+    func matchesEachSeriesIndependently() {
+        let dateA = Date()
+        let dateB = Date().addingTimeInterval(86_400 * 10)
+        let refA = reference(eventIdentifier: "event-a", calendarItemIdentifier: "series-a", startDate: dateA)
+        let refB = reference(eventIdentifier: "event-b", calendarItemIdentifier: "series-b", startDate: dateB)
+
+        let occurrences = [
+            occurrence(title: "생일", startDate: dateA, reference: refA),
+            occurrence(title: "기념일", startDate: dateB, reference: refB)
+        ]
+        let settings = [
+            setting(eventIdentifier: "event-a", calendarItemIdentifier: "series-a", occurrenceStartDate: dateA),
+            setting(eventIdentifier: "event-b", calendarItemIdentifier: "series-b", occurrenceStartDate: dateB)
+        ]
+
+        let result = DDayWidgetSource.bestMatchingOccurrences(from: occurrences, enabledSettings: settings)
+
+        #expect(result.count == 2)
+        #expect(Set(result.map(\.title)) == Set(["생일", "기념일"]))
+    }
+
+    @Test("켜진 설정에 매칭되지 않는 발생분(D-Day 꺼짐·무관한 일정)은 제외된다")
+    func excludesOccurrencesNotMatchingAnyEnabledSetting() {
+        let date = Date()
+        let matchingRef = reference(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", startDate: date)
+        let unrelatedRef = reference(eventIdentifier: "event-2", calendarItemIdentifier: "series-2", startDate: date)
+
+        let occurrences = [
+            occurrence(title: "D-Day 켜짐", startDate: date, reference: matchingRef),
+            occurrence(title: "D-Day 꺼짐(무관)", startDate: date, reference: unrelatedRef)
+        ]
+        let settings = [setting(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", occurrenceStartDate: date)]
+
+        let result = DDayWidgetSource.bestMatchingOccurrences(from: occurrences, enabledSettings: settings)
+
+        #expect(result.count == 1)
+        #expect(result.first?.title == "D-Day 켜짐")
+    }
+
+    @Test("과거 발생분 단위로 중복 저장된 설정 두 개가 있어도 결과는 하나만 나온다")
+    func legacyDuplicateSettingsStillProduceSingleResult() {
+        let date = Date()
+        let ref = reference(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", startDate: date)
+        let occurrences = [occurrence(title: "생일", startDate: date, reference: ref)]
+
+        // 과거(발생분 단위) 정책 때 같은 시리즈에 생긴 두 개의 레거시 설정.
+        let settings = [
+            setting(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", occurrenceStartDate: date),
+            setting(eventIdentifier: "event-1", calendarItemIdentifier: "series-1", occurrenceStartDate: date.addingTimeInterval(86_400 * 365))
+        ]
+
+        let result = DDayWidgetSource.bestMatchingOccurrences(from: occurrences, enabledSettings: settings)
+
+        #expect(result.count == 1)
+    }
+
+    @Test("빈 발생분 목록이면 빈 결과를 반환한다")
+    func emptyOccurrencesProduceEmptyResult() {
+        let result = DDayWidgetSource.bestMatchingOccurrences(from: [], enabledSettings: [])
+        #expect(result.isEmpty)
+    }
+}
+
+@Suite("반복 종료 날짜 (Step 5-2 실기기 테스트 후 수정)")
+struct RepeatEndDateTests {
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return calendar
+    }()
+
+    private func date(year: Int, month: Int, day: Int, hour: Int = 9) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    private func yearlyEvent(
+        startDate: Date,
+        repeatEndDate: Date?
+    ) -> Event {
+        Event(
+            title: "생일",
+            isAllDay: false,
+            startDate: startDate,
+            endDate: startDate,
+            color: "blue",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "년",
+            repeatInterval: 1,
+            memo: "",
+            repeatEndDate: repeatEndDate
+        )
+    }
+
+    // MARK: - occurrences(for:intersecting:)
+
+    @Test("반복 종료일 당일 발생분은 포함된다(종료일 포함 규칙)")
+    func occurrencesIncludeTheEndDateItself() {
+        let start = date(year: 2020, month: 10, day: 20)
+        let end = date(year: 2027, month: 10, day: 20)
+        let event = yearlyEvent(startDate: start, repeatEndDate: end)
+
+        let range = DateInterval(
+            start: date(year: 2027, month: 10, day: 1),
+            end: date(year: 2027, month: 10, day: 31)
+        )
+        let results = EventOccurrenceService.occurrences(for: event, intersecting: range, calendar: calendar)
+
+        #expect(results.count == 1)
+        #expect(results.first.map { calendar.isDate($0.startDate, inSameDayAs: end) } == true)
+    }
+
+    @Test("반복 종료일 다음 발생분부터는 더 이상 만들어지지 않는다")
+    func occurrencesExcludeAnythingAfterTheEndDate() {
+        let start = date(year: 2020, month: 10, day: 20)
+        let end = date(year: 2027, month: 10, day: 20)
+        let event = yearlyEvent(startDate: start, repeatEndDate: end)
+
+        let range = DateInterval(
+            start: date(year: 2020, month: 1, day: 1),
+            end: date(year: 2030, month: 1, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(for: event, intersecting: range, calendar: calendar)
+
+        // 2020~2027년(종료일 당일 포함) 8회만 있어야 하고, 2028년 이후는 없어야 한다.
+        #expect(results.count == 8)
+        #expect(results.allSatisfy { calendar.component(.year, from: $0.startDate) <= 2027 })
+    }
+
+    @Test("반복 종료 날짜가 nil이면 기존처럼 무기한 반복된다(회귀 방지)")
+    func nilRepeatEndDateStillRepeatsIndefinitely() {
+        let start = date(year: 2020, month: 10, day: 20)
+        let event = yearlyEvent(startDate: start, repeatEndDate: nil)
+
+        let range = DateInterval(
+            start: date(year: 2020, month: 1, day: 1),
+            end: date(year: 2030, month: 1, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(for: event, intersecting: range, calendar: calendar)
+
+        // 2020~2029년까지 10회 전부 있어야 한다(종료 조건이 없으므로 범위 끝까지 계속 생성).
+        #expect(results.count == 10)
+    }
+
+    // MARK: - nextOccurrenceDate
+
+    @Test("반복 종료일 이전에 조회하면 평소대로 다음 발생일을 반환한다")
+    func nextOccurrenceDateBeforeEndDateWorksNormally() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 10, day: 20),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2026, month: 10, day: 19),
+            calendar: calendar,
+            repeatEndDate: date(year: 2030, month: 10, day: 20)
+        )
+        let expected = date(year: 2026, month: 10, day: 20)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("종료일 당일을 조회 기준으로 쓰면 종료일 당일 발생분을 반환한다(종료일 포함)")
+    func nextOccurrenceDateOnTheEndDateItselfIsIncluded() {
+        let end = date(year: 2027, month: 10, day: 20)
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 10, day: 20),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: end,
+            calendar: calendar,
+            repeatEndDate: end
+        )
+        #expect(result.map { calendar.isDate($0, inSameDayAs: end) } == true)
+    }
+
+    @Test("반복 종료일을 지난 뒤에 조회하면 nil을 반환한다(반복이 끝남)")
+    func nextOccurrenceDateAfterEndDateReturnsNil() {
+        let end = date(year: 2027, month: 10, day: 20)
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 10, day: 20),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2027, month: 10, day: 21),
+            calendar: calendar,
+            repeatEndDate: end
+        )
+        #expect(result == nil)
+    }
+
+    @Test("repeatEndDate를 생략하면(기본값 nil) 기존 동작과 동일하게 무기한 탐색한다(회귀 방지)")
+    func omittingRepeatEndDateDefaultsToUnbounded() {
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: date(year: 2020, month: 10, day: 20),
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: date(year: 2040, month: 10, day: 21),
+            calendar: calendar
+        )
+        let expected = date(year: 2041, month: 10, day: 20)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("Event 기반 편의 오버로드는 event.repeatEndDate를 그대로 반영한다")
+    func eventConvenienceOverloadUsesEventRepeatEndDate() {
+        let end = date(year: 2027, month: 10, day: 20)
+        let event = yearlyEvent(startDate: date(year: 2020, month: 10, day: 20), repeatEndDate: end)
+
+        let beforeEnd = EventOccurrenceService.nextOccurrenceDate(
+            for: event,
+            onOrAfter: date(year: 2026, month: 10, day: 19),
+            calendar: calendar
+        )
+        #expect(beforeEnd.map { calendar.isDate($0, inSameDayAs: date(year: 2026, month: 10, day: 20)) } == true)
+
+        let afterEnd = EventOccurrenceService.nextOccurrenceDate(
+            for: event,
+            onOrAfter: date(year: 2027, month: 10, day: 21),
+            calendar: calendar
+        )
+        #expect(afterEnd == nil)
+    }
+
+    @Test("기존 정상 계산 보호: 2026-10-10 생일이 D-Day, 2027-10-10 발생분은 종료일 설정이 없으면 그대로 D-365로 계산된다")
+    func protectsKnownGoodUnboundedYearlyCalculation() {
+        let start = date(year: 2020, month: 10, day: 10)
+        let onDDay = date(year: 2026, month: 10, day: 10)
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            startDate: start,
+            repeatUnit: "년",
+            repeatInterval: 1,
+            onOrAfter: calendar.date(byAdding: .day, value: 1, to: onDDay)!,
+            calendar: calendar,
+            repeatEndDate: nil
+        )
+        let expectedNext = date(year: 2027, month: 10, day: 10)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expectedNext) } == true)
+        let days = DDayCalculator.daysRemaining(until: expectedNext, now: onDDay, calendar: calendar)
+        #expect(days == 365)
+    }
+}
+
+@Suite("반복 일정 개별 수정·삭제 예외 (Step 5-2 실기기 테스트 후 수정)")
+struct EventOccurrenceExceptionTests {
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return calendar
+    }()
+
+    private func date(year: Int, month: Int, day: Int, hour: Int = 10) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    /// 명세 예시 그대로: 매주 월요일 오전 10시 운동(2026-10-05부터).
+    private func weeklyWorkoutEvent() -> Event {
+        Event(
+            title: "운동",
+            isAllDay: false,
+            startDate: date(year: 2026, month: 10, day: 5),
+            endDate: date(year: 2026, month: 10, day: 5, hour: 11),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "주",
+            repeatInterval: 1,
+            memo: ""
+        )
+    }
+
+    private func exclusion(for event: Event, originalStart: Date) -> EventOccurrenceException {
+        EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: originalStart,
+            isExcluded: true
+        )
+    }
+
+    private func override(
+        for event: Event,
+        originalStart: Date,
+        newTitle: String,
+        newStart: Date,
+        newEnd: Date
+    ) -> EventOccurrenceException {
+        EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: originalStart,
+            isExcluded: false,
+            overrideTitle: newTitle,
+            overrideStartDate: newStart,
+            overrideEndDate: newEnd
+        )
+    }
+
+    @Test("명세 예시: 10월 19일 발생분만 11시로 옮기면 그 발생분만 바뀌고 나머지는 그대로다")
+    func singleOccurrenceOverrideShiftsOnlyThatDate() {
+        let event = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19) // 10시
+        let movedOct19 = date(year: 2026, month: 10, day: 19, hour: 11)
+        let exception = override(
+            for: event,
+            originalStart: originalOct19,
+            newTitle: "운동",
+            newStart: movedOct19,
+            newEnd: movedOct19.addingTimeInterval(3_600)
+        )
+
+        let range = DateInterval(
+            start: date(year: 2026, month: 10, day: 1),
+            end: date(year: 2026, month: 11, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: event, intersecting: range, calendar: calendar, exceptions: [exception]
+        )
+
+        let oct12 = results.first { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 12)) }
+        let oct19 = results.first { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 19)) }
+        let oct26 = results.first { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 26)) }
+
+        #expect(calendar.component(.hour, from: oct12?.startDate ?? .distantPast) == 10)
+        #expect(calendar.component(.hour, from: oct19?.startDate ?? .distantPast) == 11)
+        #expect(calendar.component(.hour, from: oct26?.startDate ?? .distantPast) == 10)
+        // 옮긴 발생분이 원래 슬롯(10시)에 중복으로 남지 않아야 한다.
+        #expect(results.filter { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 19)) }.count == 1)
+    }
+
+    @Test("명세 예시: 10월 19일 발생분만 삭제하면 그 날짜만 빠지고 나머지는 그대로 표시된다")
+    func singleOccurrenceExclusionRemovesOnlyThatDate() {
+        let event = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19)
+        let exception = exclusion(for: event, originalStart: originalOct19)
+
+        let range = DateInterval(
+            start: date(year: 2026, month: 10, day: 1),
+            end: date(year: 2026, month: 11, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: event, intersecting: range, calendar: calendar, exceptions: [exception]
+        )
+
+        #expect(results.contains { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 12)) })
+        #expect(!results.contains { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 19)) })
+        #expect(results.contains { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 26)) })
+    }
+
+    @Test("override된 발생분은 title·colorName도 함께 바뀐다")
+    func overrideAppliesToTitleAndColor() {
+        let event = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19)
+        let exception = EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: originalOct19,
+            isExcluded: false,
+            overrideTitle: "헬스장 변경",
+            overrideStartDate: originalOct19,
+            overrideEndDate: originalOct19.addingTimeInterval(3_600),
+            overrideColor: "빨간색"
+        )
+
+        let range = DateInterval(
+            start: date(year: 2026, month: 10, day: 1),
+            end: date(year: 2026, month: 11, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: event, intersecting: range, calendar: calendar, exceptions: [exception]
+        )
+
+        let oct19 = results.first { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 19)) }
+        let oct12 = results.first { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 12)) }
+
+        #expect(oct19?.title == "헬스장 변경")
+        #expect(oct19?.colorName == "빨간색")
+        #expect(oct12?.title == "운동")
+        #expect(oct12?.colorName == "파란색")
+    }
+
+    @Test("nextOccurrenceDate는 가까운 미래의 override된 발생분을 그 새 시각 그대로 다음 발생일로 찾는다")
+    func nextOccurrenceDateReflectsOverride() {
+        let event = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19)
+        let movedOct19 = date(year: 2026, month: 10, day: 19, hour: 11)
+        let exception = override(
+            for: event,
+            originalStart: originalOct19,
+            newTitle: "운동",
+            newStart: movedOct19,
+            newEnd: movedOct19.addingTimeInterval(3_600)
+        )
+
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            for: event,
+            onOrAfter: date(year: 2026, month: 10, day: 19),
+            calendar: calendar,
+            exceptions: [exception]
+        )
+
+        #expect(result == movedOct19)
+    }
+
+    @Test("nextOccurrenceDate는 개별 삭제된 발생분을 건너뛰고 그다음 유효한 발생분을 찾는다")
+    func nextOccurrenceDateSkipsExcludedOccurrence() {
+        let event = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19)
+        let exception = exclusion(for: event, originalStart: originalOct19)
+
+        let result = EventOccurrenceService.nextOccurrenceDate(
+            for: event,
+            onOrAfter: date(year: 2026, month: 10, day: 19),
+            calendar: calendar,
+            exceptions: [exception]
+        )
+
+        let expected = date(year: 2026, month: 10, day: 26)
+        #expect(result.map { calendar.isDate($0, inSameDayAs: expected) } == true)
+    }
+
+    @Test("다른 일정의 예외는 섞이지 않는다(events 배열 기준 eventID별로 올바르게 그룹핑된다)")
+    func exceptionsAreScopedToTheirOwnEvent() {
+        let eventA = weeklyWorkoutEvent()
+        let eventB = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19)
+        // eventB의 10/19만 삭제 — eventA에는 영향이 없어야 한다.
+        let exceptionForB = exclusion(for: eventB, originalStart: originalOct19)
+
+        let range = DateInterval(
+            start: date(year: 2026, month: 10, day: 1),
+            end: date(year: 2026, month: 11, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: [eventA, eventB], intersecting: range, calendar: calendar, exceptions: [exceptionForB]
+        )
+
+        let eventAOct19Count = results.filter { $0.event.id == eventA.id && calendar.isDate($0.startDate, inSameDayAs: originalOct19) }.count
+        let eventBOct19Count = results.filter { $0.event.id == eventB.id && calendar.isDate($0.startDate, inSameDayAs: originalOct19) }.count
+
+        #expect(eventAOct19Count == 1)
+        #expect(eventBOct19Count == 0)
+    }
+
+    @Test("예외가 전혀 없으면 기존 동작과 동일하다(회귀 방지)")
+    func noExceptionsBehavesLikeBefore() {
+        let event = weeklyWorkoutEvent()
+        let range = DateInterval(
+            start: date(year: 2026, month: 10, day: 1),
+            end: date(year: 2026, month: 11, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: event, intersecting: range, calendar: calendar
+        )
+
+        #expect(results.count == 4) // 10/5, 12, 19, 26
+        #expect(results.allSatisfy { $0.exception == nil })
     }
 }

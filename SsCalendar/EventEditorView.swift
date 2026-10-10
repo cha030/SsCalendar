@@ -124,6 +124,39 @@ private enum EventRepeatUnit: String, CaseIterable, Identifiable {
     }
 }
 
+/// 반복 종료 방식(Step 5-2 반복 종료일 기능). 외부 EventKit 반복 규칙은 건드리지 않는다 —
+/// SsCalendar 자체 일정에만 적용한다.
+private enum EventRepeatEndOption: String, CaseIterable, Identifiable {
+    case never = "종료 안 함"
+    case onDate = "날짜 지정"
+
+    var id: Self { self }
+
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .never: "종료 안 함"
+        case .onDate: "날짜 지정"
+        }
+    }
+}
+
+/// 반복 일정의 수정 범위(Step 5-2 개별 수정·삭제). 반복 일정을 편집할 때만 의미가 있다 — 새
+/// 일정이거나 반복하지 않는 일정에는 쓰이지 않는다. 기본값은 "이 일정만"으로 둬 특정 발생분을
+/// 열었을 때 실수로 시리즈 전체를 바꾸는 사고를 줄인다.
+private enum OccurrenceEditScope: String, CaseIterable, Identifiable {
+    case singleOccurrence = "이 일정만"
+    case wholeSeries = "전체 반복 일정"
+
+    var id: Self { self }
+
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .singleOccurrence: "이 일정만"
+        case .wholeSeries: "전체 반복 일정"
+        }
+    }
+}
+
 private struct EventRepeatSetting {
     var unit: EventRepeatUnit = .none
     var interval = 1
@@ -169,6 +202,9 @@ private struct EventRepeatSetting {
 struct EventEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    /// 반복 일정의 개별 수정·삭제 예외(Step 5-2). 같은 발생분을 다시 열었을 때 기존 override를
+    /// 찾아 갱신하고(새로 중복 생성하지 않고), 전체 삭제 시 함께 정리하는 데 쓴다.
+    @Query private var occurrenceExceptions: [EventOccurrenceException]
 
     @State private var title = ""
     @State private var isAllDay = false
@@ -177,20 +213,66 @@ struct EventEditorView: View {
     @State private var eventColor: EventColor = .blue
     @State private var reminderSetting = EventReminderSetting()
     @State private var repeatSetting = EventRepeatSetting()
+    /// 반복 종료 방식(Step 5-2). 기본값 "종료 안 함" — 기존 반복 일정은 전부 이 상태를 유지한다.
+    @State private var repeatEndOption: EventRepeatEndOption = .never
+    @State private var repeatEndDate: Date
     @State private var notes = ""
+    /// D-Day(남은 일수) 표시 여부(Step 5-2). 기본값 OFF. startDate를 기준으로 계산하므로
+    /// 시작 날짜가 바뀌면 미리보기도 같이 바뀐다(아래 dDayPreviewText).
+    @State private var isDDayEnabled = false
     @State private var saveErrorMessage: String?
     @State private var isPresentingDeleteConfirmation = false
     @State private var isSaving = false
     /// 새 일정의 저장 위치. 기존 일정 편집에서는 항상 .local이며 변경할 수 없다.
     @State private var saveDestination: EventSaveDestination
+    /// 반복 일정 수정 범위(Step 5-2). 반복 일정이 아니거나 새 일정이면 의미가 없다(항상
+    /// wholeSeries처럼 동작 — 시리즈 자체를 만들거나 통째로 다루기 때문).
+    @State private var editScope: OccurrenceEditScope = .singleOccurrence
 
     private let event: Event?
     private let systemCalendar = SystemCalendarService.shared
     /// 저장된 기본 저장 위치를 쓸 수 없어 로컬로 선택했을 때의 안내 문구. 편집기를 연 시점에 한 번 정한다.
     private let defaultDestinationNotice: String?
+    /// 편집기를 열 때 실제로 보여준 발생분의 시작·종료 시각(원본 그대로, 사용자가 편집하기 전 값).
+    /// 반복 일정은 모든 발생분이 같은 Event를 공유해 "지금 보여준 게 시리즈 원본인지, 이후
+    /// 회차인지" 구분이 필요하다 — update(_:)에서 이 값과 현재 입력값의 차이(delta)만큼만
+    /// 시리즈 원본 시작·종료일을 옮긴다(반복이 아니거나 원본 회차를 열었으면 delta가 0이라
+    /// 기존과 동일하게 동작한다).
+    private let originalOccurrenceStartDate: Date
+    private let originalOccurrenceEndDate: Date
+    /// 반복 규칙이 원래 계산한 이 발생분의 시작 시각(개별 수정 override 이전). 예외 레코드를
+    /// 찾고 만드는 키로 쓴다 — 이미 override된 발생분을 다시 열어도 항상 같은 값이라, 같은
+    /// 예외를 중복 생성하지 않고 갱신할 수 있다(Step 5-2 개별 수정·삭제).
+    private let exceptionKeyDate: Date
+    /// 이 발생분에 이미 적용돼 있던 개별 수정 예외(있으면). "이 일정만 수정"을 다시 저장할 때
+    /// 중복 생성하지 않고 이 레코드를 그대로 갱신한다.
+    private let existingException: EventOccurrenceException?
 
-    init(date: Date, event: Event? = nil) {
+    /// - Parameters:
+    ///   - date: 새 일정이면 기본 시작 시각 계산에, 기존 일정 수정이면 탭한 발생분의 실제
+    ///     시작 시각으로 쓰인다(반복 일정의 특정 회차를 열었을 수 있어 event.startDate를
+    ///     그대로 쓰지 않는다).
+    ///   - occurrenceEndDate: 기존 일정 수정일 때 탭한 발생분의 실제 종료 시각. 생략하면 date와
+    ///     같은 값으로 취급한다(비정상적인 빈 구간 방지).
+    ///   - recurrenceSlotDate: 반복 규칙이 원래 계산한 이 발생분의 시작 시각(개별 수정 예외 식별
+    ///     키). 생략하면 date와 같은 값으로 취급한다(비반복 일정이거나 처음 수정하는 경우).
+    ///   - existingException: 이 발생분에 이미 적용돼 있던 개별 수정 예외(있으면). 제목·색상·알림·
+    ///     메모의 초기값을 이 예외에서 가져와, 이미 한 번 수정한 발생분을 다시 열어도 override된
+    ///     값이 그대로 보이게 한다(시간은 occurrenceEndDate/date가 이미 override를 반영해 넘어온다).
+    ///
+    /// 반복 일정 수정 범위(이 일정만/전체 반복 일정)는 항상 "이 일정만"으로 열리며, 화면 안의
+    /// 세그먼트 Picker로 바꿀 수 있다 — 특정 발생분을 열었을 때 실수로 시리즈 전체를 바꾸는
+    /// 사고를 줄이기 위한 안전한 기본값이다(OccurrenceEditScope는 이 파일 전용 타입이라
+    /// 초기화 파라미터로 외부에 노출하지 않는다).
+    init(
+        date: Date,
+        event: Event? = nil,
+        occurrenceEndDate: Date? = nil,
+        recurrenceSlotDate: Date? = nil,
+        existingException: EventOccurrenceException? = nil
+    ) {
         self.event = event
+        self.existingException = existingException
 
         let calendar = Calendar.current
         let selectedDay = calendar.startOfDay(for: date)
@@ -205,22 +287,29 @@ struct EventEditorView: View {
             to: selectedDay
         ) ?? defaultStartDate
 
-        _title = State(initialValue: event?.title ?? "")
-        _isAllDay = State(initialValue: event?.isAllDay ?? false)
-        _startDate = State(initialValue: event?.startDate ?? defaultStartDate)
-        _endDate = State(initialValue: event?.endDate ?? defaultEndDate)
+        let occurrenceStartDate = event != nil ? date : defaultStartDate
+        let occurrenceEndDate = event != nil ? (occurrenceEndDate ?? date) : defaultEndDate
+        originalOccurrenceStartDate = occurrenceStartDate
+        originalOccurrenceEndDate = occurrenceEndDate
+        exceptionKeyDate = recurrenceSlotDate ?? occurrenceStartDate
+        _editScope = State(initialValue: .singleOccurrence)
+
+        _title = State(initialValue: existingException?.overrideTitle ?? event?.title ?? "")
+        _isAllDay = State(initialValue: existingException?.overrideIsAllDay ?? event?.isAllDay ?? false)
+        _startDate = State(initialValue: occurrenceStartDate)
+        _endDate = State(initialValue: occurrenceEndDate)
         _eventColor = State(
-            initialValue: event.flatMap { EventColor(rawValue: $0.color) } ?? .blue
+            initialValue: EventColor(rawValue: existingException?.overrideColor ?? event?.color ?? "") ?? .blue
         )
         _reminderSetting = State(
             initialValue: EventReminderSetting(
-                option: event.flatMap {
-                    EventReminderOption(rawValue: $0.alarmOption)
-                } ?? .atStart,
-                customValue: max(1, event?.alarmCustomValue ?? 30),
-                customUnit: event.flatMap {
-                    ReminderOffsetUnit(rawValue: $0.alarmCustomUnit)
-                } ?? .minute
+                option: EventReminderOption(
+                    rawValue: existingException?.overrideAlarmOption ?? event?.alarmOption ?? ""
+                ) ?? .atStart,
+                customValue: max(1, existingException?.overrideAlarmCustomValue ?? event?.alarmCustomValue ?? 30),
+                customUnit: ReminderOffsetUnit(
+                    rawValue: existingException?.overrideAlarmCustomUnit ?? event?.alarmCustomUnit ?? ""
+                ) ?? .minute
             )
         )
         _repeatSetting = State(
@@ -231,7 +320,18 @@ struct EventEditorView: View {
                 interval: max(1, event?.repeatInterval ?? 1)
             )
         )
-        _notes = State(initialValue: event?.memo ?? "")
+        _repeatEndOption = State(
+            initialValue: event?.repeatEndDate != nil ? .onDate : .never
+        )
+        // "종료 안 함"이어도 사용자가 "날짜 지정"으로 바꿀 때 보여줄 기본값을 미리 마련해 둔다
+        // (시작일 + 1년). 기존에 저장된 종료일이 있으면 그 값을 그대로 쓴다.
+        _repeatEndDate = State(
+            initialValue: event?.repeatEndDate
+                ?? calendar.date(byAdding: .year, value: 1, to: occurrenceStartDate)
+                ?? occurrenceStartDate
+        )
+        _notes = State(initialValue: existingException?.overrideMemo ?? event?.memo ?? "")
+        _isDDayEnabled = State(initialValue: event?.isDDayEnabled ?? false)
 
         let systemCalendar = SystemCalendarService.shared
         _saveDestination = State(
@@ -263,6 +363,25 @@ struct EventEditorView: View {
         Form {
             Section {
                 TextField("제목", text: $title)
+            }
+
+            // 반복 일정 수정 범위 선택(Step 5-2 개별 수정·삭제). 새 일정이거나 반복하지 않는
+            // 일정에는 "시리즈" 개념이 없어 보여주지 않는다.
+            if isExistingRepeatingSeries {
+                Section {
+                    Picker("수정 범위", selection: $editScope) {
+                        ForEach(OccurrenceEditScope.allCases) { scope in
+                            Text(scope.localizedTitle).tag(scope)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                } footer: {
+                    Text(
+                        editScope == .singleOccurrence
+                            ? "이 발생분만 수정합니다. 반복 설정과 D-Day는 \"전체 반복 일정\"에서만 바꿀 수 있습니다."
+                            : "반복되는 모든 발생분에 적용됩니다."
+                    )
+                }
             }
 
             Section {
@@ -376,42 +495,90 @@ struct EventEditorView: View {
             }
 
             Section {
-                Picker("반복", selection: $repeatSetting.unit) {
-                    ForEach(EventRepeatUnit.allCases) { unit in
-                        Text(unit.localizedTitle)
-                            .tag(unit)
+                if isEditingSingleOccurrenceOfRepeatingSeries {
+                    // 이 발생분만 수정하는 중에는 반복 설정 자체를 바꿀 수 없다(시리즈 전체에
+                    // 적용되는 값이기 때문) — 현재 값을 읽기 전용으로만 보여준다.
+                    LabeledContent("반복") {
+                        Text(repeatSetting.summary)
+                            .foregroundStyle(.secondary)
                     }
-                }
-
-                if repeatSetting.isRepeating {
-                    LabeledContent("반복 간격") {
-                        HStack {
-                            TextField(
-                                "간격",
-                                value: repeatInterval,
-                                format: .number
-                            )
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 48)
-
-                            Stepper(
-                                "",
-                                value: repeatInterval,
-                                in: 1...999
-                            )
-                            .labelsHidden()
+                } else {
+                    Picker("반복", selection: $repeatSetting.unit) {
+                        ForEach(EventRepeatUnit.allCases) { unit in
+                            Text(unit.localizedTitle)
+                                .tag(unit)
                         }
                     }
 
-                    Text(repeatSetting.summary)
-                        .foregroundStyle(.secondary)
+                    if repeatSetting.isRepeating {
+                        LabeledContent("반복 간격") {
+                            HStack {
+                                TextField(
+                                    "간격",
+                                    value: repeatInterval,
+                                    format: .number
+                                )
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 48)
+
+                                Stepper(
+                                    "",
+                                    value: repeatInterval,
+                                    in: 1...999
+                                )
+                                .labelsHidden()
+                            }
+                        }
+
+                        Text(repeatSetting.summary)
+                            .foregroundStyle(.secondary)
+
+                        // 반복 종료(Step 5-2). SsCalendar 자체 일정에만 적용하며, 외부 EventKit
+                        // 반복 규칙은 건드리지 않는다. 기본값 "종료 안 함"(기존 무기한 반복과 동일).
+                        Picker("반복 종료", selection: $repeatEndOption) {
+                            ForEach(EventRepeatEndOption.allCases) { option in
+                                Text(option.localizedTitle)
+                                    .tag(option)
+                            }
+                        }
+
+                        if repeatEndOption == .onDate {
+                            // 종료일이 시작일보다 앞설 수 없도록 선택 범위 자체를 제한한다(UI 단계
+                            // 검증). saveEvent()에서도 한 번 더 확인한다(날짜 선택 순서와 무관하게).
+                            DatePicker(
+                                "종료 날짜",
+                                selection: $repeatEndDate,
+                                in: startDate...,
+                                displayedComponents: .date
+                            )
+                            .environment(\.locale, Locale.current)
+                        }
+                    }
                 }
             }
 
             Section("메모") {
                 TextEditor(text: $notes)
                     .frame(minHeight: 120)
+            }
+
+            // 시스템 캘린더에 직접 저장하는 새 일정은 아직 SsCalendar 로컬 Event가 없어 D-Day
+            // 설정을 저장할 곳이 없다. 저장 후 외부 일정 상세에서 별도로 켤 수 있다(Step 5-2 2-2).
+            // D-Day는 시리즈 전체에 적용되는 설정이라, "이 일정만" 수정 중에는 바꿀 수 없다.
+            if !isSavingToSystemCalendar && !isEditingSingleOccurrenceOfRepeatingSeries {
+                Section {
+                    Toggle("D-Day 표시", isOn: $isDDayEnabled)
+
+                    if isDDayEnabled {
+                        LabeledContent("미리보기") {
+                            Text(dDayPreviewText)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } footer: {
+                    Text(dDayFooterText)
+                }
             }
 
             if event != nil {
@@ -455,9 +622,23 @@ struct EventEditorView: View {
             isPresented: $isPresentingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("삭제", role: .destructive) {
-                Task {
-                    await deleteEvent()
+            if isExistingRepeatingSeries {
+                Button("이 일정만 삭제", role: .destructive) {
+                    Task {
+                        await deleteSingleOccurrence()
+                    }
+                }
+
+                Button("전체 반복 일정 삭제", role: .destructive) {
+                    Task {
+                        await deleteEvent()
+                    }
+                }
+            } else {
+                Button("삭제", role: .destructive) {
+                    Task {
+                        await deleteEvent()
+                    }
                 }
             }
 
@@ -554,6 +735,45 @@ struct EventEditorView: View {
         )
     }
 
+    /// "종료 안 함"이면 nil, "날짜 지정"이면 선택한 날짜. 반복이 아니면(반복 설정 자체가
+    /// 꺼져 있으면) 항상 nil — 반복하지 않는 일정에는 종료 설정을 적용하지 않는다.
+    private var effectiveRepeatEndDate: Date? {
+        guard repeatSetting.isRepeating, repeatEndOption == .onDate else { return nil }
+        return repeatEndDate
+    }
+
+    /// 지금 편집 중인 발생분(startDate)을 그대로 기준으로 D-Day 미리보기를 계산한다(Step 5-2
+    /// 실기기 수정: 반복 일정에서 다른 발생분을 열어도 항상 "지금 보고 있는 그 발생분"의 D-Day를
+    /// 보여줘야 하며, 시리즈의 "오늘 이후 다음 발생일"을 임의로 대신 보여주지 않는다). @State인
+    /// startDate를 직접 읽으므로 날짜를 바꾸면 body가 다시 그려질 때 즉시 재계산된다.
+    private var dDayPreviewText: String {
+        let days = DDayCalculator.daysRemaining(until: startDate, calendar: Calendar.current)
+        guard days >= 0 else {
+            return String(localized: "지난 일정")
+        }
+        return DDayCalculator.displayText(forDaysRemaining: days)
+    }
+
+    /// D-Day 섹션 footer 설명. 반복 여부에 따라 기준이 달라지므로 그에 맞춰 문구를 바꾼다.
+    private var dDayFooterText: String {
+        repeatSetting.isRepeating
+            ? String(localized: "이 발생분의 날짜를 기준으로 계산합니다. 일정 목록과 위젯은 항상 각 시점의 다음 발생일을 기준으로 표시합니다.")
+            : String(localized: "일정 시작 날짜를 기준으로 남은 일수를 계산합니다.")
+    }
+
+    /// event가 있고(기존 일정 편집) 그 반복 설정이 "반복 안 함"이 아니면 true. 새 일정이거나
+    /// 반복하지 않는 일정에는 "시리즈" 개념이 없다.
+    private var isExistingRepeatingSeries: Bool {
+        guard let event else { return false }
+        return event.repeatUnit != EventRepeatUnit.none.rawValue
+    }
+
+    /// 반복 시리즈의 특정 발생분만 수정하는 중인지. 반복 설정·D-Day 등 시리즈 전역 설정을
+    /// 숨기거나 읽기 전용으로 바꿀 때 기준으로 쓴다.
+    private var isEditingSingleOccurrenceOfRepeatingSeries: Bool {
+        isExistingRepeatingSeries && editScope == .singleOccurrence
+    }
+
     private var repeatInterval: Binding<Int> {
         Binding(
             get: { repeatSetting.interval },
@@ -567,6 +787,18 @@ struct EventEditorView: View {
             return
         }
 
+        // 반복 종료일은 시작일보다 앞설 수 없다(날짜 단위 비교 — 종료일 당일은 포함이므로
+        // 같은 날이면 유효하다). DatePicker의 in: 범위로도 막지만, 시작일을 종료일 선택 이후에
+        // 바꿨을 수 있어 저장 직전에 한 번 더 확인한다. "이 일정만" 수정 중에는 반복 종료일
+        // 자체를 바꾸지 않으므로(UI에서 숨김) 이 검사가 필요 없다.
+        if !isEditingSingleOccurrenceOfRepeatingSeries, let repeatEndDate = effectiveRepeatEndDate {
+            let calendar = Calendar.current
+            guard calendar.startOfDay(for: repeatEndDate) >= calendar.startOfDay(for: startDate) else {
+                saveErrorMessage = String(localized: "반복 종료 날짜는 시작일보다 빠를 수 없습니다.")
+                return
+            }
+        }
+
         if event == nil, case .systemCalendar(let calendarIdentifier) = saveDestination {
             saveToSystemCalendar(calendarIdentifier)
             return
@@ -576,7 +808,11 @@ struct EventEditorView: View {
         let savedEvent: Event
 
         if let event {
-            update(event)
+            if isEditingSingleOccurrenceOfRepeatingSeries {
+                upsertSingleOccurrenceException(for: event)
+            } else {
+                update(event)
+            }
             savedEvent = event
         } else {
             let newEvent = Event(
@@ -591,7 +827,9 @@ struct EventEditorView: View {
                 alarmCustomUnit: reminderSetting.customUnit.rawValue,
                 repeatUnit: repeatSetting.unit.rawValue,
                 repeatInterval: repeatSetting.interval,
-                memo: notes
+                memo: notes,
+                isDDayEnabled: isDDayEnabled,
+                repeatEndDate: effectiveRepeatEndDate
             )
             modelContext.insert(newEvent)
             savedEvent = newEvent
@@ -601,7 +839,8 @@ struct EventEditorView: View {
             try modelContext.save()
             WidgetReloadManager.reloadCalendar()
             await NotificationManager.shared.rescheduleNotifications(
-                for: savedEvent
+                for: savedEvent,
+                exceptions: fetchExceptions(for: savedEvent.id)
             )
             isSaving = false
             dismiss()
@@ -610,6 +849,15 @@ struct EventEditorView: View {
             isSaving = false
             saveErrorMessage = String(localized: "저장 중 오류가 발생했습니다. 다시 시도해 주세요.")
         }
+    }
+
+    /// 방금 저장한 예외가 알림 재계산에 바로 반영되도록, @Query의 갱신 타이밍에 기대지 않고
+    /// 저장 직후 모델 컨텍스트에서 직접 다시 읽는다.
+    private func fetchExceptions(for eventID: UUID) -> [EventOccurrenceException] {
+        let descriptor = FetchDescriptor<EventOccurrenceException>(
+            predicate: #Predicate { $0.eventID == eventID }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     /// EventKit에 직접 저장한다. SwiftData와 로컬 알림(NotificationManager)은 사용하지 않는다.
@@ -631,10 +879,17 @@ struct EventEditorView: View {
     }
 
     private func update(_ event: Event) {
+        // 반복 일정의 원본이 아닌 이후 회차를 열었을 수 있으므로, 화면에 보여준 값을 그대로
+        // event.startDate/endDate에 덮어쓰지 않는다. 대신 "열었을 때 보여준 값"과 "지금 입력값"의
+        // 차이(delta)만큼만 시리즈 원본 시작·종료일을 옮긴다 — 반복이 아니거나 원본 회차를
+        // 열었으면 두 값이 같아 delta가 0이라 기존과 똑같이 동작한다.
+        let startDelta = startDate.timeIntervalSince(originalOccurrenceStartDate)
+        let endDelta = endDate.timeIntervalSince(originalOccurrenceEndDate)
+
         event.title = title
         event.isAllDay = isAllDay
-        event.startDate = startDate
-        event.endDate = endDate
+        event.startDate = event.startDate.addingTimeInterval(startDelta)
+        event.endDate = event.endDate.addingTimeInterval(endDelta)
         event.color = eventColor.rawValue
         event.alarmOption = reminderSetting.option.rawValue
         event.alarmTimeIntervalBeforeStart = reminderSetting.timeIntervalBeforeStart
@@ -643,6 +898,36 @@ struct EventEditorView: View {
         event.repeatUnit = repeatSetting.unit.rawValue
         event.repeatInterval = repeatSetting.interval
         event.memo = notes
+        event.isDDayEnabled = isDDayEnabled
+        event.repeatEndDate = effectiveRepeatEndDate
+    }
+
+    /// 반복 시리즈의 특정 발생분만 수정한다(Step 5-2 개별 수정). 원본 Event는 전혀 건드리지
+    /// 않고, 이 발생분(exceptionKeyDate로 식별)에 대한 예외 레코드만 만들거나 갱신한다. 이미
+    /// 이 발생분의 예외가 있었으면(existingException) 새로 만들지 않고 그대로 갱신한다 — 같은
+    /// 발생분에 중복 레코드가 쌓이지 않게 한다.
+    private func upsertSingleOccurrenceException(for event: Event) {
+        let exception = existingException ?? EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: exceptionKeyDate,
+            isExcluded: false
+        )
+
+        if existingException == nil {
+            modelContext.insert(exception)
+        }
+
+        exception.isExcluded = false
+        exception.overrideTitle = title
+        exception.overrideIsAllDay = isAllDay
+        exception.overrideStartDate = startDate
+        exception.overrideEndDate = endDate
+        exception.overrideColor = eventColor.rawValue
+        exception.overrideAlarmOption = reminderSetting.option.rawValue
+        exception.overrideAlarmTimeIntervalBeforeStart = reminderSetting.timeIntervalBeforeStart
+        exception.overrideAlarmCustomValue = reminderSetting.customValue
+        exception.overrideAlarmCustomUnit = reminderSetting.customUnit.rawValue
+        exception.overrideMemo = notes
     }
 
     private func deleteEvent() async {
@@ -651,6 +936,10 @@ struct EventEditorView: View {
         }
 
         let eventID = event.id
+        // 전체 삭제는 시리즈와 연결된 개별 수정·삭제 예외도 함께 정리한다(고아 레코드 방지).
+        for exception in fetchExceptions(for: eventID) {
+            modelContext.delete(exception)
+        }
         modelContext.delete(event)
 
         do {
@@ -665,11 +954,44 @@ struct EventEditorView: View {
             saveErrorMessage = String(localized: "삭제 중 오류가 발생했습니다. 다시 시도해 주세요.")
         }
     }
+
+    /// 반복 시리즈에서 이 발생분만 제외한다(Step 5-2 개별 삭제). 원본 Event는 그대로 두고,
+    /// 이 발생분을 가리키는 예외를 isExcluded = true로 표시(또는 새로 생성)한다.
+    private func deleteSingleOccurrence() async {
+        guard let event else {
+            return
+        }
+
+        let exception = existingException ?? EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: exceptionKeyDate,
+            isExcluded: true
+        )
+
+        if existingException == nil {
+            modelContext.insert(exception)
+        } else {
+            exception.isExcluded = true
+        }
+
+        do {
+            try modelContext.save()
+            WidgetReloadManager.reloadCalendar()
+            await NotificationManager.shared.rescheduleNotifications(
+                for: event,
+                exceptions: fetchExceptions(for: event.id)
+            )
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveErrorMessage = String(localized: "삭제 중 오류가 발생했습니다. 다시 시도해 주세요.")
+        }
+    }
 }
 
 #Preview {
     NavigationStack {
         EventEditorView(date: Date())
     }
-    .modelContainer(for: Event.self, inMemory: true)
+    .modelContainer(for: [Event.self, EventOccurrenceException.self], inMemory: true)
 }

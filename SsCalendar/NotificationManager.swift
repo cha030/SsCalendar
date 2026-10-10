@@ -17,20 +17,15 @@ enum EventNotificationPlanner {
     static func schedules(
         for event: Event,
         now: Date = Date(),
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        exceptions: [EventOccurrenceException] = []
     ) -> [EventNotificationSchedule] {
-        guard
-            event.alarmOption != "없음",
-            let alarmOffset = event.alarmTimeIntervalBeforeStart
-        else {
-            return []
-        }
-
-        let firstRelevantStart = now.addingTimeInterval(max(0, alarmOffset))
+        // 시리즈 알림이 꺼져 있어도 특정 발생분이 개별 수정으로 알림을 따로 켰을 수 있으므로,
+        // 시리즈 단위로 미리 걸러내지 않고 발생분마다 각자의(override 포함) 알림 설정을 본다.
         guard let rangeEnd = calendar.date(
             byAdding: .year,
             value: 100,
-            to: firstRelevantStart
+            to: now
         ) else {
             return []
         }
@@ -38,15 +33,25 @@ enum EventNotificationPlanner {
         let occurrences = EventOccurrenceService.occurrences(
             for: event,
             intersecting: DateInterval(
-                start: firstRelevantStart,
+                start: now,
                 end: rangeEnd
             ),
             calendar: calendar,
-            limit: maximumScheduledOccurrences + 1
+            limit: maximumScheduledOccurrences + 1,
+            exceptions: exceptions
         )
 
         return occurrences
-            .compactMap { occurrence in
+            .compactMap { occurrence -> EventNotificationSchedule? in
+                let alarmOption = occurrence.exception?.overrideAlarmOption ?? event.alarmOption
+                guard
+                    alarmOption != "없음",
+                    let alarmOffset = occurrence.exception?.overrideAlarmTimeIntervalBeforeStart
+                        ?? event.alarmTimeIntervalBeforeStart
+                else {
+                    return nil
+                }
+
                 let fireDate = occurrence.startDate.addingTimeInterval(
                     -alarmOffset
                 )
@@ -61,7 +66,7 @@ enum EventNotificationPlanner {
                         occurrenceStart: occurrence.startDate
                     ),
                     fireDate: fireDate,
-                    title: event.title
+                    title: occurrence.title
                 )
             }
             .prefix(maximumScheduledOccurrences)
@@ -101,10 +106,13 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         [.banner, .sound]
     }
 
-    func rescheduleNotifications(for event: Event) async {
+    func rescheduleNotifications(
+        for event: Event,
+        exceptions: [EventOccurrenceException] = []
+    ) async {
         await cancelNotifications(for: event.id)
 
-        let schedules = EventNotificationPlanner.schedules(for: event)
+        let schedules = EventNotificationPlanner.schedules(for: event, exceptions: exceptions)
         guard !schedules.isEmpty else {
             return
         }
