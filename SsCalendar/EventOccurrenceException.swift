@@ -62,3 +62,207 @@ final class EventOccurrenceException {
         self.overrideMemo = overrideMemo
     }
 }
+
+/// 전체 반복 일정 수정 시 기존 개별 수정 예외를 새 시리즈 값과 합치는 정책.
+enum RecurringSeriesExceptionUpdatePolicy: Equatable {
+    /// 실제로 개별 변경된 값은 유지하고, 기존 시리즈 값과 같던 필드만 새 시리즈 값을 따른다.
+    case preserveIndividualChanges
+    /// 이번 전체 편집에서 변경된 필드를 개별 수정 예외에도 적용한다.
+    case applyChangedSeriesValues
+}
+
+/// 전체 반복 일정 저장 전에 필요한 사용자 상호작용을 순수 로직으로 판정한다.
+enum RecurringSeriesExceptionSaveRequirement: Equatable {
+    case saveDirectly
+    case chooseUpdatePolicy
+    case blockUnsafeRecurrenceChange
+}
+
+/// Event와 개별 수정 예외가 공유하는 필드의 저장 전 스냅샷.
+struct RecurringSeriesValues: Equatable {
+    let title: String
+    let isAllDay: Bool
+    let startDate: Date
+    let endDate: Date
+    let color: String
+    let alarmOption: String
+    let alarmTimeIntervalBeforeStart: TimeInterval?
+    let alarmCustomValue: Int
+    let alarmCustomUnit: String
+    let repeatUnit: String
+    let repeatInterval: Int
+    let memo: String
+
+    init(event: Event) {
+        title = event.title
+        isAllDay = event.isAllDay
+        startDate = event.startDate
+        endDate = event.endDate
+        color = event.color
+        alarmOption = event.alarmOption
+        alarmTimeIntervalBeforeStart = event.alarmTimeIntervalBeforeStart
+        alarmCustomValue = event.alarmCustomValue
+        alarmCustomUnit = event.alarmCustomUnit
+        repeatUnit = event.repeatUnit
+        repeatInterval = event.repeatInterval
+        memo = event.memo
+    }
+
+    init(
+        title: String,
+        isAllDay: Bool,
+        startDate: Date,
+        endDate: Date,
+        color: String,
+        alarmOption: String,
+        alarmTimeIntervalBeforeStart: TimeInterval?,
+        alarmCustomValue: Int,
+        alarmCustomUnit: String,
+        repeatUnit: String,
+        repeatInterval: Int,
+        memo: String
+    ) {
+        self.title = title
+        self.isAllDay = isAllDay
+        self.startDate = startDate
+        self.endDate = endDate
+        self.color = color
+        self.alarmOption = alarmOption
+        self.alarmTimeIntervalBeforeStart = alarmTimeIntervalBeforeStart
+        self.alarmCustomValue = alarmCustomValue
+        self.alarmCustomUnit = alarmCustomUnit
+        self.repeatUnit = repeatUnit
+        self.repeatInterval = repeatInterval
+        self.memo = memo
+    }
+}
+
+/// 전체 반복 일정 수정과 기존 개별 예외를 데이터 손실 없이 결합한다.
+enum RecurringSeriesExceptionUpdater {
+    static func saveRequirement(
+        exceptions: [EventOccurrenceException],
+        oldValues: RecurringSeriesValues,
+        newValues: RecurringSeriesValues
+    ) -> RecurringSeriesExceptionSaveRequirement {
+        guard !exceptions.isEmpty else { return .saveDirectly }
+
+        let recurrenceRuleChanged =
+            oldValues.repeatUnit != newValues.repeatUnit ||
+            oldValues.repeatInterval != newValues.repeatInterval
+        guard !recurrenceRuleChanged else { return .blockUnsafeRecurrenceChange }
+
+        return exceptions.contains { !$0.isExcluded }
+            ? .chooseUpdatePolicy
+            : .saveDirectly
+    }
+
+    static func apply(
+        from oldValues: RecurringSeriesValues,
+        to newValues: RecurringSeriesValues,
+        policy: RecurringSeriesExceptionUpdatePolicy,
+        exceptions: [EventOccurrenceException]
+    ) {
+        let startDelta = newValues.startDate.timeIntervalSince(oldValues.startDate)
+        let endDelta = newValues.endDate.timeIntervalSince(oldValues.endDate)
+        let scheduleChanged = startDelta != 0 || endDelta != 0
+
+        for exception in exceptions {
+            let oldOriginalStart = exception.originalOccurrenceStartDate
+            exception.originalOccurrenceStartDate = oldOriginalStart.addingTimeInterval(startDelta)
+
+            // 개별 삭제는 항상 삭제 상태를 유지한다. 새 반복 시작점에 맞춰 식별 슬롯만 옮긴다.
+            guard !exception.isExcluded else { continue }
+
+            switch policy {
+            case .preserveIndividualChanges:
+                applyUnmodifiedSeriesFields(
+                    from: oldValues,
+                    to: newValues,
+                    exception: exception
+                )
+                // 개별 시간 이동량을 보존하면서 시리즈의 날짜·시간 이동도 함께 적용한다.
+                exception.overrideStartDate = exception.overrideStartDate.addingTimeInterval(startDelta)
+                exception.overrideEndDate = exception.overrideEndDate.addingTimeInterval(endDelta)
+
+            case .applyChangedSeriesValues:
+                applyChangedSeriesFields(
+                    from: oldValues,
+                    to: newValues,
+                    exception: exception
+                )
+                if scheduleChanged {
+                    let newOriginalStart = oldOriginalStart.addingTimeInterval(startDelta)
+                    let newDuration = max(0, newValues.endDate.timeIntervalSince(newValues.startDate))
+                    exception.overrideStartDate = newOriginalStart
+                    exception.overrideEndDate = newOriginalStart.addingTimeInterval(newDuration)
+                }
+            }
+        }
+    }
+
+    private static func applyUnmodifiedSeriesFields(
+        from oldValues: RecurringSeriesValues,
+        to newValues: RecurringSeriesValues,
+        exception: EventOccurrenceException
+    ) {
+        if exception.overrideTitle == oldValues.title {
+            exception.overrideTitle = newValues.title
+        }
+        if exception.overrideIsAllDay == oldValues.isAllDay {
+            exception.overrideIsAllDay = newValues.isAllDay
+        }
+        if exception.overrideColor == oldValues.color {
+            exception.overrideColor = newValues.color
+        }
+        if exception.overrideMemo == oldValues.memo {
+            exception.overrideMemo = newValues.memo
+        }
+
+        let alarmWasUnmodified =
+            exception.overrideAlarmOption == oldValues.alarmOption &&
+            exception.overrideAlarmTimeIntervalBeforeStart == oldValues.alarmTimeIntervalBeforeStart &&
+            exception.overrideAlarmCustomValue == oldValues.alarmCustomValue &&
+            exception.overrideAlarmCustomUnit == oldValues.alarmCustomUnit
+        if alarmWasUnmodified {
+            applyAlarm(from: newValues, to: exception)
+        }
+    }
+
+    private static func applyChangedSeriesFields(
+        from oldValues: RecurringSeriesValues,
+        to newValues: RecurringSeriesValues,
+        exception: EventOccurrenceException
+    ) {
+        if oldValues.title != newValues.title {
+            exception.overrideTitle = newValues.title
+        }
+        if oldValues.isAllDay != newValues.isAllDay {
+            exception.overrideIsAllDay = newValues.isAllDay
+        }
+        if oldValues.color != newValues.color {
+            exception.overrideColor = newValues.color
+        }
+        if oldValues.memo != newValues.memo {
+            exception.overrideMemo = newValues.memo
+        }
+
+        let alarmChanged =
+            oldValues.alarmOption != newValues.alarmOption ||
+            oldValues.alarmTimeIntervalBeforeStart != newValues.alarmTimeIntervalBeforeStart ||
+            oldValues.alarmCustomValue != newValues.alarmCustomValue ||
+            oldValues.alarmCustomUnit != newValues.alarmCustomUnit
+        if alarmChanged {
+            applyAlarm(from: newValues, to: exception)
+        }
+    }
+
+    private static func applyAlarm(
+        from values: RecurringSeriesValues,
+        to exception: EventOccurrenceException
+    ) {
+        exception.overrideAlarmOption = values.alarmOption
+        exception.overrideAlarmTimeIntervalBeforeStart = values.alarmTimeIntervalBeforeStart
+        exception.overrideAlarmCustomValue = values.alarmCustomValue
+        exception.overrideAlarmCustomUnit = values.alarmCustomUnit
+    }
+}

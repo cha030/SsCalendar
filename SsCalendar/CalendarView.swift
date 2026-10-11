@@ -569,7 +569,11 @@ private struct CalendarWeekRow: View {
             twoLineEventHeight: twoLineEventHeight,
             eventSpacing: eventSpacing,
             maximumVisibleEventsPerDay: maximumVisibleEventsPerDay,
-            singleDayTextWidth: singleDayTextWidth
+            singleDayTextWidth: singleDayTextWidth,
+            holidayTextWidth: max(
+                0,
+                cellWidth - CalendarDayContentLayout.holidayHorizontalPadding
+            )
         )
     }
 
@@ -600,6 +604,11 @@ private struct CalendarWeekRow: View {
                                 calendar.startOfDay(for: date)
                             ] ?? [],
                             holidayTopOffset: eventLayout.holidayYOffsets[column],
+                            holidayTextWidth: max(
+                                0,
+                                cellWidth - CalendarDayContentLayout.holidayHorizontalPadding
+                            ),
+                            displayedHolidayLineCount: eventLayout.holidayLineCounts[column],
                             calendar: calendar
                         )
                         .contentShape(Rectangle())
@@ -717,6 +726,7 @@ private struct CalendarEventBar: View {
 struct WeekEventLayout {
     let visibleSegments: [WeekEventSegment]
     let holidayYOffsets: [Int: CGFloat]
+    let holidayLineCounts: [Int: Int]
     let overflowCounts: [Int: Int]
     let overflowYOffsets: [Int: CGFloat]
 
@@ -732,7 +742,8 @@ struct WeekEventLayout {
         maximumVisibleEventsPerDay: Int,
         /// 단일 날짜 일정 막대에서 제목에 실제로 쓸 수 있는 가로 폭(칸 폭에서 색상 구분선·여백을 뺀 값).
         /// 제목이 이 너비 안에 한 줄로 다 들어가면 세로 공간이 남아도 2줄로 확장하지 않는다.
-        singleDayTextWidth: CGFloat
+        singleDayTextWidth: CGFloat,
+        holidayTextWidth: CGFloat? = nil
     ) {
         guard
             let weekStart = week.dates.first,
@@ -740,6 +751,7 @@ struct WeekEventLayout {
         else {
             visibleSegments = []
             holidayYOffsets = [:]
+            holidayLineCounts = [:]
             overflowCounts = [:]
             overflowYOffsets = [:]
             return
@@ -764,18 +776,6 @@ struct WeekEventLayout {
                 )
             }
         )
-        let holidayHeightByColumn = Dictionary(
-            uniqueKeysWithValues: week.dates.enumerated().map { column, date in
-                (
-                    column,
-                    CalendarDayContentLayout.holidayHeight(
-                        for: date,
-                        holidays: holidaysByColumn[column] ?? []
-                    )
-                )
-            }
-        )
-
         let candidates = occurrences.compactMap { occurrence -> WeekEventCandidate? in
             let eventRange = occurrence.occupiedDayRange(calendar: calendar)
 
@@ -845,6 +845,47 @@ struct WeekEventLayout {
             }
         }
         let denseDayThreshold = 2
+
+        // 공휴일은 여유가 있으면 원래 필요한 줄 수(최대 2줄)를 유지한다. 다만 한 줄로 줄였을 때
+        // 실제로 표시 가능한 일정 수가 증가하고, 현재 일정 수가 기존 수용량을 넘는 칸만 1줄로
+        // 압축한다. 이 결정값을 CalendarDayCell에도 전달해 렌더링 높이와 배치 높이를 일치시킨다.
+        let resolvedHolidayLineCounts = Dictionary(
+            uniqueKeysWithValues: week.dates.enumerated().map { column, date in
+                let title = CalendarDayContentLayout.holidayTitle(
+                    for: holidaysByColumn[column] ?? [],
+                    on: date
+                )
+                let naturalLineCount = CalendarDayContentLayout.holidayLineCount(
+                    for: title,
+                    availableWidth: holidayTextWidth
+                )
+                guard naturalLineCount > 1 else { return (column, naturalLineCount) }
+
+                let headerEnd = headerEndYByColumn[column]
+                    ?? CalendarDayContentLayout.dateHeaderHeight
+                func eventCapacity(holidayLines: Int) -> Int {
+                    let availableHeight = rowHeight
+                        - headerEnd
+                        - CGFloat(holidayLines) * CalendarDayContentLayout.holidayLineHeight
+                        - CalendarDayContentLayout.contentSpacing
+                    guard availableHeight >= eventHeight else { return 0 }
+                    return max(
+                        0,
+                        Int(floor((availableHeight + eventSpacing) / (eventHeight + eventSpacing)))
+                    )
+                }
+
+                let naturalCapacity = eventCapacity(holidayLines: naturalLineCount)
+                let compressedCapacity = eventCapacity(holidayLines: 1)
+                let eventCount = totalEventCountByColumn[column] ?? 0
+                let shouldCompress = eventCount > naturalCapacity
+                    && compressedCapacity > naturalCapacity
+                return (column, shouldCompress ? 1 : naturalLineCount)
+            }
+        )
+        let holidayHeightByColumn = resolvedHolidayLineCounts.mapValues {
+            CGFloat($0) * CalendarDayContentLayout.holidayLineHeight
+        }
 
         // 이 칸에 일정이 maximumVisibleEventsPerDay개를 넘으면 "+N" 배지도 한 줄 자리(eventHeight)가
         // 그대로 필요하다. 헤더(최소 38pt) + 4개(56pt)만으로도 이미 94pt라 102pt 칸에 배지 한 줄을
@@ -1071,6 +1112,7 @@ struct WeekEventLayout {
 
         visibleSegments = segments
         holidayYOffsets = holidayOffsets
+        holidayLineCounts = resolvedHolidayLineCounts
         overflowCounts = hiddenCounts
         overflowYOffsets = overflowOffsets
     }

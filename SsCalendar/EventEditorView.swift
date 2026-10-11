@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 enum EventColor: String, CaseIterable, Identifiable, Codable {
     case blue = "파란색"
@@ -157,6 +158,37 @@ private enum OccurrenceEditScope: String, CaseIterable, Identifiable {
     }
 }
 
+/// 전체 반복 일정 저장 시 기존 개별 수정 예외에 새 시리즈 값을 적용하는 방법.
+private enum SeriesExceptionUpdateChoice: CaseIterable, Identifiable {
+    case preserveIndividualChanges
+    case applyChangedSeriesValues
+
+    var id: Self { self }
+
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .preserveIndividualChanges: "기존 개별 수정 유지"
+        case .applyChangedSeriesValues: "개별 수정에도 전체 변경 적용"
+        }
+    }
+
+    var localizedDescription: LocalizedStringResource {
+        switch self {
+        case .preserveIndividualChanges:
+            "개별 수정한 값은 유지하고, 수정하지 않은 값만 새로운 전체 일정에 맞춥니다."
+        case .applyChangedSeriesValues:
+            "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다."
+        }
+    }
+
+    var updatePolicy: RecurringSeriesExceptionUpdatePolicy {
+        switch self {
+        case .preserveIndividualChanges: .preserveIndividualChanges
+        case .applyChangedSeriesValues: .applyChangedSeriesValues
+        }
+    }
+}
+
 private struct EventRepeatSetting {
     var unit: EventRepeatUnit = .none
     var interval = 1
@@ -199,12 +231,118 @@ private struct EventRepeatSetting {
     }
 }
 
+/// UIKit이 소유한 marked text를 SwiftUI 상태 갱신이 조합 도중 되써서 깨뜨리지 않도록 하는 제목 입력기.
+/// 입력값은 매번 Binding에 반영하되, 조합 중에는 외부 값을 UITextField로 다시 주입하지 않는다.
+private struct CompositionSafeTextField: UIViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.placeholder = placeholder
+        textField.font = .preferredFont(forTextStyle: .body)
+        textField.adjustsFontForContentSizeCategory = true
+        textField.delegate = context.coordinator
+        textField.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.textDidChange(_:)),
+            for: .editingChanged
+        )
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        context.coordinator.text = $text
+        textField.placeholder = placeholder
+
+        // markedTextRange가 있는 동안 text를 대입하면 한국어 조합 세션과 선택 영역이 초기화될 수 있다.
+        guard textField.markedTextRange == nil, textField.text != text else { return }
+        textField.text = text
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var text: Binding<String>
+
+        init(text: Binding<String>) {
+            self.text = text
+        }
+
+        @objc func textDidChange(_ textField: UITextField) {
+            // 한글 등 조합형 입력기가 조합 중(marked text)인 동안에는 그 중간값을 SwiftUI
+            // 상태로 내보내지 않는다. 중간값을 Binding에 흘려보내면 SwiftUI body가 재평가되고
+            // Form(List) 레이아웃이 다시 계산되는데, 바로 그 과정이 UITextField의 marked text
+            // 조합 세션을 끊어 "ㄱㅗ기"처럼 자모가 분리되는 원인이 된다 — updateUIView 쪽만
+            // 막아서는(SwiftUI→UIKit 역주입 방지) 부족했고, 이 반대 방향(UIKit→SwiftUI)도
+            // 똑같이 막아야 한다. 조합이 끝나 확정된 텍스트만 반영한다.
+            guard textField.markedTextRange == nil else { return }
+            text.wrappedValue = textField.text ?? ""
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            // 포커스를 잃으면 iOS가 조합을 자동 확정하므로 보통 이 시점엔 marked text가 없다.
+            // 혹시 모를 불일치에 대비해 최종값을 한 번 더 동기화하는 안전장치다.
+            text.wrappedValue = textField.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            return true
+        }
+    }
+}
+
+/// 제목과 같은 동기화 원칙을 사용하는 여러 줄 메모 입력기.
+private struct CompositionSafeTextEditor: UIViewRepresentable {
+    @Binding var text: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.backgroundColor = .clear
+        textView.font = .preferredFont(forTextStyle: .body)
+        textView.adjustsFontForContentSizeCategory = true
+        textView.delegate = context.coordinator
+        textView.textContainerInset = .zero
+        textView.textContainer.lineFragmentPadding = 0
+        return textView
+    }
+
+    func updateUIView(_ textView: UITextView, context: Context) {
+        context.coordinator.text = $text
+
+        guard textView.markedTextRange == nil, textView.text != text else { return }
+        textView.text = text
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var text: Binding<String>
+
+        init(text: Binding<String>) {
+            self.text = text
+        }
+
+        func textViewDidChange(_ textView: UITextView) {
+            // 제목 입력기와 동일한 이유로, 조합 중간값은 SwiftUI 상태로 내보내지 않는다.
+            guard textView.markedTextRange == nil else { return }
+            text.wrappedValue = textView.text
+        }
+
+        func textViewDidEndEditing(_ textView: UITextView) {
+            text.wrappedValue = textView.text
+        }
+    }
+}
+
 struct EventEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    /// 반복 일정의 개별 수정·삭제 예외(Step 5-2). 같은 발생분을 다시 열었을 때 기존 override를
-    /// 찾아 갱신하고(새로 중복 생성하지 않고), 전체 삭제 시 함께 정리하는 데 쓴다.
-    @Query private var occurrenceExceptions: [EventOccurrenceException]
 
     @State private var title = ""
     @State private var isAllDay = false
@@ -228,9 +366,15 @@ struct EventEditorView: View {
     /// 반복 일정 수정 범위(Step 5-2). 반복 일정이 아니거나 새 일정이면 의미가 없다(항상
     /// wholeSeries처럼 동작 — 시리즈 자체를 만들거나 통째로 다루기 때문).
     @State private var editScope: OccurrenceEditScope = .singleOccurrence
+    @State private var isPresentingSeriesExceptionChoice = false
+    /// 데이터 보존이 기본이므로 선택창을 열 때마다 A를 기본 선택으로 사용한다.
+    @State private var seriesExceptionChoice: SeriesExceptionUpdateChoice = .preserveIndividualChanges
 
     private let event: Event?
     private let systemCalendar = SystemCalendarService.shared
+    /// 편집 중 EventKit 변경 알림이 와도 제목·메모 입력 뷰가 다시 구성되지 않도록, 편집기를 열 때
+    /// 쓸 수 있던 캘린더 목록을 한 번만 읽는다. 저장 직전 유효성 검사는 서비스가 다시 수행한다.
+    private let writableCalendarGroups: [SystemWritableCalendarSourceGroup]
     /// 저장된 기본 저장 위치를 쓸 수 없어 로컬로 선택했을 때의 안내 문구. 편집기를 연 시점에 한 번 정한다.
     private let defaultDestinationNotice: String?
     /// 편집기를 열 때 실제로 보여준 발생분의 시작·종료 시각(원본 그대로, 사용자가 편집하기 전 값).
@@ -334,6 +478,9 @@ struct EventEditorView: View {
         _isDDayEnabled = State(initialValue: event?.isDDayEnabled ?? false)
 
         let systemCalendar = SystemCalendarService.shared
+        writableCalendarGroups = event == nil
+            ? systemCalendar.writableCalendarGroups()
+            : []
         _saveDestination = State(
             initialValue: event == nil ? systemCalendar.effectiveDefaultSaveDestination : .local
         )
@@ -348,12 +495,6 @@ struct EventEditorView: View {
         }
     }
 
-    /// 새 일정이고, 연동 ON·Full Access이며, 표시 중인 쓰기 가능한 캘린더가 있을 때만 저장 위치를 고를 수 있다.
-    private var writableCalendarGroups: [SystemWritableCalendarSourceGroup] {
-        guard event == nil else { return [] }
-        return systemCalendar.writableCalendarGroups()
-    }
-
     private var isSavingToSystemCalendar: Bool {
         if case .systemCalendar = saveDestination { return true }
         return false
@@ -362,7 +503,10 @@ struct EventEditorView: View {
     var body: some View {
         Form {
             Section {
-                TextField("제목", text: $title)
+                CompositionSafeTextField(
+                    text: $title,
+                    placeholder: String(localized: "제목")
+                )
             }
 
             // 반복 일정 수정 범위 선택(Step 5-2 개별 수정·삭제). 새 일정이거나 반복하지 않는
@@ -559,7 +703,7 @@ struct EventEditorView: View {
             }
 
             Section("메모") {
-                TextEditor(text: $notes)
+                CompositionSafeTextEditor(text: $notes)
                     .frame(minHeight: 120)
             }
 
@@ -590,7 +734,9 @@ struct EventEditorView: View {
                 }
             }
         }
-        .scrollDismissesKeyboard(.interactively)
+        // 기존 스크롤 제스처 동작은 유지한다. 한국어 조합 보호는 위 입력기들이 marked text를
+        // 보유한 동안 외부 상태를 재주입하지 않는 방식으로 처리한다.
+        .scrollDismissesKeyboard(.immediately)
         .navigationTitle(event == nil ? "새 일정" : "일정 편집")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -643,6 +789,44 @@ struct EventEditorView: View {
             }
 
             Button("취소", role: .cancel) {}
+        }
+        .sheet(isPresented: $isPresentingSeriesExceptionChoice) {
+            NavigationStack {
+                Form {
+                    Section {
+                        Picker("개별 수정 처리", selection: $seriesExceptionChoice) {
+                            ForEach(SeriesExceptionUpdateChoice.allCases) { choice in
+                                Text(choice.localizedTitle).tag(choice)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
+                    } header: {
+                        Text("기존 개별 수정 처리")
+                    } footer: {
+                        Text(seriesExceptionChoice.localizedDescription)
+                    }
+                }
+                .navigationTitle("전체 반복 일정 수정")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("취소") {
+                            isPresentingSeriesExceptionChoice = false
+                        }
+                    }
+
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("저장") {
+                            isPresentingSeriesExceptionChoice = false
+                            Task {
+                                await saveEvent(exceptionPolicy: seriesExceptionChoice.updatePolicy)
+                            }
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
     }
 
@@ -781,7 +965,9 @@ struct EventEditorView: View {
         )
     }
 
-    private func saveEvent() async {
+    private func saveEvent(
+        exceptionPolicy: RecurringSeriesExceptionUpdatePolicy? = nil
+    ) async {
         guard endDate >= startDate else {
             saveErrorMessage = String(localized: "종료 시간은 시작 시간보다 빠를 수 없습니다.")
             return
@@ -804,6 +990,31 @@ struct EventEditorView: View {
             return
         }
 
+        var seriesExceptions: [EventOccurrenceException] = []
+        if let event, isExistingRepeatingSeries, editScope == .wholeSeries {
+            seriesExceptions = fetchExceptions(for: event.id)
+            let oldValues = RecurringSeriesValues(event: event)
+            let newValues = pendingSeriesValues(for: event)
+
+            switch RecurringSeriesExceptionUpdater.saveRequirement(
+                exceptions: seriesExceptions,
+                oldValues: oldValues,
+                newValues: newValues
+            ) {
+            case .saveDirectly:
+                break
+            case .chooseUpdatePolicy:
+                guard exceptionPolicy != nil else {
+                    seriesExceptionChoice = .preserveIndividualChanges
+                    isPresentingSeriesExceptionChoice = true
+                    return
+                }
+            case .blockUnsafeRecurrenceChange:
+                saveErrorMessage = String(localized: "반복 방식이나 간격을 변경하면 기존 개별 수정 및 삭제를 안전하게 연결할 수 없습니다. 기존 예외가 있는 동안에는 반복 방식과 간격을 변경할 수 없습니다.")
+                return
+            }
+        }
+
         isSaving = true
         let savedEvent: Event
 
@@ -811,7 +1022,11 @@ struct EventEditorView: View {
             if isEditingSingleOccurrenceOfRepeatingSeries {
                 upsertSingleOccurrenceException(for: event)
             } else {
-                update(event)
+                update(
+                    event,
+                    exceptions: seriesExceptions,
+                    exceptionPolicy: exceptionPolicy ?? .preserveIndividualChanges
+                )
             }
             savedEvent = event
         } else {
@@ -878,13 +1093,19 @@ struct EventEditorView: View {
         }
     }
 
-    private func update(_ event: Event) {
+    private func update(
+        _ event: Event,
+        exceptions: [EventOccurrenceException],
+        exceptionPolicy: RecurringSeriesExceptionUpdatePolicy
+    ) {
         // 반복 일정의 원본이 아닌 이후 회차를 열었을 수 있으므로, 화면에 보여준 값을 그대로
         // event.startDate/endDate에 덮어쓰지 않는다. 대신 "열었을 때 보여준 값"과 "지금 입력값"의
         // 차이(delta)만큼만 시리즈 원본 시작·종료일을 옮긴다 — 반복이 아니거나 원본 회차를
         // 열었으면 두 값이 같아 delta가 0이라 기존과 똑같이 동작한다.
         let startDelta = startDate.timeIntervalSince(originalOccurrenceStartDate)
         let endDelta = endDate.timeIntervalSince(originalOccurrenceEndDate)
+        let oldValues = RecurringSeriesValues(event: event)
+        let newValues = pendingSeriesValues(for: event)
 
         event.title = title
         event.isAllDay = isAllDay
@@ -900,6 +1121,34 @@ struct EventEditorView: View {
         event.memo = notes
         event.isDDayEnabled = isDDayEnabled
         event.repeatEndDate = effectiveRepeatEndDate
+
+        RecurringSeriesExceptionUpdater.apply(
+            from: oldValues,
+            to: newValues,
+            policy: exceptionPolicy,
+            exceptions: exceptions
+        )
+    }
+
+    /// 편집 중인 발생분의 delta를 시리즈 원본 날짜에 적용해 저장될 전체 일정 값을 만든다.
+    private func pendingSeriesValues(for event: Event) -> RecurringSeriesValues {
+        let startDelta = startDate.timeIntervalSince(originalOccurrenceStartDate)
+        let endDelta = endDate.timeIntervalSince(originalOccurrenceEndDate)
+
+        return RecurringSeriesValues(
+            title: title,
+            isAllDay: isAllDay,
+            startDate: event.startDate.addingTimeInterval(startDelta),
+            endDate: event.endDate.addingTimeInterval(endDelta),
+            color: eventColor.rawValue,
+            alarmOption: reminderSetting.option.rawValue,
+            alarmTimeIntervalBeforeStart: reminderSetting.timeIntervalBeforeStart,
+            alarmCustomValue: reminderSetting.customValue,
+            alarmCustomUnit: reminderSetting.customUnit.rawValue,
+            repeatUnit: repeatSetting.unit.rawValue,
+            repeatInterval: repeatSetting.interval,
+            memo: notes
+        )
     }
 
     /// 반복 시리즈의 특정 발생분만 수정한다(Step 5-2 개별 수정). 원본 Event는 전혀 건드리지

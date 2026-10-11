@@ -1,4 +1,5 @@
 import Foundation
+import EventKit
 import SwiftData
 import SwiftUI
 import Testing
@@ -318,16 +319,24 @@ struct WeekEventLayoutTests {
     private func layout(
         occurrences: [CalendarDisplayOccurrence],
         holidaysByDate: [Date: [Holiday]] = [:],
-        textWidth: CGFloat? = nil
+        textWidth: CGFloat? = nil,
+        holidayTextWidth: CGFloat = 48
     ) -> WeekEventLayout {
-        layout(occurrences: occurrences, holidaysByDate: holidaysByDate, in: week, textWidth: textWidth)
+        layout(
+            occurrences: occurrences,
+            holidaysByDate: holidaysByDate,
+            in: week,
+            textWidth: textWidth,
+            holidayTextWidth: holidayTextWidth
+        )
     }
 
     private func layout(
         occurrences: [CalendarDisplayOccurrence],
         holidaysByDate: [Date: [Holiday]] = [:],
         in week: CalendarWeek,
-        textWidth: CGFloat? = nil
+        textWidth: CGFloat? = nil,
+        holidayTextWidth: CGFloat = 48
     ) -> WeekEventLayout {
         WeekEventLayout(
             week: week,
@@ -339,7 +348,8 @@ struct WeekEventLayoutTests {
             twoLineEventHeight: twoLineEventHeight,
             eventSpacing: eventSpacing,
             maximumVisibleEventsPerDay: maximumVisibleEventsPerDay,
-            singleDayTextWidth: textWidth ?? narrowColumnTextWidth
+            singleDayTextWidth: textWidth ?? narrowColumnTextWidth,
+            holidayTextWidth: holidayTextWidth
         )
     }
 
@@ -516,6 +526,102 @@ struct WeekEventLayoutTests {
         #expect(result.visibleSegments.count == 1)
         #expect(!result.visibleSegments[0].isTwoLine)
         #expect(result.visibleSegments[0].height == eventHeight)
+        assertNoOverflowOrOverlap(result.visibleSegments)
+    }
+
+    @Test("크리스마스는 좁은 날짜 칸에서 실제 렌더링과 동일하게 2줄 높이를 예약한다")
+    func christmasReservesTwoRenderedLinesInNarrowColumn() {
+        #expect(
+            CalendarDayContentLayout.holidayLineCount(
+                for: "크리스마스",
+                availableWidth: 48
+            ) == 2
+        )
+        #expect(
+            CalendarDayContentLayout.holidayLineCount(
+                for: "크리스마스",
+                availableWidth: 80
+            ) == 1
+        )
+    }
+
+    @Test("두 줄 공휴일과 일반 일정 두 개는 같은 표시 영역을 사용하지 않는다")
+    func wrappedHolidayDoesNotOverlapRegularEvents() throws {
+        let thursday = week.dates[4]
+        let holidays: [Date: [Holiday]] = [
+            calendar.startOfDay(for: thursday): [
+                Holiday(date: thursday, name: "기독탄신일", isHoliday: true)
+            ]
+        ]
+        let events = [
+            timedOccurrence(id: "a", title: "약속", dayOffset: 4, startHour: 10, endHour: 11),
+            timedOccurrence(id: "b", title: "저녁", dayOffset: 4, startHour: 18, endHour: 19)
+        ]
+        let result = layout(
+            occurrences: events,
+            holidaysByDate: holidays,
+            holidayTextWidth: 48
+        )
+        let firstEventY = try #require(result.visibleSegments.map(\.yOffset).min())
+        let expectedHolidayBottom = CalendarDayContentLayout.dateHeaderHeight
+            + (2 * CalendarDayContentLayout.holidayLineHeight)
+
+        #expect(firstEventY >= expectedHolidayBottom + CalendarDayContentLayout.contentSpacing)
+        #expect(result.visibleSegments.count == 2)
+        assertNoOverflowOrOverlap(result.visibleSegments)
+    }
+
+    @Test("일정이 적으면 긴 공휴일은 기존처럼 두 줄을 유지한다")
+    func sparseDayKeepsWrappedHolidayAtTwoLines() {
+        let thursday = week.dates[4]
+        let holidays: [Date: [Holiday]] = [
+            calendar.startOfDay(for: thursday): [
+                Holiday(date: thursday, name: "크리스마스", isHoliday: true)
+            ]
+        ]
+        let event = timedOccurrence(
+            id: "a",
+            title: "약속",
+            dayOffset: 4,
+            startHour: 10,
+            endHour: 11
+        )
+        let result = layout(
+            occurrences: [event],
+            holidaysByDate: holidays,
+            holidayTextWidth: 48
+        )
+
+        #expect(result.holidayLineCounts[4] == 2)
+        #expect(result.visibleSegments.count == 1)
+    }
+
+    @Test("일정이 많으면 긴 공휴일을 한 줄로 압축해 일반 일정을 하나 더 표시한다")
+    func denseDayCompressesHolidayAndShowsOneMoreEvent() throws {
+        let thursday = week.dates[4]
+        let holidays: [Date: [Holiday]] = [
+            calendar.startOfDay(for: thursday): [
+                Holiday(date: thursday, name: "크리스마스", isHoliday: true)
+            ]
+        ]
+        let events = [
+            timedOccurrence(id: "a", title: "아침", dayOffset: 4, startHour: 8, endHour: 9),
+            timedOccurrence(id: "b", title: "점심", dayOffset: 4, startHour: 12, endHour: 13),
+            timedOccurrence(id: "c", title: "저녁", dayOffset: 4, startHour: 18, endHour: 19)
+        ]
+        let result = layout(
+            occurrences: events,
+            holidaysByDate: holidays,
+            holidayTextWidth: 48
+        )
+        let firstEventY = try #require(result.visibleSegments.map(\.yOffset).min())
+        let compressedHolidayBottom = CalendarDayContentLayout.dateHeaderHeight
+            + CalendarDayContentLayout.holidayLineHeight
+
+        #expect(result.holidayLineCounts[4] == 1)
+        #expect(result.visibleSegments.count == 3)
+        #expect(result.overflowCounts[4] == nil)
+        #expect(firstEventY >= compressedHolidayBottom + CalendarDayContentLayout.contentSpacing)
         assertNoOverflowOrOverlap(result.visibleSegments)
     }
 
@@ -1505,6 +1611,32 @@ struct EventOccurrenceExceptionTests {
         )
     }
 
+    private func seriesValues(
+        for event: Event,
+        title: String? = nil,
+        startDate: Date? = nil,
+        endDate: Date? = nil,
+        color: String? = nil,
+        repeatUnit: String? = nil,
+        repeatInterval: Int? = nil,
+        memo: String? = nil
+    ) -> RecurringSeriesValues {
+        RecurringSeriesValues(
+            title: title ?? event.title,
+            isAllDay: event.isAllDay,
+            startDate: startDate ?? event.startDate,
+            endDate: endDate ?? event.endDate,
+            color: color ?? event.color,
+            alarmOption: event.alarmOption,
+            alarmTimeIntervalBeforeStart: event.alarmTimeIntervalBeforeStart,
+            alarmCustomValue: event.alarmCustomValue,
+            alarmCustomUnit: event.alarmCustomUnit,
+            repeatUnit: repeatUnit ?? event.repeatUnit,
+            repeatInterval: repeatInterval ?? event.repeatInterval,
+            memo: memo ?? event.memo
+        )
+    }
+
     @Test("명세 예시: 10월 19일 발생분만 11시로 옮기면 그 발생분만 바뀌고 나머지는 그대로다")
     func singleOccurrenceOverrideShiftsOnlyThatDate() {
         let event = weeklyWorkoutEvent()
@@ -1650,6 +1782,72 @@ struct EventOccurrenceExceptionTests {
         #expect(eventBOct19Count == 0)
     }
 
+    @Test("""
+    (수정 전 버그 재현) 예외를 그대로 둔 채 시리즈 시작일만 옮기면, 예외가 가리키던 \
+    발생일이 새 반복 시퀀스와 더 이상 맞지 않아 그 발생분이 override되지 않은 채로 돌아온다
+    """)
+    func exceptionBecomesOrphanedIfNotShiftedWithSeries() {
+        let event = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19)
+        let exception = override(
+            for: event,
+            originalStart: originalOct19,
+            newTitle: "헬스장 변경",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+
+        // 시리즈 전체를 하루 뒤로 옮긴다(전체 반복 일정 수정, 예외는 손대지 않은 "버그" 상태 시뮬레이션).
+        event.startDate = event.startDate.addingTimeInterval(86_400)
+        event.endDate = event.endDate.addingTimeInterval(86_400)
+
+        let range = DateInterval(
+            start: date(year: 2026, month: 10, day: 1),
+            end: date(year: 2026, month: 11, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: event, intersecting: range, calendar: calendar, exceptions: [exception]
+        )
+
+        // 새 시퀀스의 10/20 발생분은 더 이상 예외와 매칭되지 않아 override되지 않은 원본 그대로다.
+        let oct20 = results.first { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 20)) }
+        #expect(oct20?.title == "운동")
+        #expect(oct20?.exception == nil)
+    }
+
+    @Test("(수정 후 정상 동작) 시리즈 시작일을 옮길 때 예외도 같은 만큼 옮기면 계속 올바른 발생분을 가리킨다")
+    func exceptionStaysMatchedWhenShiftedWithSeries() {
+        let event = weeklyWorkoutEvent()
+        let originalOct19 = date(year: 2026, month: 10, day: 19)
+        let exception = override(
+            for: event,
+            originalStart: originalOct19,
+            newTitle: "헬스장 변경",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+
+        // EventEditorView.update(_:)의 shiftExceptions(for:startDelta:endDelta:)와 같은 보정.
+        let delta: TimeInterval = 86_400
+        event.startDate = event.startDate.addingTimeInterval(delta)
+        event.endDate = event.endDate.addingTimeInterval(delta)
+        exception.originalOccurrenceStartDate = exception.originalOccurrenceStartDate.addingTimeInterval(delta)
+        exception.overrideStartDate = exception.overrideStartDate.addingTimeInterval(delta)
+        exception.overrideEndDate = exception.overrideEndDate.addingTimeInterval(delta)
+
+        let range = DateInterval(
+            start: date(year: 2026, month: 10, day: 1),
+            end: date(year: 2026, month: 11, day: 1)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: event, intersecting: range, calendar: calendar, exceptions: [exception]
+        )
+
+        let oct20 = results.first { calendar.isDate($0.startDate, inSameDayAs: date(year: 2026, month: 10, day: 20)) }
+        #expect(oct20?.title == "헬스장 변경")
+        #expect(calendar.component(.hour, from: oct20?.startDate ?? .distantPast) == 11)
+    }
+
     @Test("예외가 전혀 없으면 기존 동작과 동일하다(회귀 방지)")
     func noExceptionsBehavesLikeBefore() {
         let event = weeklyWorkoutEvent()
@@ -1663,5 +1861,514 @@ struct EventOccurrenceExceptionTests {
 
         #expect(results.count == 4) // 10/5, 12, 19, 26
         #expect(results.allSatisfy { $0.exception == nil })
+    }
+
+    @Test("개별 예외가 없으면 처리 방법을 묻지 않고 바로 저장한다")
+    func noExceptionsSaveDirectly() {
+        let event = weeklyWorkoutEvent()
+        let requirement = RecurringSeriesExceptionUpdater.saveRequirement(
+            exceptions: [],
+            oldValues: RecurringSeriesValues(event: event),
+            newValues: seriesValues(for: event, title: "새 운동")
+        )
+
+        #expect(requirement == .saveDirectly)
+    }
+
+    @Test("개별 수정 예외가 있으면 전체 저장 전에 처리 방법 선택이 필요하다")
+    func modifiedExceptionRequiresPolicyChoice() {
+        let event = weeklyWorkoutEvent()
+        let exception = override(
+            for: event,
+            originalStart: date(year: 2026, month: 10, day: 19),
+            newTitle: "개별 운동",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+
+        let requirement = RecurringSeriesExceptionUpdater.saveRequirement(
+            exceptions: [exception],
+            oldValues: RecurringSeriesValues(event: event),
+            newValues: seriesValues(for: event, title: "새 운동")
+        )
+
+        #expect(requirement == .chooseUpdatePolicy)
+    }
+
+    @Test("삭제 예외만 있으면 처리 선택창 없이 저장하며 삭제 상태를 유지한다")
+    func exclusionOnlySavesWithoutChoice() {
+        let event = weeklyWorkoutEvent()
+        let exception = exclusion(
+            for: event,
+            originalStart: date(year: 2026, month: 10, day: 19)
+        )
+
+        let requirement = RecurringSeriesExceptionUpdater.saveRequirement(
+            exceptions: [exception],
+            oldValues: RecurringSeriesValues(event: event),
+            newValues: seriesValues(for: event, title: "새 운동")
+        )
+
+        #expect(requirement == .saveDirectly)
+        #expect(exception.isExcluded)
+    }
+
+    @Test("A 선택은 개별 수정 값을 보존하고 수정하지 않은 필드만 새 시리즈 값을 따른다")
+    func preservingIndividualChangesMergesOnlyUnmodifiedFields() {
+        let event = weeklyWorkoutEvent()
+        let original = date(year: 2026, month: 10, day: 19)
+        let exception = EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: original,
+            isExcluded: false,
+            overrideTitle: "개별 운동",
+            overrideIsAllDay: event.isAllDay,
+            overrideStartDate: date(year: 2026, month: 10, day: 19, hour: 11),
+            overrideEndDate: date(year: 2026, month: 10, day: 19, hour: 12),
+            overrideColor: event.color,
+            overrideAlarmOption: event.alarmOption,
+            overrideAlarmTimeIntervalBeforeStart: event.alarmTimeIntervalBeforeStart,
+            overrideAlarmCustomValue: event.alarmCustomValue,
+            overrideAlarmCustomUnit: event.alarmCustomUnit,
+            overrideMemo: event.memo
+        )
+
+        RecurringSeriesExceptionUpdater.apply(
+            from: RecurringSeriesValues(event: event),
+            to: seriesValues(for: event, title: "전체 운동", color: "빨간색", memo: "전체 메모"),
+            policy: .preserveIndividualChanges,
+            exceptions: [exception]
+        )
+
+        #expect(exception.overrideTitle == "개별 운동")
+        #expect(exception.overrideColor == "빨간색")
+        #expect(exception.overrideMemo == "전체 메모")
+        #expect(calendar.component(.hour, from: exception.overrideStartDate) == 11)
+    }
+
+    @Test("B 선택은 전체에서 변경한 제목을 개별 수정에도 적용하되 변경하지 않은 시간은 유지한다")
+    func applyingSeriesChangesUpdatesOnlyChangedFields() {
+        let event = weeklyWorkoutEvent()
+        let original = date(year: 2026, month: 10, day: 19)
+        let exception = override(
+            for: event,
+            originalStart: original,
+            newTitle: "개별 운동",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+
+        RecurringSeriesExceptionUpdater.apply(
+            from: RecurringSeriesValues(event: event),
+            to: seriesValues(for: event, title: "전체 운동"),
+            policy: .applyChangedSeriesValues,
+            exceptions: [exception]
+        )
+
+        #expect(exception.overrideTitle == "전체 운동")
+        #expect(exception.overrideStartDate == date(year: 2026, month: 10, day: 19, hour: 11))
+        #expect(exception.overrideEndDate == date(year: 2026, month: 10, day: 19, hour: 12))
+    }
+
+    @Test("개별 삭제는 A와 B 모두 복원하지 않고 시리즈 이동에 맞춰 삭제 슬롯만 이동한다")
+    func exclusionsRemainExcludedForBothPolicies() {
+        let event = weeklyWorkoutEvent()
+        let oldValues = RecurringSeriesValues(event: event)
+        let movedStart = calendar.date(byAdding: .day, value: 1, to: event.startDate)!
+        let movedEnd = calendar.date(byAdding: .day, value: 1, to: event.endDate)!
+        let newValues = seriesValues(for: event, startDate: movedStart, endDate: movedEnd)
+        let original = date(year: 2026, month: 10, day: 19)
+        let preserveExclusion = exclusion(for: event, originalStart: original)
+        let applyExclusion = exclusion(for: event, originalStart: original)
+
+        RecurringSeriesExceptionUpdater.apply(
+            from: oldValues,
+            to: newValues,
+            policy: .preserveIndividualChanges,
+            exceptions: [preserveExclusion]
+        )
+        RecurringSeriesExceptionUpdater.apply(
+            from: oldValues,
+            to: newValues,
+            policy: .applyChangedSeriesValues,
+            exceptions: [applyExclusion]
+        )
+
+        let expectedSlot = date(year: 2026, month: 10, day: 20)
+        #expect(preserveExclusion.isExcluded)
+        #expect(applyExclusion.isExcluded)
+        #expect(preserveExclusion.originalOccurrenceStartDate == expectedSlot)
+        #expect(applyExclusion.originalOccurrenceStartDate == expectedSlot)
+    }
+
+    @Test("선택창 표시 여부 판정은 원본 예외를 변경하지 않아 취소해도 데이터가 그대로다")
+    func requestingChoiceDoesNotMutateData() {
+        let event = weeklyWorkoutEvent()
+        let exception = override(
+            for: event,
+            originalStart: date(year: 2026, month: 10, day: 19),
+            newTitle: "개별 운동",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+        let titleBefore = exception.overrideTitle
+        let startBefore = exception.overrideStartDate
+
+        _ = RecurringSeriesExceptionUpdater.saveRequirement(
+            exceptions: [exception],
+            oldValues: RecurringSeriesValues(event: event),
+            newValues: seriesValues(for: event, title: "전체 운동")
+        )
+
+        #expect(exception.overrideTitle == titleBefore)
+        #expect(exception.overrideStartDate == startBefore)
+        #expect(event.title == "운동")
+    }
+
+    @Test("반복 시작일을 옮기면 수정 예외가 같은 발생 순서의 새 슬롯에 계속 연결된다")
+    func startDateChangeKeepsExceptionMatched() {
+        let event = weeklyWorkoutEvent()
+        let exception = override(
+            for: event,
+            originalStart: date(year: 2026, month: 10, day: 19),
+            newTitle: "개별 운동",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+        let oldValues = RecurringSeriesValues(event: event)
+        let newStart = calendar.date(byAdding: .day, value: 1, to: event.startDate)!
+        let newEnd = calendar.date(byAdding: .day, value: 1, to: event.endDate)!
+        let newValues = seriesValues(for: event, startDate: newStart, endDate: newEnd)
+
+        RecurringSeriesExceptionUpdater.apply(
+            from: oldValues,
+            to: newValues,
+            policy: .preserveIndividualChanges,
+            exceptions: [exception]
+        )
+        event.startDate = newStart
+        event.endDate = newEnd
+
+        let results = EventOccurrenceService.occurrences(
+            for: event,
+            intersecting: DateInterval(
+                start: date(year: 2026, month: 10, day: 1),
+                end: date(year: 2026, month: 11, day: 1)
+            ),
+            calendar: calendar,
+            exceptions: [exception]
+        )
+        let movedOccurrence = results.first {
+            calendar.isDate($0.originalStartDate, inSameDayAs: date(year: 2026, month: 10, day: 20))
+        }
+
+        #expect(movedOccurrence?.title == "개별 운동")
+        #expect(calendar.component(.hour, from: movedOccurrence?.startDate ?? .distantPast) == 11)
+    }
+
+    @Test("반복 단위 또는 간격 변경은 기존 수정·삭제 예외가 있으면 안전하지 않아 차단한다")
+    func recurrenceRuleChangeIsBlockedWhenExceptionsExist() {
+        let event = weeklyWorkoutEvent()
+        let modified = override(
+            for: event,
+            originalStart: date(year: 2026, month: 10, day: 19),
+            newTitle: "개별 운동",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+        let deleted = exclusion(
+            for: event,
+            originalStart: date(year: 2026, month: 10, day: 26)
+        )
+
+        let unitChange = RecurringSeriesExceptionUpdater.saveRequirement(
+            exceptions: [modified],
+            oldValues: RecurringSeriesValues(event: event),
+            newValues: seriesValues(for: event, repeatUnit: "개월")
+        )
+        let intervalChange = RecurringSeriesExceptionUpdater.saveRequirement(
+            exceptions: [deleted],
+            oldValues: RecurringSeriesValues(event: event),
+            newValues: seriesValues(for: event, repeatInterval: 2)
+        )
+
+        #expect(unitChange == .blockUnsafeRecurrenceChange)
+        #expect(intervalChange == .blockUnsafeRecurrenceChange)
+        #expect(deleted.isExcluded)
+    }
+
+    @Test("전체 제목 변경 후에도 반복 종료일·D-Day 다음 발생일·알림 시각이 유지된다")
+    func titleMergePreservesRepeatEndDDayAndNotificationSchedule() {
+        let event = weeklyWorkoutEvent()
+        event.isDDayEnabled = true
+        event.repeatEndDate = date(year: 2026, month: 10, day: 19)
+        event.alarmOption = "시작 시간"
+        event.alarmTimeIntervalBeforeStart = 0
+        let exception = override(
+            for: event,
+            originalStart: date(year: 2026, month: 10, day: 19),
+            newTitle: "개별 운동",
+            newStart: date(year: 2026, month: 10, day: 19, hour: 11),
+            newEnd: date(year: 2026, month: 10, day: 19, hour: 12)
+        )
+        exception.overrideAlarmOption = event.alarmOption
+        exception.overrideAlarmTimeIntervalBeforeStart = event.alarmTimeIntervalBeforeStart
+        let oldValues = RecurringSeriesValues(event: event)
+        let newValues = seriesValues(for: event, title: "전체 운동")
+
+        RecurringSeriesExceptionUpdater.apply(
+            from: oldValues,
+            to: newValues,
+            policy: .applyChangedSeriesValues,
+            exceptions: [exception]
+        )
+        event.title = newValues.title
+
+        let next = EventOccurrenceService.nextOccurrenceDate(
+            for: event,
+            onOrAfter: date(year: 2026, month: 10, day: 19, hour: 0),
+            calendar: calendar,
+            exceptions: [exception]
+        )
+        let afterEnd = EventOccurrenceService.nextOccurrenceDate(
+            for: event,
+            onOrAfter: date(year: 2026, month: 10, day: 20),
+            calendar: calendar,
+            exceptions: [exception]
+        )
+        let schedules = EventNotificationPlanner.schedules(
+            for: event,
+            now: date(year: 2026, month: 10, day: 1),
+            calendar: calendar,
+            exceptions: [exception]
+        )
+
+        #expect(event.isDDayEnabled)
+        #expect(next == exception.overrideStartDate)
+        #expect(afterEnd == nil)
+        #expect(schedules.count == 3)
+        #expect(schedules.last?.fireDate == exception.overrideStartDate)
+        #expect(schedules.last?.title == "전체 운동")
+    }
+}
+
+@MainActor
+@Suite("SwiftData 스키마 마이그레이션 안전성 (Step 6 안정화)")
+struct SchemaMigrationSafetyTests {
+    @Test("EventOccurrenceException이 없던 기존 저장소를 새 스키마로 열어도 기존 Event 데이터가 그대로 보존된다")
+    func existingStoreWithoutExceptionTableOpensSafelyWithNewSchema() throws {
+        let storeURL = FileManager.default.temporaryDirectory
+            .appending(path: "MigrationTest-\(UUID().uuidString).store")
+        defer {
+            try? FileManager.default.removeItem(at: storeURL)
+            try? FileManager.default.removeItem(at: storeURL.appendingPathExtension("shm"))
+            try? FileManager.default.removeItem(at: storeURL.appendingPathExtension("wal"))
+        }
+
+        // 1단계: EventOccurrenceException이 존재하기 이전 스키마로 저장소를 만들고 실제 데이터를 저장한다
+        // (기존 사용자의 실기기 저장소 상태를 흉내 낸다 — 메모리가 아니라 실제 파일 기반 저장소다).
+        let legacySchema = Schema([Event.self, ExternalEventDDaySetting.self])
+        let legacyConfig = ModelConfiguration(schema: legacySchema, url: storeURL, cloudKitDatabase: .none)
+        let legacyContainer = try ModelContainer(for: legacySchema, configurations: [legacyConfig])
+        let legacyContext = ModelContext(legacyContainer)
+
+        let existingEvent = Event(
+            title: "기존 일정",
+            isAllDay: false,
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3_600),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "반복 안 함",
+            repeatInterval: 1,
+            memo: "마이그레이션 전 메모",
+            isDDayEnabled: true
+        )
+        legacyContext.insert(existingEvent)
+        try legacyContext.save()
+        let savedEventID = existingEvent.id
+
+        // 2단계: 같은 파일을 EventOccurrenceException이 추가된 새 스키마로 다시 연다(앱 업데이트 시뮬레이션).
+        let newSchema = Schema([Event.self, ExternalEventDDaySetting.self, EventOccurrenceException.self])
+        let newConfig = ModelConfiguration(schema: newSchema, url: storeURL, cloudKitDatabase: .none)
+        let newContainer = try ModelContainer(for: newSchema, configurations: [newConfig])
+        let newContext = ModelContext(newContainer)
+
+        let migratedEvents = try newContext.fetch(FetchDescriptor<Event>())
+        #expect(migratedEvents.count == 1)
+        #expect(migratedEvents.first?.id == savedEventID)
+        #expect(migratedEvents.first?.title == "기존 일정")
+        #expect(migratedEvents.first?.memo == "마이그레이션 전 메모")
+        #expect(migratedEvents.first?.isDDayEnabled == true)
+        #expect(migratedEvents.first?.repeatEndDate == nil)
+
+        // 3단계: 새로 추가된 테이블(EventOccurrenceException)도 정상적으로 쓸 수 있어야 한다.
+        let exception = EventOccurrenceException(
+            eventID: savedEventID,
+            originalOccurrenceStartDate: Date(),
+            isExcluded: true
+        )
+        newContext.insert(exception)
+        try newContext.save()
+
+        let exceptions = try newContext.fetch(FetchDescriptor<EventOccurrenceException>())
+        #expect(exceptions.count == 1)
+
+        // 4단계: 기존 Event는 여전히 그대로다(새 테이블 추가가 기존 데이터에 영향을 주지 않았다).
+        let eventsAfter = try newContext.fetch(FetchDescriptor<Event>())
+        #expect(eventsAfter.count == 1)
+        #expect(eventsAfter.first?.id == savedEventID)
+    }
+}
+
+@Suite("D-Day 하루 차이 의심 사례 재현 (Step 6 안정화)")
+struct DDayOffByOneReproductionTests {
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        return calendar
+    }()
+
+    private func date(year: Int, month: Int, day: Int, hour: Int = 9) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    /// 보고된 사례 그대로: 매년 10월 10일 반복되는 생일(아주 오래전부터 반복 중이라고 가정).
+    private func birthdayEvent() -> Event {
+        Event(
+            title: "생일",
+            isAllDay: false,
+            startDate: date(year: 2000, month: 10, day: 10),
+            endDate: date(year: 2000, month: 10, day: 10),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "년",
+            repeatInterval: 1,
+            memo: ""
+        )
+    }
+
+    /// nextOccurrenceDate + daysRemaining을 실제 위젯·편집 화면과 같은 방식(두 단계)으로 조합해,
+    /// "기준 날짜"에 위젯이 실제로 보여줄 D-Day 문구를 재현한다.
+    private func widgetStyleDDayText(onOrAfter now: Date, event: Event) -> String {
+        let targetDate = EventOccurrenceService.nextOccurrenceDate(
+            for: event, onOrAfter: now, calendar: calendar
+        ) ?? event.startDate
+        let days = DDayCalculator.daysRemaining(until: targetDate, now: now, calendar: calendar)
+        return DDayCalculator.displayText(forDaysRemaining: days)
+    }
+
+    @Test(
+        "보고된 표를 그대로 재현한다: 10월 10일 생일 반복 일정의 날짜별 D-Day 문구",
+        arguments: [
+            (2026, 10, 9, "D-1"),
+            (2026, 10, 10, "D-Day"),
+            (2026, 10, 11, "D-364"),
+            (2026, 10, 12, "D-363"),
+            (2027, 10, 9, "D-1"),
+            (2027, 10, 10, "D-Day")
+        ]
+    )
+    func reproducesReportedTable(_ case_: (year: Int, month: Int, day: Int, expected: String)) {
+        let event = birthdayEvent()
+        let now = date(year: case_.year, month: case_.month, day: case_.day)
+        let text = widgetStyleDDayText(onOrAfter: now, event: event)
+        #expect(text == case_.expected)
+    }
+
+    @Test("자정 직후(00:00:01)와 늦은 밤(23:59:59) 모두 같은 날짜 기준으로 같은 D-Day를 낸다")
+    func timeOfDayDoesNotAffectDayLevelCalculation() {
+        let event = birthdayEvent()
+        let earlyMorning = calendar.date(
+            byAdding: DateComponents(hour: 0, minute: 0, second: 1),
+            to: calendar.startOfDay(for: date(year: 2026, month: 10, day: 11))
+        )!
+        let lateNight = calendar.date(
+            byAdding: DateComponents(hour: 23, minute: 59, second: 59),
+            to: calendar.startOfDay(for: date(year: 2026, month: 10, day: 11))
+        )!
+
+        #expect(widgetStyleDDayText(onOrAfter: earlyMorning, event: event) == "D-364")
+        #expect(widgetStyleDDayText(onOrAfter: lateNight, event: event) == "D-364")
+    }
+
+    @Test("윤년을 지나는 반복 생일도 올바르게 계산한다(2024-02-29 생일, 2025년은 평년)")
+    func leapYearBirthdayAcrossNonLeapYear() {
+        let event = Event(
+            title: "윤년 생일",
+            isAllDay: false,
+            startDate: date(year: 2024, month: 2, day: 29),
+            endDate: date(year: 2024, month: 2, day: 29),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "년",
+            repeatInterval: 1,
+            memo: ""
+        )
+        // 평년엔 2/29가 없어 validatedDate가 건너뛰므로, 다음 2/29는 2028년(윤년)이다.
+        let now = date(year: 2025, month: 3, day: 1)
+        #expect(widgetStyleDDayText(onOrAfter: now, event: event) == "D-1095")
+    }
+
+    @Test("종일 일정으로 설정된 반복 생일도 날짜 기준으로 동일하게 계산한다")
+    func allDayBirthdayCalculatesTheSameWay() {
+        let event = Event(
+            title: "생일(종일)",
+            isAllDay: true,
+            startDate: date(year: 2000, month: 10, day: 10, hour: 0),
+            endDate: date(year: 2000, month: 10, day: 10, hour: 0),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "년",
+            repeatInterval: 1,
+            memo: ""
+        )
+        let now = date(year: 2026, month: 10, day: 11)
+        #expect(widgetStyleDDayText(onOrAfter: now, event: event) == "D-364")
+    }
+}
+
+@Suite("WidgetReloadDebouncer")
+@MainActor
+struct WidgetReloadDebouncerTests {
+    @Test("짧은 시간에 반복된 갱신 요청은 한 번만 실행된다")
+    func coalescesRepeatedRequests() async throws {
+        var reloadCount = 0
+        let debouncer = WidgetReloadDebouncer(delay: .milliseconds(20)) {
+            reloadCount += 1
+        }
+
+        debouncer.request()
+        debouncer.request()
+        debouncer.request()
+        try await Task.sleep(for: .milliseconds(80))
+
+        #expect(reloadCount == 1)
+    }
+
+    @Test("즉시 갱신은 대기 중 요청을 취소해 중복 실행하지 않는다")
+    func immediateReloadCancelsPendingRequest() async throws {
+        var reloadCount = 0
+        let debouncer = WidgetReloadDebouncer(delay: .milliseconds(40)) {
+            reloadCount += 1
+        }
+
+        debouncer.request()
+        debouncer.reloadNow()
+        try await Task.sleep(for: .milliseconds(100))
+
+        #expect(reloadCount == 1)
     }
 }

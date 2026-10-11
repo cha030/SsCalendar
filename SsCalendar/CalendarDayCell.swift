@@ -1,10 +1,13 @@
 import SwiftUI
+import UIKit
 
 enum CalendarDayContentLayout {
     static let cellHeight: CGFloat = 102
     static let dateHeaderHeight: CGFloat = 38
     static let lunarLineHeight: CGFloat = 12
     static let holidayLineHeight: CGFloat = 14
+    static let holidayFontSize: CGFloat = 11.5
+    static let holidayHorizontalPadding: CGFloat = 4
     static let contentSpacing: CGFloat = 1
 
     /// 단일 날짜 일정 제목(CalendarEventBar)에 쓰는 폰트 크기. 2줄 확장 여부를 실제 텍스트 너비로
@@ -32,9 +35,23 @@ enum CalendarDayContentLayout {
         )
     }
 
-    static func holidayLineCount(for title: String?) -> Int {
+    static func holidayLineCount(
+        for title: String?,
+        availableWidth: CGFloat? = nil
+    ) -> Int {
         guard let title else { return 0 }
-        return min(2, title.split(separator: "\n").count)
+        let explicitLines = title.split(separator: "\n", omittingEmptySubsequences: false)
+        guard let availableWidth else {
+            return min(2, explicitLines.count)
+        }
+        guard availableWidth > 0 else { return 2 }
+
+        let font = UIFont.systemFont(ofSize: holidayFontSize, weight: .medium)
+        let renderedLineCount = explicitLines.reduce(into: 0) { count, line in
+            let width = (String(line) as NSString).size(withAttributes: [.font: font]).width
+            count += max(1, Int(ceil(width / availableWidth)))
+        }
+        return min(2, renderedLineCount)
     }
 
     static func headerEndY(
@@ -52,19 +69,27 @@ enum CalendarDayContentLayout {
 
     static func holidayHeight(
         for date: Date,
-        holidays: [Holiday]
+        holidays: [Holiday],
+        availableWidth: CGFloat? = nil
     ) -> CGFloat {
         let title = holidayTitle(for: holidays, on: date)
-        return CGFloat(holidayLineCount(for: title)) * holidayLineHeight
+        return CGFloat(
+            holidayLineCount(for: title, availableWidth: availableWidth)
+        ) * holidayLineHeight
     }
 
     static func eventStartY(
         for date: Date,
         holidays: [Holiday],
-        calendar: Calendar
+        calendar: Calendar,
+        availableWidth: CGFloat? = nil
     ) -> CGFloat {
         headerEndY(for: date, calendar: calendar)
-            + holidayHeight(for: date, holidays: holidays)
+            + holidayHeight(
+                for: date,
+                holidays: holidays,
+                availableWidth: availableWidth
+            )
             + contentSpacing
     }
 
@@ -77,6 +102,9 @@ struct CalendarDayCell: View {
     let isSelected: Bool
     let holidays: [Holiday]
     let holidayTopOffset: CGFloat?
+    let holidayTextWidth: CGFloat
+    /// WeekEventLayout이 일정 밀도까지 반영해 확정한 줄 수. 뷰와 배치 엔진이 같은 높이를 쓴다.
+    let displayedHolidayLineCount: Int?
     let calendar: Calendar
 
     private var lunarDateText: String? {
@@ -87,6 +115,13 @@ struct CalendarDayCell: View {
         CalendarDayContentLayout.holidayTitle(
             for: holidays,
             on: date
+        )
+    }
+
+    private var holidayLineCount: Int {
+        displayedHolidayLineCount ?? CalendarDayContentLayout.holidayLineCount(
+            for: holidayTitle,
+            availableWidth: holidayTextWidth
         )
     }
 
@@ -139,18 +174,17 @@ struct CalendarDayCell: View {
 
     private func holidayLabel(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 11.5, weight: .medium))
+            .font(.system(size: CalendarDayContentLayout.holidayFontSize, weight: .medium))
             .foregroundStyle(
                 Color.red.opacity(isCurrentMonth ? 0.95 : 0.55)
             )
             .multilineTextAlignment(.center)
-            .lineLimit(2)
+            .lineLimit(holidayLineCount)
             .truncationMode(.tail)
+            .frame(maxWidth: .infinity, alignment: .top)
             .frame(
-                maxWidth: .infinity,
-                minHeight: CGFloat(
-                    CalendarDayContentLayout.holidayLineCount(for: title)
-                ) * CalendarDayContentLayout.holidayLineHeight,
+                height: CGFloat(holidayLineCount)
+                    * CalendarDayContentLayout.holidayLineHeight,
                 alignment: .top
             )
             .padding(.horizontal, 2)
@@ -212,6 +246,8 @@ struct CalendarDayCell: View {
             )
         ],
         holidayTopOffset: 58,
+        holidayTextWidth: 48,
+        displayedHolidayLineCount: nil,
         calendar: Calendar.current
     )
 }

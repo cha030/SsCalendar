@@ -51,6 +51,11 @@ enum SystemCalendarQuery {
     ) -> [Result] {
         guard isEnabled(in: defaults), hasFullAccess else { return [] }
 
+        // 위젯 프로세스는 앱의 EKEventStoreChanged observer를 공유하지 않는다.
+        // 새 타임라인을 만들 때 원격 소스의 최신 상태를 먼저 확인해, 특히 삭제된 일정이
+        // 위젯 프로세스의 EventKit 캐시에 남은 채 다시 조회되는 가능성을 줄인다.
+        store.refreshSourcesIfNecessary()
+
         return visibleEvents(
             in: interval,
             store: store,

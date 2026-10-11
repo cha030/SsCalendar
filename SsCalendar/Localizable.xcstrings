@@ -469,6 +469,36 @@
         }
       }
     },
+    "개별 수정 처리" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Individual Change Handling"
+          }
+        }
+      }
+    },
+    "개별 수정에도 전체 변경 적용" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Apply Series Changes to Individual Events"
+          }
+        }
+      }
+    },
+    "개별 수정한 값은 유지하고, 수정하지 않은 값만 새로운 전체 일정에 맞춥니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Keep individually changed values, and update only unchanged values to match the new repeating event."
+          }
+        }
+      }
+    },
     "개월" : {
       "localizations" : {
         "en" : {
@@ -545,6 +575,26 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 SsCalendar에 저장됩니다. %@"
+          }
+        }
+      }
+    },
+    "기존 개별 수정 유지" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Keep Existing Individual Changes"
+          }
+        }
+      }
+    },
+    "기존 개별 수정 처리" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Handle Existing Individual Changes"
           }
         }
       }
@@ -792,6 +842,16 @@
         }
       }
     },
+    "반복 방식이나 간격을 변경하면 기존 개별 수정 및 삭제를 안전하게 연결할 수 없습니다. 기존 예외가 있는 동안에는 반복 방식과 간격을 변경할 수 없습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Changing the repeat frequency or interval can’t safely preserve existing individual edits and deletions. You can’t change the repeat frequency or interval while exceptions exist."
+          }
+        }
+      }
+    },
     "반복 안 함" : {
       "localizations" : {
         "en" : {
@@ -840,7 +900,14 @@
       }
     },
     "반복되는 모든 발생분에 적용됩니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Applies to every occurrence of this repeating event."
+          }
+        }
+      }
     },
     "반복되는 모든 일정을 삭제하시겠습니까?" : {
       "localizations" : {
@@ -1083,7 +1150,14 @@
       }
     },
     "수정 범위" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Edit Scope"
+          }
+        }
+      }
     },
     "시간 전" : {
       "localizations" : {
@@ -1263,16 +1337,44 @@
       }
     },
     "이 발생분만 수정합니다. 반복 설정과 D-Day는 \"전체 반복 일정\"에서만 바꿀 수 있습니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Changes only this occurrence. Repeat settings and D-Day can only be changed from \"All Repeating Events.\""
+          }
+        }
+      }
     },
     "이 발생분의 날짜를 기준으로 계산합니다. 일정 목록과 위젯은 항상 각 시점의 다음 발생일을 기준으로 표시합니다." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Calculated from this occurrence's date. The event list and widgets always show the next occurrence at each point in time."
+          }
+        }
+      }
     },
     "이 일정만" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "This Event Only"
+          }
+        }
+      }
     },
     "이 일정만 삭제" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Delete This Event Only"
+          }
+        }
+      }
     },
     "이 일정을 삭제하시겠습니까?" : {
       "localizations" : {
@@ -1318,6 +1420,16 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "일"
+          }
+        }
+      }
+    },
+    "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Apply only the values changed in this edit to individually edited events."
           }
         }
       }
@@ -1589,9 +1701,26 @@
       }
     },
     "전체 반복 일정" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "All Repeating Events"
+          }
+        }
+      }
     },
     "전체 반복 일정 삭제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Delete All Repeating Events"
+          }
+        }
+      }
+    },
+    "전체 반복 일정 수정" : {
 
     },
     "제목" : {

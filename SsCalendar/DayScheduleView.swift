@@ -231,7 +231,17 @@ struct DayScheduleView: View {
     /// 잠시 기다려 delegate의 완료 처리(시트 닫힘)가 먼저 반영되게 한 뒤 판단한다.
     private func verifyPresentedSystemEvent() async {
         guard let presentation = presentedSystemEvent else { return }
-        try? await Task.sleep(for: .milliseconds(500))
+
+        do {
+            try await Task.sleep(for: .milliseconds(500))
+        } catch {
+            // 취소됐다면(바뀐 changeToken으로 다음 .task(id:)가 이미 새로 시작됐다는 뜻) 여기서
+            // 끝낸다. 과거엔 try?로 취소 오류를 무시하고 그대로 진행해, 의도한 500ms보다 훨씬
+            // 짧게 기다린 상태로 EKEvent.refresh()를 판단해 버리는 경쟁 상태가 있었다 — 자신이
+            // 방금 삭제한 일정인데도 "일정을 열 수 없습니다" 알림이 잘못 뜰 수 있었다. 다음 호출이
+            // 온전한 500ms를 기다린 뒤 다시 검증하므로 여기서는 그냥 반환하면 된다.
+            return
+        }
 
         guard
             presentedSystemEvent?.id == presentation.id,

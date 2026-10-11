@@ -126,7 +126,9 @@ final class SystemCalendarService {
         activationRefreshTask = Task { [weak self] in
             // 앱 활성화 직후 EventKit의 외부 소스 반영이 끝날 시간을 비동기로 양보한다.
             try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled, let self else { return }
+            guard !Task.isCancelled, let self else {
+                return
+            }
 
             // 백그라운드 동안 바뀐 외부 일정의 오래된 EventKit 캐시를 버린 뒤 다시 동기화한다.
             // refreshSourcesIfNecessary()는 원격 변경을 반영하면서도
