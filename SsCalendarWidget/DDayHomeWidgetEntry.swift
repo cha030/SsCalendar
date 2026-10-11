@@ -6,6 +6,8 @@ struct DDayHomeWidgetItem: Hashable, Sendable {
     let displayTitle: String
     let isSensitiveTitle: Bool
     let startDate: Date
+    let originalStartDate: Date
+    let localEventID: UUID?
     let daysRemaining: Int
 }
 
@@ -26,12 +28,16 @@ extension DDayHomeWidgetEntry {
                     displayTitle: String(localized: "생일 파티"),
                     isSensitiveTitle: false,
                     startDate: now.addingTimeInterval(86_400 * 3),
+                    originalStartDate: now.addingTimeInterval(86_400 * 3),
+                    localEventID: nil,
                     daysRemaining: 3
                 ),
                 DDayHomeWidgetItem(
                     displayTitle: String(localized: "여행"),
                     isSensitiveTitle: false,
                     startDate: now.addingTimeInterval(86_400 * 10),
+                    originalStartDate: now.addingTimeInterval(86_400 * 10),
+                    localEventID: nil,
                     daysRemaining: 10
                 )
             ]

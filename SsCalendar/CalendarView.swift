@@ -364,6 +364,28 @@ struct CalendarView: View {
 
         currentDate = date
         selectedDate = date
+        if url.host == "event" {
+            guard
+                let eventIDString = components?.queryItems?.first(where: { $0.name == "eventID" })?.value,
+                let eventID = UUID(uuidString: eventIDString),
+                components?.queryItems?
+                    .first(where: { $0.name == "occurrenceStart" })?.value
+                    .flatMap(Double.init) != nil,
+                components?.queryItems?
+                    .first(where: { $0.name == "originalOccurrenceStart" })?.value
+                    .flatMap(Double.init) != nil,
+                events.contains(where: { $0.id == eventID })
+            else {
+                // 삭제됐거나 더 이상 접근할 수 없는 일정은 다른 화면이나 일정을 임의로 열지 않는다.
+                return
+            }
+
+            // 일정 식별 정보는 링크에서 검증만 하고, 편집 화면은 자동으로 열지 않는다.
+            // 기존 day 딥링크와 같은 NavigationStack 경로로 해당 날짜의 일간 화면만 연다.
+            newEventDate = nil
+            schedulePath = [date]
+            return
+        }
         // 위젯 등 외부에서 들어온 딥링크는 그 시점에 확정된 대상으로 정확히 이동해야 하므로,
         // 이전에 남아 있을 수 있는 "새 일정 추가" 상태부터 먼저 비운다(아래 switch에서
         // new-event면 다시 채운다).

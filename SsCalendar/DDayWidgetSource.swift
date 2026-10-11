@@ -93,7 +93,8 @@ enum DDayWidgetSource {
                     isAllDay: nextOccurrence.isAllDay,
                     startDate: nextOccurrence.startDate,
                     endDate: nextOccurrence.endDate,
-                    color: colorForLocalEventColorName(nextOccurrence.colorName)
+                    color: colorForLocalEventColorName(nextOccurrence.colorName),
+                    originalStartDate: nextOccurrence.originalStartDate
                 )
             }
 
@@ -108,7 +109,8 @@ enum DDayWidgetSource {
                 isAllDay: event.isAllDay,
                 startDate: event.startDate,
                 endDate: event.startDate.addingTimeInterval(duration),
-                color: colorForLocalEventColorName(event.color)
+                color: colorForLocalEventColorName(event.color),
+                originalStartDate: event.startDate
             )
         }
     }

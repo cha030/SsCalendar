@@ -32,7 +32,9 @@ struct DDayHomeWidgetView: View {
             Color(.systemBackground)
         }
         .widgetURL(
-            visibleItems.first.map { CalendarWidgetDeepLink.dayURL(for: $0.startDate) }
+            family == .systemSmall
+                ? visibleItems.first.map { CalendarWidgetDeepLink.dayURL(for: $0.startDate) }
+                : nil
         )
     }
 }
@@ -172,7 +174,26 @@ private struct DDayHomeMediumRow: View {
         )
     }
 
+    @ViewBuilder
     var body: some View {
+        if let localEventID = item.localEventID {
+            Link(
+                destination: CalendarWidgetDeepLink.eventURL(
+                    for: localEventID,
+                    occurrenceStartDate: item.startDate,
+                    originalOccurrenceStartDate: item.originalStartDate
+                )
+            ) {
+                rowContent
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 0) {
             Text(DDayCalculator.displayText(forDaysRemaining: item.daysRemaining))
                 .font(.system(size: 28, weight: .bold, design: .rounded))
@@ -197,6 +218,7 @@ private struct DDayHomeMediumRow: View {
             .padding(.leading, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

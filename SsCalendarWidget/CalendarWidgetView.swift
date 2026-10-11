@@ -779,6 +779,26 @@ enum CalendarWidgetDeepLink {
         url(host: "new-event", date: date)
     }
 
+    static func eventURL(
+        for eventID: UUID,
+        occurrenceStartDate: Date,
+        originalOccurrenceStartDate: Date
+    ) -> URL {
+        var components = URLComponents()
+        components.scheme = "sscalendar"
+        components.host = "event"
+        components.queryItems = [
+            URLQueryItem(name: "date", value: dateFormatter.string(from: occurrenceStartDate)),
+            URLQueryItem(name: "eventID", value: eventID.uuidString),
+            URLQueryItem(name: "occurrenceStart", value: String(occurrenceStartDate.timeIntervalSince1970)),
+            URLQueryItem(
+                name: "originalOccurrenceStart",
+                value: String(originalOccurrenceStartDate.timeIntervalSince1970)
+            )
+        ]
+        return components.url ?? dayURL(for: occurrenceStartDate)
+    }
+
     private static func url(host: String, date: Date) -> URL {
         var components = URLComponents()
         components.scheme = "sscalendar"
