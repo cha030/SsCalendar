@@ -266,13 +266,12 @@ struct DayScheduleView: View {
             List {
                 ForEach(orderedOccurrences) { occurrence in
                     if let eventID = occurrence.localEventID {
-                        Button {
+                        LocalEventRow(
+                            occurrence: occurrence,
+                            dDayText: dDayText(for: occurrence)
+                        ) {
                             // 반복 일정은 모든 발생분이 같은 Event를 공유하므로(eventID 동일),
-                            // 탭한 발생분(occurrence)의 실제 날짜도 함께 넘겨야 한다 — Event만
-                            // 넘기면 항상 시리즈 원본 시작일(event.startDate)만 보이는 문제가 있었다.
-                            // originalStartDate는 개별 수정(override) 이전의 "원래" 발생 슬롯이라
-                            // 예외 식별 키로 쓴다(이미 한 번 override된 발생분을 다시 열 때도
-                            // 같은 예외 레코드를 찾아 갱신하기 위함, Step 5-2 개별 수정·삭제).
+                            // 탭한 발생분의 실제 날짜와 원래 발생 슬롯을 함께 전달한다.
                             if let event = events.first(where: { $0.id == eventID }) {
                                 selectedLocalEvent = SelectedLocalEvent(
                                     event: event,
@@ -285,34 +284,20 @@ struct DayScheduleView: View {
                                     )
                                 )
                             }
-                        } label: {
-                            EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
                         }
-                        .buttonStyle(.plain)
                     } else {
-                        // 외부 일정은 조회만 허용하는 임시 모드에서 일반 행으로 표시한다.
-                        // 기존 EventKit 상세·편집·삭제 경로는 보존하되 사용자 진입만 막는다.
-                        if SystemCalendarService.isExternalEventAccessEnabled {
-                            Button {
+                        ExternalEventRow(
+                            occurrence: occurrence,
+                            dDayText: dDayText(for: occurrence),
+                            isAccessEnabled: SystemCalendarService.isExternalEventAccessEnabled,
+                            isDDayEnabled: isExternalDDayEnabled(occurrence),
+                            onOpen: {
                                 openSystemEvent(occurrence)
-                            } label: {
-                                EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
+                            },
+                            onToggleDDay: {
+                                toggleExternalDDay(for: occurrence)
                             }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button {
-                                    toggleExternalDDay(for: occurrence)
-                                } label: {
-                                    if isExternalDDayEnabled(occurrence) {
-                                        Label("D-Day 해제", systemImage: "flag.slash")
-                                    } else {
-                                        Label("D-Day 설정", systemImage: "flag")
-                                    }
-                                }
-                            }
-                        } else {
-                            EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
-                        }
+                        )
                     }
                 }
             }
@@ -444,86 +429,6 @@ private struct SelectedLocalEvent: Identifiable {
     /// 시각을 함께 묶는다(일정 ID만 쓰면 같은 반복 일정의 다른 발생분을 구분할 수 없다).
     var id: String {
         "\(event.id.uuidString)-\(originalOccurrenceStartDate.timeIntervalSince1970)"
-    }
-}
-
-private struct EventRow: View {
-    let occurrence: CalendarDisplayOccurrence
-    /// D-Day 미리보기 배지("D-3" 등). nil이면 배지를 보여주지 않는다(D-Day 꺼짐 또는 지난 일정).
-    let dDayText: String?
-
-    private var eventColor: Color {
-        occurrence.color
-    }
-
-    private var timeDescription: String {
-        if occurrence.isAllDay {
-            return String(localized: "종일")
-        }
-
-        if Calendar.current.isDate(
-            occurrence.startDate,
-            inSameDayAs: occurrence.endDate
-        ) {
-            let timeStyle = Date.FormatStyle()
-                .hour(.defaultDigits(amPM: .abbreviated))
-                .minute(.twoDigits)
-                .locale(Locale.current)
-            let startTime = occurrence.startDate.formatted(timeStyle)
-            let endTime = occurrence.endDate.formatted(timeStyle)
-            return "\(startTime) – \(endTime)"
-        }
-
-        let dateTimeStyle = Date.FormatStyle()
-            .month(.defaultDigits)
-            .day(.defaultDigits)
-            .hour(.defaultDigits(amPM: .abbreviated))
-            .minute(.twoDigits)
-            .locale(Locale.current)
-        let startDateTime = occurrence.startDate.formatted(dateTimeStyle)
-        let endDateTime = occurrence.endDate.formatted(dateTimeStyle)
-        return "\(startDateTime) – \(endDateTime)"
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(eventColor)
-                .frame(width: 4)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(occurrence.title)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-
-                Text(timeDescription)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                if case .system(let calendarTitle, _) = occurrence.source {
-                    HStack(spacing: 3) {
-                        Image(systemName: "calendar")
-                        Text(calendarTitle.isEmpty ? String(localized: "iPhone 캘린더") : calendarTitle)
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            if let dDayText {
-                Text(dDayText)
-                    .font(.caption2.bold())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.orange))
-            }
-        }
-        .padding(.vertical, 4)
-        // plain 버튼은 그려진 글자만 탭되므로, Spacer를 포함한 행 전체를 탭 영역으로 지정한다.
-        .contentShape(Rectangle())
     }
 }
 

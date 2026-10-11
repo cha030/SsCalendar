@@ -72,7 +72,7 @@ enum RecurringSeriesExceptionUpdatePolicy: Equatable {
 }
 
 /// 전체 반복 일정 저장 전에 필요한 사용자 상호작용을 순수 로직으로 판정한다.
-enum RecurringSeriesExceptionSaveRequirement: Equatable {
+nonisolated enum RecurringSeriesExceptionSaveRequirement: Equatable {
     case saveDirectly
     case chooseUpdatePolicy
     case blockUnsafeRecurrenceChange
