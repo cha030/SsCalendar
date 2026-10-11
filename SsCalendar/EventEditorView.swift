@@ -482,7 +482,9 @@ struct EventEditorView: View {
             ? systemCalendar.writableCalendarGroups()
             : []
         _saveDestination = State(
-            initialValue: event == nil ? systemCalendar.effectiveDefaultSaveDestination : .local
+            initialValue: event == nil && SystemCalendarService.isExternalEventAccessEnabled
+                ? systemCalendar.effectiveDefaultSaveDestination
+                : .local
         )
         // 연동 OFF는 사용자가 직접 끈 상태이므로 안내하지 않고, 기존 로컬 생성 방식만 보여준다.
         // 저장된 기본값은 지우지 않으므로 계정·권한이 돌아오면 다시 기본 저장 위치로 쓰인다.
@@ -834,7 +836,7 @@ struct EventEditorView: View {
     private var saveDestinationSection: some View {
         let groups = writableCalendarGroups
 
-        if !groups.isEmpty {
+        if SystemCalendarService.isExternalEventAccessEnabled, !groups.isEmpty {
             Section {
                 Picker("저장 위치", selection: $saveDestination) {
                     Label {

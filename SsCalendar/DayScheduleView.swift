@@ -290,27 +290,28 @@ struct DayScheduleView: View {
                         }
                         .buttonStyle(.plain)
                     } else {
-                        // 시스템 캘린더 일정은 Apple 일정 화면에서 보기·수정·삭제한다. D-Day는
-                        // EKEventViewController를 건드리지 않고, 길게 눌러 여는 메뉴로 별도 제공한다.
-                        // (스와이프 액션은 날짜 이동 스와이프 제스처와 충돌해 날짜가 같이 넘어가
-                        // 버리는 문제가 있어 길게 누르기 방식으로 바꿨다 — 좌우 스와이프는 날짜
-                        // 이동 전용으로만 남긴다.)
-                        Button {
-                            openSystemEvent(occurrence)
-                        } label: {
-                            EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
+                        // 외부 일정은 조회만 허용하는 임시 모드에서 일반 행으로 표시한다.
+                        // 기존 EventKit 상세·편집·삭제 경로는 보존하되 사용자 진입만 막는다.
+                        if SystemCalendarService.isExternalEventAccessEnabled {
                             Button {
-                                toggleExternalDDay(for: occurrence)
+                                openSystemEvent(occurrence)
                             } label: {
-                                if isExternalDDayEnabled(occurrence) {
-                                    Label("D-Day 해제", systemImage: "flag.slash")
-                                } else {
-                                    Label("D-Day 설정", systemImage: "flag")
+                                EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    toggleExternalDDay(for: occurrence)
+                                } label: {
+                                    if isExternalDDayEnabled(occurrence) {
+                                        Label("D-Day 해제", systemImage: "flag.slash")
+                                    } else {
+                                        Label("D-Day 설정", systemImage: "flag")
+                                    }
                                 }
                             }
+                        } else {
+                            EventRow(occurrence: occurrence, dDayText: dDayText(for: occurrence))
                         }
                     }
                 }

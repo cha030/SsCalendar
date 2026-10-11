@@ -10,6 +10,10 @@ import SwiftUI
 final class SystemCalendarService {
     static let shared = SystemCalendarService()
 
+    /// 외부 일정 상세·편집·삭제와 새 일정의 외부 캘린더 저장을 임시로 비활성화한다.
+    /// 조회·위젯 연동은 유지하며, 외부 EventKit 화면을 다시 허용할 때 이 플래그만 되돌린다.
+    static let isExternalEventAccessEnabled = false
+
     /// 설정 화면의 "iPhone 캘린더 일정 표시" 토글. 기본값 OFF.
     /// `@AppStorage`로 읽을 때는 반드시 `store: SystemCalendarService.settingsStore`를 함께 지정한다.
     static let isEnabledStorageKey = SystemCalendarQuery.isEnabledKey
