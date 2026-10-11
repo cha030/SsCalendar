@@ -417,7 +417,7 @@ private struct SelectedLocalEvent: Identifiable {
     let event: Event
     let occurrenceStartDate: Date
     let occurrenceEndDate: Date
-    /// 반복 규칙이 원래 계산한 이 발생분의 시작 시각(개별 수정 override 이전). 이미 한 번
+    /// 반복 규칙이 원래 계산한 이 발생분괜차의 시작 시각(개별 수정 override 이전). 이미 한 번
     /// override된 발생분을 다시 열어도 항상 같은 예외 레코드를 찾을 수 있도록, 예외 식별 키는
     /// 항상 이 값을 쓴다(Step 5-2 개별 수정·삭제).
     let originalOccurrenceStartDate: Date

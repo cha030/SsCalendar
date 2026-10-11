@@ -109,44 +109,93 @@ private struct DDayHomeSmallContent: View {
     }
 }
 
-/// Medium: 가까운 D-Day 일정 2건을 세로로 나란히 두되, 각 줄에 `maxHeight: .infinity`를 줘
-/// 위젯 세로 공간을 둘이 균등하게 나눠 쓰게 한다(일정이 한 건뿐이면 그 한 줄이 전체를 채운다).
+/// Medium: 가까운 D-Day 일정 2건을 40:60 비율의 두 열로 보여준다.
 private struct DDayHomeMediumContent: View {
     let items: [DDayHomeWidgetItem]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                DDayHomeMediumRow(item: item)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        GeometryReader { proxy in
+            let separatorHeight: CGFloat = items.count > 1 ? 1 : 0
+            let rowHeight = items.count > 1
+                ? max((proxy.size.height - separatorHeight) / 2, 0)
+                : proxy.size.height
+
+            VStack(spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    VStack(spacing: 0) {
+                        // 아래쪽 일정은 하단에 정렬
+                        if items.count == 1 || index > 0 {
+                            Spacer(minLength: 0)
+                        }
+
+                        DDayHomeMediumRow(
+                            item: item,
+                            leftColumnWidth: proxy.size.width * 0.4
+                        )
+
+                        // 위쪽 일정은 상단에 정렬
+                        if items.count == 1 || index == 0 {
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    .frame(
+                        width: proxy.size.width,
+                        height: rowHeight
+                    )
+
+                    if index < items.count - 1 {
+                        Divider()
+                            .frame(height: separatorHeight)
+                            .overlay(Color.gray.opacity(0.35))
+                    }
+                }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 2)
     }
 }
 
-/// "D-N"과 제목을 한 줄에 명확히 구분해 보여준다. D-Day 숫자 가독성을 우선해 굵고 색을 준다.
+/// Medium 한 행을 D-Day 40%, 일정 정보 60%로 나눠 표시한다.
 private struct DDayHomeMediumRow: View {
     let item: DDayHomeWidgetItem
+    let leftColumnWidth: CGFloat
+
+    private var dateText: String {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day], from: item.startDate)
+        return String(
+            format: "%04d.%02d.%02d",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0
+        )
+    }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(spacing: 0) {
             Text(DDayCalculator.displayText(forDaysRemaining: item.daysRemaining))
-                .font(.title2.bold())
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(.orange)
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
+                .minimumScaleFactor(0.8)
+                .frame(width: leftColumnWidth, alignment: .leading)
 
-            titleText
-                // Step 5-2 실기기 수정: 가독성을 위해 1~2pt 키운다(.subheadline → 17pt).
-                // D-Day 숫자 크기는 그대로 유지한다.
-                .font(.system(size: 17))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .truncationMode(.tail)
+            VStack(alignment: .leading, spacing: 2) {
+                titleText
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
 
-            Spacer(minLength: 0)
+                Text(dateText)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .padding(.leading, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

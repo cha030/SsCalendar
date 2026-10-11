@@ -734,9 +734,15 @@
     },
     "대한민국" : {
       "localizations" : {
-        "ko" : {
+        "en" : {
           "stringUnit" : {
             "state" : "machine_translated",
+            "value" : "South Korea"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
             "value" : "대한민국"
           }
         }
@@ -792,9 +798,15 @@
     },
     "미국" : {
       "localizations" : {
-        "ko" : {
+        "en" : {
           "stringUnit" : {
             "state" : "machine_translated",
+            "value" : "United States"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
             "value" : "미국"
           }
         }
@@ -1408,22 +1420,6 @@
         }
       }
     },
-    "일" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "day"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "일"
-          }
-        }
-      }
-    },
     "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
       "localizations" : {
         "en" : {
@@ -1446,6 +1442,22 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "이전 달"
+          }
+        }
+      }
+    },
+    "일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "day"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일"
           }
         }
       }
@@ -2038,6 +2050,166 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "화면 모드"
+          }
+        }
+      }
+    },
+    "신정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Year's Day"
+          }
+        }
+      }
+    },
+    "설날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lunar New Year"
+          }
+        }
+      }
+    },
+    "삼일절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Independence Movement Day"
+          }
+        }
+      }
+    },
+    "어린이날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Children's Day"
+          }
+        }
+      }
+    },
+    "부처님오신날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buddha's Birthday"
+          }
+        }
+      }
+    },
+    "현충일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memorial Day"
+          }
+        }
+      }
+    },
+    "광복절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liberation Day"
+          }
+        }
+      }
+    },
+    "개천절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "National Foundation Day"
+          }
+        }
+      }
+    },
+    "한글날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hangeul Day"
+          }
+        }
+      }
+    },
+    "크리스마스" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Christmas Day"
+          }
+        }
+      }
+    },
+    "추석" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chuseok"
+          }
+        }
+      }
+    },
+    "대체공휴일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Substitute Holiday"
+          }
+        }
+      }
+    },
+    "임시공휴일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary Holiday"
+          }
+        }
+      }
+    },
+    "선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Election Day"
+          }
+        }
+      }
+    },
+    "노동절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Labor Day"
+          }
+        }
+      }
+    },
+    "제헌절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Constitution Day"
           }
         }
       }
