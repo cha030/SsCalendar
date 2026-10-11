@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0408A549307BD84400B39FEC /* PRODUCT_PLAN.md in Resources */ = {isa = PBXBuildFile; fileRef = 0408A547307BD84400B39FEC /* PRODUCT_PLAN.md */; };
+		0408A54A307BD84400B39FEC /* DEVELOPMENT_STATUS.md in Resources */ = {isa = PBXBuildFile; fileRef = 0408A546307BD84400B39FEC /* DEVELOPMENT_STATUS.md */; };
 		04E87BF3305C304900E4FA82 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 04E87BF2305C304900E4FA82 /* WidgetKit.framework */; };
 		04E87BF5305C304900E4FA82 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 04E87BF4305C304900E4FA82 /* SwiftUI.framework */; };
 		04E87C00305C304B00E4FA82 /* SsCalendarWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04E87BF0305C304900E4FA82 /* SsCalendarWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -43,6 +45,8 @@
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* SsCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SsCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0408A546307BD84400B39FEC /* DEVELOPMENT_STATUS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEVELOPMENT_STATUS.md; sourceTree = "<group>"; };
+		0408A547307BD84400B39FEC /* PRODUCT_PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PRODUCT_PLAN.md; sourceTree = "<group>"; };
 		04A82B7D3078CECB00412C9D /* SsCalendarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SsCalendarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		04E87BF0305C304900E4FA82 /* SsCalendarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SsCalendarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		04E87BF2305C304900E4FA82 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -120,6 +124,7 @@
 				04E87BF6305C304900E4FA82 /* SsCalendarWidget */,
 				04A82B7E3078CECB00412C9D /* SsCalendarTests */,
 				04E87BF1305C304900E4FA82 /* Frameworks */,
+				0408A548307BD84400B39FEC /* docs */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -132,6 +137,15 @@
 				04A82B7D3078CECB00412C9D /* SsCalendarTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		0408A548307BD84400B39FEC /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				0408A546307BD84400B39FEC /* DEVELOPMENT_STATUS.md */,
+				0408A547307BD84400B39FEC /* PRODUCT_PLAN.md */,
+			);
+			path = docs;
 			sourceTree = "<group>";
 		};
 		04E87BF1305C304900E4FA82 /* Frameworks */ = {
@@ -255,6 +269,8 @@
 		000000000000000140000000 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
+				0408A549307BD84400B39FEC /* PRODUCT_PLAN.md in Resources */,
+				0408A54A307BD84400B39FEC /* DEVELOPMENT_STATUS.md in Resources */,
 			);
 		};
 		04A82B7B3078CECB00412C9D /* Resources */ = {
