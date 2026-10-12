@@ -18,10 +18,15 @@ struct DayScheduleView: View {
     @Query private var occurrenceExceptions: [EventOccurrenceException]
     @State private var isPresentingEventEditor = false
     @State private var selectedLocalEvent: SelectedLocalEvent?
+    @State private var dayHolidays: [Holiday] = []
     @AppStorage(
         SystemCalendarService.isEnabledStorageKey,
         store: SystemCalendarService.settingsStore
     ) private var isSystemCalendarEnabled = false
+    @AppStorage(
+        HolidayCountry.storageKey,
+        store: HolidayCountry.settingsStore
+    ) private var holidayCountryRawValue = HolidayCountry.southKorea.rawValue
     @State private var systemOccurrences: [CalendarDisplayOccurrence] = []
     @State private var presentedSystemEvent: SystemEventPresentation?
     @State private var systemEventError: SystemCalendarAccessError?
@@ -136,6 +141,24 @@ struct DayScheduleView: View {
         )
     }
 
+    private var holidayCountry: HolidayCountry {
+        HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea
+    }
+
+    private var holidayTitle: String? {
+        HolidayDisplayFormatter.title(
+            for: dayHolidays.filter(\.isHoliday).map(\.name),
+            on: currentDate
+        )
+    }
+
+    private var holidayFetchKey: DayHolidayFetchKey {
+        DayHolidayFetchKey(
+            date: Calendar.current.startOfDay(for: currentDate),
+            country: holidayCountry
+        )
+    }
+
     private var systemCalendarFetchKey: DaySystemCalendarFetchKey {
         DaySystemCalendarFetchKey(
             interval: dayInterval,
@@ -143,6 +166,33 @@ struct DayScheduleView: View {
             changeToken: systemCalendar.changeToken,
             refreshGeneration: systemCalendarRefreshGeneration
         )
+    }
+
+    private func loadDayHolidays(for key: DayHolidayFetchKey) async {
+        let components = Calendar.current.dateComponents(
+            [.year, .month],
+            from: key.date
+        )
+        guard
+            let year = components.year,
+            let month = components.month
+        else {
+            dayHolidays = []
+            return
+        }
+
+        do {
+            let holidays = try await HolidayService.shared.holidays(
+                for: HolidayMonth(year: year, month: month),
+                country: key.country
+            )
+            guard !Task.isCancelled else { return }
+            dayHolidays = holidays.filter {
+                $0.isHoliday && Calendar.current.isDate($0.date, inSameDayAs: key.date)
+            }
+        } catch {
+            dayHolidays = []
+        }
     }
 
     private func loadSystemOccurrences(for key: DaySystemCalendarFetchKey) {
@@ -264,6 +314,22 @@ struct DayScheduleView: View {
     var body: some View {
         ZStack {
             List {
+                if let holidayTitle {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.red)
+                            .frame(width: 4)
+
+                        Text(holidayTitle.replacingOccurrences(of: "\n", with: " "))
+                            .font(.body)
+                            .foregroundStyle(.red)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    .padding(.vertical, 4)
+                    .listRowSeparator(.hidden)
+                }
+
                 ForEach(orderedOccurrences) { occurrence in
                     if let eventID = occurrence.localEventID {
                         LocalEventRow(
@@ -315,7 +381,7 @@ struct DayScheduleView: View {
                 )
             )
 
-            if orderedOccurrences.isEmpty {
+            if orderedOccurrences.isEmpty && holidayTitle == nil {
                 Text("일정이 없습니다.")
                     .font(.body)
                     .foregroundStyle(.secondary)
@@ -326,6 +392,9 @@ struct DayScheduleView: View {
         // List 고유의 세로 스크롤 제스처를 막지 않도록 simultaneousGesture로 붙인다.
         // onEnded에서 가로/세로 이동량을 비교해 뚜렷한 가로 스와이프일 때만 날짜를 바꾼다.
         .simultaneousGesture(daySwipeGesture)
+        .task(id: holidayFetchKey) {
+            await loadDayHolidays(for: holidayFetchKey)
+        }
         .task(id: systemCalendarFetchKey) {
             loadSystemOccurrences(for: systemCalendarFetchKey)
         }
@@ -401,6 +470,11 @@ struct DayScheduleView: View {
             Text(error.message)
         }
     }
+}
+
+private struct DayHolidayFetchKey: Equatable {
+    let date: Date
+    let country: HolidayCountry
 }
 
 private struct DaySystemCalendarFetchKey: Equatable {
