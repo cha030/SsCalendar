@@ -205,7 +205,7 @@ private struct DDayHomeMediumRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 titleText
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
