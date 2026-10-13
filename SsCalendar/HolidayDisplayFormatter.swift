@@ -90,6 +90,12 @@ enum HolidayDisplayFormatter {
             return String(localized: "임시공휴일")
         case "선거일":
             return String(localized: "선거일")
+        case "대통령 선거일", "대통령선거일", "대통령 선거", "대통령선거":
+            return String(localized: "대통령 선거일")
+        case "전국동시지방선거일", "전국 동시 지방 선거일", "전국동시지방선거", "전국 동시 지방 선거":
+            return String(localized: "전국동시지방선거일")
+        case "국회의원선거일", "국회의원 선거일":
+            return String(localized: "국회의원선거일")
         default:
             return name
         }

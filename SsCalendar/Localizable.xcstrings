@@ -551,6 +551,16 @@
         }
       }
     },
+    "국회의원선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "National Assembly Election Day"
+          }
+        }
+      }
+    },
     "기본 저장 위치" : {
       "localizations" : {
         "en" : {
@@ -770,6 +780,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Substitute Holiday"
+          }
+        }
+      }
+    },
+    "대통령 선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Presidential Election Day"
           }
         }
       }
@@ -1533,22 +1553,6 @@
         }
       }
     },
-    "일" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "day"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "일"
-          }
-        }
-      }
-    },
     "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
       "localizations" : {
         "en" : {
@@ -1571,6 +1575,22 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "이전 달"
+          }
+        }
+      }
+    },
+    "일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "day"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "일"
           }
         }
       }
@@ -1831,6 +1851,16 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "저장 중 오류가 발생했습니다. 다시 시도해 주세요."
+          }
+        }
+      }
+    },
+    "전국동시지방선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nationwide Local Election Day"
           }
         }
       }

@@ -226,6 +226,36 @@
         }
       }
     },
+    "개천절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "National Foundation Day"
+          }
+        }
+      }
+    },
+    "광복절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liberation Day"
+          }
+        }
+      }
+    },
+    "국회의원선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "National Assembly Election Day"
+          }
+        }
+      }
+    },
     "날짜" : {
       "localizations" : {
         "en" : {
@@ -254,6 +284,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "날짜 선택"
+          }
+        }
+      }
+    },
+    "노동절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Labor Day"
           }
         }
       }
@@ -317,6 +357,26 @@
         }
       }
     },
+    "대체공휴일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Substitute Holiday"
+          }
+        }
+      }
+    },
+    "대통령 선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Presidential Election Day"
+          }
+        }
+      }
+    },
     "대한민국" : {
       "localizations" : {
         "en" : {
@@ -365,12 +425,42 @@
         }
       }
     },
+    "부처님오신날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buddha's Birthday"
+          }
+        }
+      }
+    },
+    "삼일절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Independence Movement Day"
+          }
+        }
+      }
+    },
     "생일 파티" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Birthday Party"
+          }
+        }
+      }
+    },
+    "선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Election Day"
           }
         }
       }
@@ -387,6 +477,36 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "선택한 날짜에 일정 추가"
+          }
+        }
+      }
+    },
+    "설날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lunar New Year"
+          }
+        }
+      }
+    },
+    "신정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Year's Day"
+          }
+        }
+      }
+    },
+    "어린이날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Children's Day"
           }
         }
       }
@@ -498,6 +618,16 @@
         }
       }
     },
+    "임시공휴일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temporary Holiday"
+          }
+        }
+      }
+    },
     "잠금화면에서 Today 다음으로 가까운 일정을 확인합니다." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -584,6 +714,26 @@
         }
       }
     },
+    "전국동시지방선거일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nationwide Local Election Day"
+          }
+        }
+      }
+    },
+    "제헌절" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Constitution Day"
+          }
+        }
+      }
+    },
     "종일" : {
       "localizations" : {
         "en" : {
@@ -612,6 +762,36 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "진행"
+          }
+        }
+      }
+    },
+    "추석" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chuseok"
+          }
+        }
+      }
+    },
+    "크리스마스" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Christmas Day"
+          }
+        }
+      }
+    },
+    "한글날" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hangeul Day"
           }
         }
       }
@@ -648,6 +828,16 @@
         }
       }
     },
+    "현충일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memorial Day"
+          }
+        }
+      }
+    },
     "회의" : {
       "localizations" : {
         "en" : {
@@ -663,167 +853,7 @@
           }
         }
       }
-    },
-    "신정" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New Year's Day"
-          }
-        }
-      }
-    },
-    "설날" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lunar New Year"
-          }
-        }
-      }
-    },
-    "삼일절" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Independence Movement Day"
-          }
-        }
-      }
-    },
-    "어린이날" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Children's Day"
-          }
-        }
-      }
-    },
-    "부처님오신날" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buddha's Birthday"
-          }
-        }
-      }
-    },
-    "현충일" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Memorial Day"
-          }
-        }
-      }
-    },
-    "광복절" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Liberation Day"
-          }
-        }
-      }
-    },
-    "개천절" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "National Foundation Day"
-          }
-        }
-      }
-    },
-    "한글날" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hangeul Day"
-          }
-        }
-      }
-    },
-    "크리스마스" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Christmas Day"
-          }
-        }
-      }
-    },
-    "추석" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chuseok"
-          }
-        }
-      }
-    },
-    "대체공휴일" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Substitute Holiday"
-          }
-        }
-      }
-    },
-    "임시공휴일" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary Holiday"
-          }
-        }
-      }
-    },
-    "선거일" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Election Day"
-          }
-        }
-      }
-    },
-    "노동절" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Labor Day"
-          }
-        }
-      }
-    },
-    "제헌절" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Constitution Day"
-          }
-        }
-      }
-    },
+    }
   },
   "version" : "1.3"
 }
