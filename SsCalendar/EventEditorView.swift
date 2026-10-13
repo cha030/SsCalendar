@@ -371,20 +371,10 @@ struct EventEditorView: View {
         writableCalendarGroups = event == nil
             ? systemCalendar.writableCalendarGroups()
             : []
-        _saveDestination = State(
-            initialValue: event == nil && SystemCalendarService.isExternalEventAccessEnabled
-                ? systemCalendar.effectiveDefaultSaveDestination
-                : .local
-        )
-        // 연동 OFF는 사용자가 직접 끈 상태이므로 안내하지 않고, 기존 로컬 생성 방식만 보여준다.
-        // 저장된 기본값은 지우지 않으므로 계정·권한이 돌아오면 다시 기본 저장 위치로 쓰인다.
-        if event == nil,
-           let issue = systemCalendar.defaultSaveDestinationIssue,
-           issue != .integrationDisabled {
-            defaultDestinationNotice = String(localized: "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. \(issue.message)")
-        } else {
-            defaultDestinationNotice = nil
-        }
+        // 신규 일정은 항상 SsCalendar 자체 저장소를 기본값으로 사용한다.
+        // 기존 일정의 저장 위치와 외부 캘린더 조회·표시 동작에는 영향을 주지 않는다.
+        _saveDestination = State(initialValue: .local)
+        defaultDestinationNotice = nil
     }
 
     private var isSavingToSystemCalendar: Bool {

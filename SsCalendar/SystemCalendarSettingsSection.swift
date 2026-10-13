@@ -11,7 +11,6 @@ struct SystemCalendarSettingsSection: View {
     ) private var isEnabled = false
     @State private var isRequesting = false
     @State private var isPresentingSelectionIntro = false
-    @State private var defaultDestinationError: SystemCalendarAccessError?
 
     private let service = SystemCalendarService.shared
 
@@ -97,72 +96,13 @@ struct SystemCalendarSettingsSection: View {
 
     @ViewBuilder
     private var defaultSaveDestinationSection: some View {
-        let groups = service.writableCalendarGroups()
+        LabeledContent("기본 저장 위치", value: "SsCalendar")
 
-        Picker("기본 저장 위치", selection: defaultSaveDestinationBinding) {
-            Label {
-                Text("SsCalendar")
-            } icon: {
-                Image(systemName: "iphone")
-                    .foregroundStyle(.secondary)
-            }
-            .tag(EventSaveDestination.local)
-
-            ForEach(groups) { group in
-                Section(group.title) {
-                    ForEach(group.calendars) { calendar in
-                        Label {
-                            Text(calendar.title)
-                        } icon: {
-                            Image(systemName: "circle.fill")
-                                .foregroundStyle(calendar.color)
-                        }
-                        .tag(
-                            EventSaveDestination.systemCalendar(
-                                calendarIdentifier: calendar.id
-                            )
-                        )
-                    }
-                }
-            }
-        }
-        .pickerStyle(.navigationLink)
-
-        if let defaultDestinationIssue = service.defaultSaveDestinationIssue,
-           case .systemCalendar = service.storedDefaultSaveDestination {
-            Text(
-                "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 SsCalendar에 저장됩니다. \(defaultDestinationIssue.message)"
-            )
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-        }
-
-        if let defaultDestinationError {
-            Text(defaultDestinationError.message)
-                .font(.footnote)
-                .foregroundStyle(.red)
-        }
-
-        Text("새 일정 작성 화면의 초기 저장 위치로 사용됩니다. 기존 일정의 저장 위치는 변경되지 않습니다.")
+        Text("새 일정은 SsCalendar에 저장됩니다. 기존 일정의 저장 위치는 변경되지 않습니다.")
             .font(.footnote)
             .foregroundStyle(.secondary)
     }
 
-    private var defaultSaveDestinationBinding: Binding<EventSaveDestination> {
-        Binding(
-            get: { service.effectiveDefaultSaveDestination },
-            set: updateDefaultSaveDestination
-        )
-    }
-
-    private func updateDefaultSaveDestination(_ destination: EventSaveDestination) {
-        do {
-            try service.setDefaultSaveDestination(destination)
-            defaultDestinationError = nil
-        } catch {
-            defaultDestinationError = error
-        }
-    }
 
     private func enable() async {
         isRequesting = true
