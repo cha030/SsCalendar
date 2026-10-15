@@ -8,12 +8,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "S's calendaR"
+            "value" : "SsCalendar"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "machine_translated",
+            "state" : "needs_review",
             "value" : "S's 캘린더"
           }
         }
