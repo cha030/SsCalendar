@@ -18,6 +18,7 @@ enum CalendarDayContentLayout {
     static let singleDayEventChromeWidth: CGFloat = 10
 
     static func lunarText(for date: Date, calendar: Calendar) -> String? {
+        guard LunarDisplaySetting.isEnabled else { return nil }
         guard calendar.component(.weekday, from: date) == 1 else {
             return nil
         }
@@ -107,8 +108,12 @@ struct CalendarDayCell: View {
     let displayedHolidayLineCount: Int?
     let calendar: Calendar
 
+    @AppStorage(LunarDisplaySetting.storageKey, store: LunarDisplaySetting.store)
+    private var showLunarDates = false
+
     private var lunarDateText: String? {
-        CalendarDayContentLayout.lunarText(for: date, calendar: calendar)
+        guard showLunarDates else { return nil }
+        return CalendarDayContentLayout.lunarText(for: date, calendar: calendar)
     }
 
     private var holidayTitle: String? {

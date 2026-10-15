@@ -6,6 +6,8 @@ struct ThemeSettingsView: View {
     @Binding var selectedThemeRawValue: String
     @Binding var holidayCountryRawValue: String
     var onHolidayCountryChanged: () -> Void = {}
+    @AppStorage(LunarDisplaySetting.storageKey, store: LunarDisplaySetting.store)
+    private var showLunarDates = false
 
     var body: some View {
         NavigationStack {
@@ -54,6 +56,14 @@ struct ThemeSettingsView: View {
                         WidgetReloadManager.requestCalendarReload()
                         onHolidayCountryChanged()
                     }
+                }
+
+                Section {
+                    Toggle("음력 표시", isOn: $showLunarDates)
+                        .onChange(of: showLunarDates) { _, _ in
+                            WidgetReloadManager.requestCalendarReload()
+                            onHolidayCountryChanged()
+                        }
                 }
 
                 Section("언어") {

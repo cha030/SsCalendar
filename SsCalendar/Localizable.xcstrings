@@ -525,6 +525,22 @@
         }
       }
     },
+    "음력 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Lunar Dates"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음력 표시"
+          }
+        }
+      }
+    },
     "공휴일 국가" : {
       "localizations" : {
         "en" : {

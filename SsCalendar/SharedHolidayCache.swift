@@ -30,6 +30,19 @@ enum HolidayCountry: String, CaseIterable, Codable, Hashable, Identifiable, Send
     }
 }
 
+enum LunarDisplaySetting {
+    nonisolated static let storageKey = "showLunarDates"
+
+    nonisolated static var store: UserDefaults {
+        UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier) ?? .standard
+    }
+
+    /// 저장된 값이 없으면 false(숨김). @AppStorage 기본값(false)과 항상 같다.
+    nonisolated static var isEnabled: Bool {
+        store.bool(forKey: storageKey)
+    }
+}
+
 struct HolidayMonth: Hashable, Comparable, Sendable {
     let year: Int
     let month: Int

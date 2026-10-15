@@ -41,6 +41,23 @@ enum HolidayDisplayFormatter {
         }
 
         guard name.count > 5 else { return name }
+
+        // 공백이 있는 이름(영어 등): 가운데에 가장 가까운 공백에서만 줄바꿈
+        if name.contains(" ") {
+            let middle = name.count / 2
+            let spaces = name.indices.filter { name[$0] == " " }
+            if let best = spaces.min(by: {
+                abs(name.distance(from: name.startIndex, to: $0) - middle)
+                    < abs(name.distance(from: name.startIndex, to: $1) - middle)
+            }) {
+                return "\(name[..<best])\n\(name[name.index(after: best)...])"
+            }
+        }
+
+        // 공백 없는 영어 단어: 단어 중간을 자르지 않고 그대로 둠
+        if name.allSatisfy({ $0.isASCII }) { return name }
+
+        // 한글 등: 기존처럼 가운데에서 분할
         let middleOffset = Int(ceil(Double(name.count) / 2))
         let middleIndex = name.index(name.startIndex, offsetBy: middleOffset)
         return "\(name[..<middleIndex])\n\(name[middleIndex...])"

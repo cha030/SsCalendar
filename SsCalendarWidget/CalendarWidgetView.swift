@@ -434,6 +434,7 @@ private struct CalendarWidgetExpandedDayView: View {
     }
 
     private var lunarText: String? {
+        guard LunarDisplaySetting.isEnabled else { return nil }
         guard calendar.component(.weekday, from: day.date) == 1 else {
             return nil
         }

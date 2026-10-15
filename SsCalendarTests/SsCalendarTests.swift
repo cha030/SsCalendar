@@ -511,6 +511,11 @@ struct WeekEventLayoutTests {
 
     @Test("공휴일 2줄 표시로 세로 공간이 부족하면, 제목이 길어 2줄이 필요한 일정도 1줄로 안전하게 되돌아간다")
     func holidaySqueezeForcesOneLineFallback() {
+        // 이 테스트는 일요일에 음력 줄이 있다고 가정한다. 음력 표시 기본값이 숨김으로 바뀌었으므로
+        // 테스트 동안만 켜 두고 끝나면 원래대로 되돌린다.
+        LunarDisplaySetting.store.set(true, forKey: LunarDisplaySetting.storageKey)
+        defer { LunarDisplaySetting.store.removeObject(forKey: LunarDisplaySetting.storageKey) }
+
         // dayOffset 0 = 일요일(항상 음력 표시 대상). HolidayDisplayFormatter는 "(" 없이 5자를 넘는
         // 이름을 가운데에서 둘로 쪼개 2줄로 보여주므로, 7자 이름으로 2줄 공휴일 표시를 유도한다.
         let sunday = week.dates[0]
