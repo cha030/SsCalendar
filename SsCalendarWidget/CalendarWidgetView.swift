@@ -360,20 +360,37 @@ private struct CalendarWidgetExpandedDayView: View {
                 0,
                 Int(availableHeight / metrics.eventLineHeight)
             )
-            // 단계 1(크게)·2(더 크게)는 막대 슬롯을 포함해 칸당 보이는 항목 수를 제한한다.
-            let eventCapacity: Int = {
-                guard let perCellEventCap else { return heightBasedCapacity }
-                return min(heightBasedCapacity, max(0, perCellEventCap - multiDaySlotCount))
+            let (visibleEventCount, hiddenCount): (Int, Int) = {
+                if metrics.textSizeLevel == 2 {
+                    // 단계 2(더 크게): "+n"은 칸당 항목 수 제한에 포함하지 않고 별도 줄로 취급한다.
+                    // 막대 1개를 일정 1개로 센다. 높이가 부족하면 일정 1줄 > "+n" 순서로 생략한다.
+                    let itemBudget = max(0, 1 - multiDaySlotCount)
+                    let visibleCount = min(singleDayEvents.count, itemBudget, heightBasedCapacity)
+                    let remainingCount =
+                        hiddenMultiDayCount + singleDayEvents.count - visibleCount
+                    let eventLineUsed = visibleCount > 0 ? 1 : 0
+                    let showsOverflow =
+                        remainingCount > 0
+                        && (heightBasedCapacity == 0 || heightBasedCapacity - eventLineUsed >= 1)
+                    return (visibleCount, showsOverflow ? remainingCount : 0)
+                } else {
+                    // 단계 0(보통)·1(크게): 기존 방식("+n"도 항목 수에 포함해 자리를 예약) 그대로 유지한다.
+                    let eventCapacity: Int = {
+                        guard let perCellEventCap else { return heightBasedCapacity }
+                        return min(heightBasedCapacity, max(0, perCellEventCap - multiDaySlotCount))
+                    }()
+                    let initiallyHiddenCount =
+                        hiddenMultiDayCount
+                        + max(0, singleDayEvents.count - eventCapacity)
+                    let visibleCount = min(
+                        singleDayEvents.count,
+                        initiallyHiddenCount > 0 ? max(0, eventCapacity - 1) : eventCapacity
+                    )
+                    let hidden =
+                        hiddenMultiDayCount + singleDayEvents.count - visibleCount
+                    return (visibleCount, hidden)
+                }
             }()
-            let initiallyHiddenCount =
-                hiddenMultiDayCount
-                + max(0, singleDayEvents.count - eventCapacity)
-            let visibleEventCount = min(
-                singleDayEvents.count,
-                initiallyHiddenCount > 0 ? max(0, eventCapacity - 1) : eventCapacity
-            )
-            let hiddenCount =
-                hiddenMultiDayCount + singleDayEvents.count - visibleEventCount
 
             ZStack(alignment: .top) {
                 dateControls
@@ -407,7 +424,7 @@ private struct CalendarWidgetExpandedDayView: View {
                         case .dots:
                             eventDots(maxWidth: geometry.size.width - 4)
                         case .titles:
-                            eventTitle()
+                            eventTitle(linesAvailable: heightBasedCapacity)
                         }
                     } else {
                         ForEach(Array(singleDayEvents.prefix(visibleEventCount))) { event in
@@ -543,10 +560,16 @@ private struct CalendarWidgetExpandedDayView: View {
 
     /// 단계 3(가장 크게)의 '제목' 스타일. 일정 제목 1개 + "+n"을 보여준다. 글자가 칸을 넘으면 말줄임표.
     /// `day.events`를 그대로 쓰므로(점 스타일과 동일), 여러 날 일정도 막대 없이 날짜당 항목 1개로 센다.
-    private func eventTitle() -> some View {
+    /// "+n"은 항목 수 제한에 포함하지 않는 별도 줄이다. 높이가 부족하면 일정 1줄 > "+n" 순서로 생략한다.
+    private func eventTitle(linesAvailable: Int) -> some View {
         let events = day.events
-        let visibleCount = min(events.count, 1)
-        let hiddenCount = events.count - visibleCount
+        let visibleCount = min(events.count, 1, linesAvailable)
+        let remainingCount = events.count - visibleCount
+        let eventLineUsed = visibleCount > 0 ? 1 : 0
+        let showsOverflow =
+            remainingCount > 0
+            && (linesAvailable == 0 || linesAvailable - eventLineUsed >= 1)
+        let hiddenCount = showsOverflow ? remainingCount : 0
 
         return VStack(alignment: .leading, spacing: 1) {
             ForEach(Array(events.prefix(visibleCount))) { event in

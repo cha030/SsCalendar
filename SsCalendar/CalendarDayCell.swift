@@ -168,10 +168,12 @@ struct CalendarDayCell: View {
         )
         .overlay(alignment: .top) {
             if isSelected {
+                // "+n" 오버플로 줄의 최대 y(= rowHeight, WeekEventLayout이 보장)까지 테두리 안에
+                // 들어오도록 세로 길이를 늘렸다(기존 cellHeight-6에서 5pt 추가, 폰트 렌더링 여유 1pt 포함).
                 RoundedRectangle(cornerRadius: 7)
                     .stroke(Color.accentColor, lineWidth: 1.5)
                     .padding(.horizontal, 2)
-                    .frame(height: CalendarDayContentLayout.cellHeight - 6)
+                    .frame(height: CalendarDayContentLayout.cellHeight - 1)
                     .padding(.top, 2)
             }
         }
