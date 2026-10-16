@@ -43,6 +43,20 @@ enum LunarDisplaySetting {
     }
 }
 
+enum CalendarTextSizeSetting {
+    nonisolated static let storageKey = "calendarTextSizeLevel"
+
+    nonisolated static var store: UserDefaults {
+        UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier) ?? .standard
+    }
+
+    /// 값이 없거나 0...3 범위를 벗어나면 0(보통)으로 처리한다. @AppStorage 기본값(0)과 항상 같다.
+    nonisolated static var level: Int {
+        let stored = store.integer(forKey: storageKey)
+        return (0...3).contains(stored) ? stored : 0
+    }
+}
+
 struct HolidayMonth: Hashable, Comparable, Sendable {
     let year: Int
     let month: Int

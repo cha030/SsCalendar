@@ -8,6 +8,8 @@ struct ThemeSettingsView: View {
     var onHolidayCountryChanged: () -> Void = {}
     @AppStorage(LunarDisplaySetting.storageKey, store: LunarDisplaySetting.store)
     private var showLunarDates = false
+    @AppStorage(CalendarTextSizeSetting.storageKey, store: CalendarTextSizeSetting.store)
+    private var calendarTextSizeLevel = 0
 
     var body: some View {
         NavigationStack {
@@ -64,6 +66,23 @@ struct ThemeSettingsView: View {
                             WidgetReloadManager.requestCalendarReload()
                             onHolidayCountryChanged()
                         }
+                }
+
+                Section {
+                    Picker("위젯 글자 크기", selection: $calendarTextSizeLevel) {
+                        Text("보통").tag(0)
+                        Text("크게").tag(1)
+                        Text("더 크게").tag(2)
+                        Text("가장 크게").tag(3)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: calendarTextSizeLevel) { _, _ in
+                        WidgetReloadManager.requestCalendarReload()
+                    }
+                } header: {
+                    Text("위젯 글자 크기")
+                } footer: {
+                    Text("달력 위젯의 글자 크기를 바꿉니다. 크게 할수록 일정은 간단히 표시됩니다.")
                 }
 
                 Section("언어") {

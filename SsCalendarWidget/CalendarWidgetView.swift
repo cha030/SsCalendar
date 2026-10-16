@@ -40,7 +40,8 @@ struct CalendarWidgetView: View {
                                 occurrences: entry.occurrences,
                                 selectedDate: entry.selectedDate,
                                 family: family,
-                                weekCount: weekCount
+                                weekCount: weekCount,
+                                textSizeLevel: textSizeLevel
                             )
                             .frame(height: rowHeight)
                             .transition(.identity)
@@ -162,6 +163,11 @@ struct CalendarWidgetView: View {
         return .secondary
     }
 
+    /// 월간 위젯(Large, ExtraLargePortrait) 전용 설정. systemMedium은 이 단계를 적용하지 않는다.
+    private var textSizeLevel: Int {
+        CalendarTextSizeSetting.level
+    }
+
     private var isExtraLargePortrait: Bool {
         family == .systemExtraLargePortrait
     }
@@ -240,20 +246,25 @@ private struct CalendarWidgetWeekView: View {
     let selectedDate: Date?
     let family: WidgetFamily
     let weekCount: Int
+    let textSizeLevel: Int
 
     var body: some View {
         GeometryReader { geometry in
+            let columnWidth = geometry.size.width / 7
             let metrics = CalendarWidgetWeekMetrics(
                 family: family,
                 weekCount: weekCount,
-                rowHeight: geometry.size.height
+                rowHeight: geometry.size.height,
+                columnWidth: columnWidth,
+                textSizeLevel: textSizeLevel
             )
             let layout = CalendarWidgetWeekLayout(
                 week: week,
                 occurrences: occurrences,
                 maximumSlots: metrics.maximumMultiDaySlots
             )
-            let columnWidth = geometry.size.width / 7
+            // 단계 3(가장 크게)은 여러 날 일정도 날짜별 점/제목으로 표시하므로, 막대는 그리지 않는다.
+            let showsMultiDayBars = textSizeLevel < 3
 
             ZStack(alignment: .topLeading) {
                 HStack(spacing: 0) {
@@ -262,26 +273,28 @@ private struct CalendarWidgetWeekView: View {
                             day: day,
                             isSelected: isSelected(day.date),
                             singleDayEvents: singleDayEvents(for: day),
-                            hiddenMultiDayCount: layout.hiddenCounts[column, default: 0],
-                            multiDaySlotCount: layout.occupiedSlotCounts[column, default: 0],
+                            hiddenMultiDayCount: showsMultiDayBars ? layout.hiddenCounts[column, default: 0] : 0,
+                            multiDaySlotCount: showsMultiDayBars ? layout.occupiedSlotCounts[column, default: 0] : 0,
                             metrics: metrics
                         )
                         .frame(width: columnWidth, height: geometry.size.height)
                     }
                 }
 
-                ForEach(layout.visibleSegments) { segment in
-                    CalendarWidgetMultiDayBar(segment: segment, metrics: metrics)
-                        .frame(
-                            width: columnWidth * CGFloat(segment.endColumn - segment.startColumn + 1) - 2,
-                            height: metrics.multiDayBarHeight
-                        )
-                        .offset(
-                            x: columnWidth * CGFloat(segment.startColumn) + 1,
-                            y: metrics.multiDayStartY
-                                + CGFloat(segment.slot)
-                                * (metrics.multiDayBarHeight + metrics.multiDaySpacing)
-                        )
+                if showsMultiDayBars {
+                    ForEach(layout.visibleSegments) { segment in
+                        CalendarWidgetMultiDayBar(segment: segment, metrics: metrics)
+                            .frame(
+                                width: columnWidth * CGFloat(segment.endColumn - segment.startColumn + 1) - 2,
+                                height: metrics.multiDayBarHeight
+                            )
+                            .offset(
+                                x: columnWidth * CGFloat(segment.startColumn) + 1,
+                                y: metrics.multiDayStartY
+                                    + CGFloat(segment.slot)
+                                    * (metrics.multiDayBarHeight + metrics.multiDaySpacing)
+                            )
+                    }
                 }
             }
         }
@@ -300,6 +313,15 @@ private struct CalendarWidgetWeekView: View {
     }
 }
 
+/// 단계 3(가장 크게)의 일정 표시 방식. 기본값은 dots이며, 이 값만 바꾸면 위젯 전체에 반영된다.
+/// (미리보기에서 두 스타일을 모두 확인할 수 있도록 var로 둔다.)
+private enum LargestLevelEventStyle {
+    case dots
+    case titles
+}
+
+private var largestLevelEventStyle: LargestLevelEventStyle = .dots
+
 private struct CalendarWidgetExpandedDayView: View {
     let day: CalendarWidgetDay
     let isSelected: Bool
@@ -310,21 +332,39 @@ private struct CalendarWidgetExpandedDayView: View {
 
     private var calendar: Calendar { CalendarWidgetCalendar.korean }
 
+    private var showsHolidayTitle: Bool {
+        metrics.textSizeLevel < 2 && day.holidayTitle != nil
+    }
+
+    /// 단계별 칸당 최대 보이는 항목 수(막대 슬롯 포함). nil이면 높이로만 제한한다(단계 0).
+    private var perCellEventCap: Int? {
+        switch metrics.textSizeLevel {
+        case 1: return 2
+        case 2: return 1
+        default: return nil
+        }
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let contentStart = metrics.multiDayStartY
                 + CGFloat(multiDaySlotCount)
                 * (metrics.multiDayBarHeight + metrics.multiDaySpacing)
             let lunarHeight = lunarText == nil ? 0 : metrics.lunarLineHeight
-            let holidayHeight = day.holidayTitle == nil ? 0 : metrics.holidayLineHeight
+            let holidayHeight = showsHolidayTitle ? metrics.holidayLineHeight : 0
             let availableHeight = max(
                 0,
                 geometry.size.height - contentStart - lunarHeight - holidayHeight
             )
-            let eventCapacity = max(
+            let heightBasedCapacity = max(
                 0,
                 Int(availableHeight / metrics.eventLineHeight)
             )
+            // 단계 1(크게)·2(더 크게)는 막대 슬롯을 포함해 칸당 보이는 항목 수를 제한한다.
+            let eventCapacity: Int = {
+                guard let perCellEventCap else { return heightBasedCapacity }
+                return min(heightBasedCapacity, max(0, perCellEventCap - multiDaySlotCount))
+            }()
             let initiallyHiddenCount =
                 hiddenMultiDayCount
                 + max(0, singleDayEvents.count - eventCapacity)
@@ -350,7 +390,7 @@ private struct CalendarWidgetExpandedDayView: View {
                             )
                     }
 
-                    if let holidayTitle = day.holidayTitle {
+                    if showsHolidayTitle, let holidayTitle = day.holidayTitle {
                         Text(holidayTitle.replacingOccurrences(of: "\n", with: " "))
                             .font(.system(size: metrics.holidayFontSize, weight: .medium))
                             .foregroundStyle(.red)
@@ -362,26 +402,35 @@ private struct CalendarWidgetExpandedDayView: View {
                             )
                     }
 
-                    ForEach(Array(singleDayEvents.prefix(visibleEventCount))) { event in
-                        HStack(spacing: 2) {
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(CalendarWidgetColor.color(for: event.colorName, systemColor: event.systemColor))
-                                .frame(width: 2, height: metrics.eventIndicatorHeight)
-
-                            Text(event.title)
-                                .font(.system(size: metrics.eventFontSize))
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
+                    if metrics.textSizeLevel == 3 {
+                        switch largestLevelEventStyle {
+                        case .dots:
+                            eventDots(maxWidth: geometry.size.width - 4)
+                        case .titles:
+                            eventTitle()
                         }
-                        .frame(height: metrics.eventLineHeight)
-                    }
+                    } else {
+                        ForEach(Array(singleDayEvents.prefix(visibleEventCount))) { event in
+                            HStack(spacing: 2) {
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(CalendarWidgetColor.color(for: event.colorName, systemColor: event.systemColor))
+                                    .frame(width: 2, height: metrics.eventIndicatorHeight)
 
-                    if hiddenCount > 0 {
-                        Text("+\(hiddenCount)")
-                            .font(.system(size: metrics.overflowFontSize, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                                Text(event.title)
+                                    .font(.system(size: metrics.eventFontSize))
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                            .frame(height: metrics.eventLineHeight)
+                        }
+
+                        if hiddenCount > 0 {
+                            Text("+\(hiddenCount)")
+                                .font(.system(size: metrics.overflowFontSize, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
                 .padding(.horizontal, 2)
@@ -389,6 +438,12 @@ private struct CalendarWidgetExpandedDayView: View {
             }
         }
         .opacity(day.isCurrentMonth ? 1 : 0.45)
+        .background {
+            // 단계 3(가장 크게)의 오늘 표시: 원 배지 대신 칸 전체에 연한 파란 배경을 깐다.
+            if metrics.textSizeLevel == 3 && day.isToday {
+                Color.blue.opacity(0.18)
+            }
+        }
         .background {
             Button(intent: SelectWidgetDateIntent(date: day.date)) {
                 Color.clear
@@ -407,17 +462,22 @@ private struct CalendarWidgetExpandedDayView: View {
     }
 
     private var dateNumber: some View {
-        Text(String(calendar.component(.day, from: day.date)))
+        let isLargestToday = metrics.textSizeLevel == 3 && day.isToday
+        return Text(String(calendar.component(.day, from: day.date)))
             .font(
                 .system(
                     size: metrics.dateFontSize,
-                    weight: day.isToday ? .semibold : .regular
+                    weight: isLargestToday ? .bold : (day.isToday ? .semibold : .regular)
                 )
             )
-            .foregroundStyle(day.isToday ? Color.white : dateColor)
+            .lineLimit(1)
+            .fixedSize()
+            .foregroundStyle(
+                metrics.textSizeLevel == 3 ? dateColor : (day.isToday ? Color.white : dateColor)
+            )
             .frame(width: metrics.dateBadgeSize, height: metrics.dateBadgeSize)
             .background {
-                if day.isToday {
+                if day.isToday && metrics.textSizeLevel != 3 {
                     Circle().fill(Color.blue)
                 }
             }
@@ -448,6 +508,68 @@ private struct CalendarWidgetExpandedDayView: View {
         case 1: return .red
         case 7: return .blue
         default: return .primary
+        }
+    }
+
+    /// 단계 3(가장 크게)의 '점' 스타일. 제목 글자 대신 색깔 점으로 보여준다.
+    /// `day.events`는 그 날짜에 걸친 일정을 하루 단위로 1개씩 담고 있어(여러 날 일정도 겹치는 날마다 1개),
+    /// 여러 날 일정(막대)도 이 날짜에서는 점 1개로 센다. 점은 칸 너비에 들어가는 만큼만(최대 3개) 보여주고
+    /// 나머지는 "+n"으로 합친다.
+    private func eventDots(maxWidth: CGFloat) -> some View {
+        let dotSize = metrics.eventDotSize
+        let spacing: CGFloat = 3
+        let maxFitting = max(0, Int((maxWidth + spacing) / (dotSize + spacing)))
+        let capacity = min(3, maxFitting)
+        let events = day.events
+        let visibleCount = min(events.count, capacity)
+        let hiddenCount = events.count - visibleCount
+
+        return HStack(spacing: spacing) {
+            ForEach(Array(events.prefix(visibleCount))) { event in
+                Circle()
+                    .fill(CalendarWidgetColor.color(for: event.colorName, systemColor: event.systemColor))
+                    .frame(width: dotSize, height: dotSize)
+            }
+
+            if hiddenCount > 0 {
+                Text("+\(hiddenCount)")
+                    .font(.system(size: metrics.overflowFontSize, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: metrics.eventDotSize, alignment: .leading)
+    }
+
+    /// 단계 3(가장 크게)의 '제목' 스타일. 일정 제목 1개 + "+n"을 보여준다. 글자가 칸을 넘으면 말줄임표.
+    /// `day.events`를 그대로 쓰므로(점 스타일과 동일), 여러 날 일정도 막대 없이 날짜당 항목 1개로 센다.
+    private func eventTitle() -> some View {
+        let events = day.events
+        let visibleCount = min(events.count, 1)
+        let hiddenCount = events.count - visibleCount
+
+        return VStack(alignment: .leading, spacing: 1) {
+            ForEach(Array(events.prefix(visibleCount))) { event in
+                HStack(spacing: 2) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(CalendarWidgetColor.color(for: event.colorName, systemColor: event.systemColor))
+                        .frame(width: 2, height: metrics.eventIndicatorHeight)
+
+                    Text(event.title)
+                        .font(.system(size: metrics.eventFontSize))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .frame(height: metrics.eventLineHeight)
+            }
+
+            if hiddenCount > 0 {
+                Text("+\(hiddenCount)")
+                    .font(.system(size: metrics.overflowFontSize, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
     }
 }
@@ -669,6 +791,9 @@ private struct CalendarWidgetWeekMetrics {
     let family: WidgetFamily
     let weekCount: Int
     let rowHeight: CGFloat
+    let columnWidth: CGFloat
+    /// 0 = 보통, 1 = 크게, 2 = 더 크게, 3 = 가장 크게. 날짜 숫자·배지 크기와 일정 표시 방식에 영향을 준다.
+    let textSizeLevel: Int
 
     var isExtraLarge: Bool {
         family == .systemExtraLargePortrait
@@ -678,14 +803,71 @@ private struct CalendarWidgetWeekMetrics {
         family == .systemLarge && weekCount >= 6
     }
 
-    var dateFontSize: CGFloat {
+    /// 단계 0 기준 크기. 아래 dateFontSize/dateBadgeSize가 이 값에 배율을 곱해 키운다.
+    private var baseDateFontSize: CGFloat {
         if isExtraLarge { return 14 }
         return isCompactSixWeekLarge ? 11 : 12
     }
 
-    var dateBadgeSize: CGFloat {
+    private var baseDateBadgeSize: CGFloat {
         if isExtraLarge { return 24 }
         return isCompactSixWeekLarge ? 17 : 20
+    }
+
+    private var sizeMultiplier: CGFloat {
+        switch textSizeLevel {
+        case 1: return 1.3
+        case 2: return 1.7
+        default: return 1.0
+        }
+    }
+
+    /// 실제 칸 높이(rowHeight)를 넘지 않도록 배지 크기 상한을 둔다. 배율은 항상 1.0 이상이라
+    /// 상한에 걸려도 단계 0보다 작아지지는 않으므로 단계 순서(보통 < 크게 < 더 크게)는 유지된다.
+    private func dateBadgeSize(forMultiplier multiplier: CGFloat) -> CGFloat {
+        let scaled = baseDateBadgeSize * multiplier
+        let maxAllowed = max(baseDateBadgeSize, rowHeight * 0.45)
+        return min(scaled, maxAllowed)
+    }
+
+    private func dateFontSize(forBadgeSize badge: CGFloat) -> CGFloat {
+        baseDateFontSize * (badge / baseDateBadgeSize)
+    }
+
+    var dateBadgeSize: CGFloat {
+        if textSizeLevel == 3 { return largestDateBadgeSize }
+        return dateBadgeSize(forMultiplier: sizeMultiplier)
+    }
+
+    var dateFontSize: CGFloat {
+        if textSizeLevel == 3 { return largestDateFontSize }
+        return dateFontSize(forBadgeSize: dateBadgeSize)
+    }
+
+    /// 단계 3(가장 크게): 두 자리 숫자가 칸 너비(좌우 약 10% 여백 제외)에 맞는 가장 큰 크기를 쓰고,
+    /// 칸 높이의 60%를 상한으로 둔다. SF 시스템 폰트 숫자 글리프의 가로폭을 폰트 크기의 약 0.6배로
+    /// 근사해 "두 자리 숫자 폭 ≈ 2 × 0.6 × 폰트 크기"로 역산하되, 숫자 조합별 실제 글리프 폭 차이로
+    /// 잘리지 않도록 10% 안전 여백을 더 둔다. 단계 2보다 반드시 커지도록 하한도 둔다.
+    private var largestDateFontSize: CGFloat {
+        let horizontalInset = columnWidth * 0.1
+        let availableWidth = max(0, columnWidth - horizontalInset * 2)
+        let widthBasedSize = (availableWidth * 0.9) / (2 * 0.6)
+        let heightCap = rowHeight * 0.6
+        let fitted = min(widthBasedSize, heightCap)
+        let level2Font = dateFontSize(forBadgeSize: dateBadgeSize(forMultiplier: 1.7))
+        return max(fitted, level2Font + 1)
+    }
+
+    /// 숫자가 배지 안에서 잘리지 않도록 폰트 크기보다 10% 여유를 두되, 단계 2 배지보다 반드시 크게 한다.
+    private var largestDateBadgeSize: CGFloat {
+        let level2Badge = dateBadgeSize(forMultiplier: 1.7)
+        return max(largestDateFontSize * 1.1, level2Badge + 1)
+    }
+
+    /// 단계 3(가장 크게)의 점 스타일에서 일정 색깔 점의 지름.
+    var eventDotSize: CGFloat {
+        if isExtraLarge { return 7 }
+        return isCompactSixWeekLarge ? 4.5 : 5.5
     }
 
     var lunarFontSize: CGFloat {
@@ -845,4 +1027,35 @@ private enum CalendarWidgetColor {
         default: return .gray
         }
     }
+}
+
+/// 단계 3(가장 크게) 미리보기 전용: 지정한 일정 표시 스타일로 강제한 뒤 항목을 만든다.
+/// `largestLevelEventStyle`은 파일 범위 변수라 여기서만 바꿔 볼 수 있다.
+private func largestLevelPreviewEntry(style: LargestLevelEventStyle) -> CalendarWidgetEntry {
+    largestLevelEventStyle = style
+    return calendarTextSizePreviewEntry(level: 3)
+}
+
+#Preview("단계 3 가장 크게(점) - 6주 Large", as: .systemLarge) {
+    SsCalendarWidget()
+} timeline: {
+    largestLevelPreviewEntry(style: .dots)
+}
+
+#Preview("단계 3 가장 크게(점) - Extra Large Portrait", as: .systemExtraLargePortrait) {
+    SsCalendarWidget()
+} timeline: {
+    largestLevelPreviewEntry(style: .dots)
+}
+
+#Preview("단계 3 가장 크게(제목) - 6주 Large", as: .systemLarge) {
+    SsCalendarWidget()
+} timeline: {
+    largestLevelPreviewEntry(style: .titles)
+}
+
+#Preview("단계 3 가장 크게(제목) - Extra Large Portrait", as: .systemExtraLargePortrait) {
+    SsCalendarWidget()
+} timeline: {
+    largestLevelPreviewEntry(style: .titles)
 }
