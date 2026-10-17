@@ -45,8 +45,6 @@ struct ThemeSettingsView: View {
 
                 SystemCalendarSettingsSection()
 
-                TodayWidgetSettingsSection()
-
                 Section("공휴일 국가") {
                     Picker("공휴일 국가", selection: $holidayCountryRawValue) {
                         ForEach(HolidayCountry.allCases) { country in
@@ -68,6 +66,21 @@ struct ThemeSettingsView: View {
                         }
                 }
 
+                Section("언어") {
+                    Button {
+                        openAppSettings()
+                    } label: {
+                        LabeledContent {
+                            Text(currentAppLanguageName)
+                                .foregroundStyle(.secondary)
+                        } label: {
+                            Label("앱 언어", systemImage: "globe")
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 Section {
                     Picker("위젯 글자 크기", selection: $calendarTextSizeLevel) {
                         Text("보통").tag(0)
@@ -85,20 +98,7 @@ struct ThemeSettingsView: View {
                     Text("달력 위젯의 글자 크기를 바꿉니다. 크게 할수록 일정은 간단히 표시됩니다.")
                 }
 
-                Section("언어") {
-                    Button {
-                        openAppSettings()
-                    } label: {
-                        LabeledContent {
-                            Text(currentAppLanguageName)
-                                .foregroundStyle(.secondary)
-                        } label: {
-                            Label("앱 언어", systemImage: "globe")
-                                .foregroundStyle(.primary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+                TodayWidgetSettingsSection()
             }
             .navigationTitle("설정")
             .navigationBarTitleDisplayMode(.inline)
