@@ -158,9 +158,16 @@ struct CalendarWidgetView: View {
     }
 
     private func weekdayColor(at index: Int) -> Color {
-        if index == 0 { return .red }
-        if index == 6 { return .blue }
+        if usesColoredWeekends {
+            if index == 0 { return .red }
+            if index == 6 { return .blue }
+        }
         return .secondary
+    }
+
+    /// 공휴일 국가가 미국이면 주말도 평일과 같은 색으로 표시한다.
+    private var usesColoredWeekends: Bool {
+        HolidayCountry.selected(in: HolidayCountry.settingsStore).usesColoredWeekendsForDisplay
     }
 
     /// 월간 위젯(Large, ExtraLargePortrait) 전용 설정. systemMedium은 이 단계를 적용하지 않는다.
@@ -520,12 +527,18 @@ private struct CalendarWidgetExpandedDayView: View {
 
     private var dateColor: Color {
         if day.isHoliday { return .red }
+        guard usesColoredWeekends else { return .primary }
 
         switch calendar.component(.weekday, from: day.date) {
         case 1: return .red
         case 7: return .blue
         default: return .primary
         }
+    }
+
+    /// 공휴일 국가가 미국이면 주말도 평일과 같은 색으로 표시한다.
+    private var usesColoredWeekends: Bool {
+        HolidayCountry.selected(in: HolidayCountry.settingsStore).usesColoredWeekendsForDisplay
     }
 
     /// 단계 3(가장 크게)의 '점' 스타일. 제목 글자 대신 색깔 점으로 보여준다.
@@ -656,12 +669,18 @@ private struct CalendarWidgetMediumDayView: View {
 
     private var dateColor: Color {
         if day.isHoliday { return .red }
+        guard usesColoredWeekends else { return .primary }
 
         switch calendar.component(.weekday, from: day.date) {
         case 1: return .red
         case 7: return .blue
         default: return .primary
         }
+    }
+
+    /// 공휴일 국가가 미국이면 주말도 평일과 같은 색으로 표시한다.
+    private var usesColoredWeekends: Bool {
+        HolidayCountry.selected(in: HolidayCountry.settingsStore).usesColoredWeekends
     }
 }
 

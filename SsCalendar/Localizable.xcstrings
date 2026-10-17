@@ -437,6 +437,22 @@
         }
       }
     },
+    "가장 크게" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largest"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가장 크게"
+          }
+        }
+      }
+    },
     "간격" : {
       "localizations" : {
         "en" : {
@@ -521,118 +537,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "National Foundation Day"
-          }
-        }
-      }
-    },
-    "음력 표시" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Lunar Dates"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "음력 표시"
-          }
-        }
-      }
-    },
-    "위젯 글자 크기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Widget Text Size"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "위젯 글자 크기"
-          }
-        }
-      }
-    },
-    "보통" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standard"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "보통"
-          }
-        }
-      }
-    },
-    "크게" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Large"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "크게"
-          }
-        }
-      }
-    },
-    "더 크게" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Extra Large"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "더 크게"
-          }
-        }
-      }
-    },
-    "가장 크게" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Largest"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "가장 크게"
-          }
-        }
-      }
-    },
-    "달력 위젯의 글자 크기를 바꿉니다. 크게 할수록 일정은 간단히 표시됩니다." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changes the text size of calendar widgets. The larger it is, the simpler the events are shown."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "달력 위젯의 글자 크기를 바꿉니다. 크게 할수록 일정은 간단히 표시됩니다."
           }
         }
       }
@@ -886,6 +790,22 @@
         }
       }
     },
+    "달력 위젯의 글자 크기를 바꿉니다. 크게 할수록 일정은 간단히 표시됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes the text size of calendar widgets. The larger it is, the simpler the events are shown."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "달력 위젯의 글자 크기를 바꿉니다. 크게 할수록 일정은 간단히 표시됩니다."
+          }
+        }
+      }
+    },
     "대체공휴일" : {
       "localizations" : {
         "en" : {
@@ -918,6 +838,22 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "대한민국"
+          }
+        }
+      }
+    },
+    "더 크게" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra Large"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "더 크게"
           }
         }
       }
@@ -969,6 +905,9 @@
           }
         }
       }
+    },
+    "무채색 표시" : {
+
     },
     "미국" : {
       "localizations" : {
@@ -1127,6 +1066,22 @@
         }
       }
     },
+    "보통" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보통"
+          }
+        }
+      }
+    },
     "부처님오신날" : {
       "localizations" : {
         "en" : {
@@ -1269,6 +1224,9 @@
           }
         }
       }
+    },
+    "색상 표시" : {
+
     },
     "선거일" : {
       "localizations" : {
@@ -1577,6 +1535,38 @@
         }
       }
     },
+    "위젯 글자 크기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widget Text Size"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위젯 글자 크기"
+          }
+        }
+      }
+    },
+    "음력 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Lunar Dates"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음력 표시"
+          }
+        }
+      }
+    },
     "이 기기에서는 캘린더 접근이 제한되어 있습니다." : {
       "localizations" : {
         "en" : {
@@ -1665,16 +1655,6 @@
         }
       }
     },
-    "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Apply only the values changed in this edit to individually edited events."
-          }
-        }
-      }
-    },
     "이전 달" : {
       "localizations" : {
         "en" : {
@@ -1703,6 +1683,16 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "일"
+          }
+        }
+      }
+    },
+    "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Apply only the values changed in this edit to individually edited events."
           }
         }
       }
@@ -2110,6 +2100,9 @@
         }
       }
     },
+    "주말 날짜 색상" : {
+
+    },
     "지난 일정" : {
       "localizations" : {
         "en" : {
@@ -2239,6 +2232,22 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "캘린더에 일정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."
+          }
+        }
+      }
+    },
+    "크게" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "크게"
           }
         }
       }

@@ -232,6 +232,45 @@ struct TodayWidgetStatusResolverTests {
     }
 }
 
+@Suite("HolidayCountry")
+struct HolidayCountryTests {
+    @Test("한국은 주말을 색으로 구분하고 미국은 구분하지 않는다")
+    func weekendColorPolicy() {
+        #expect(HolidayCountry.southKorea.usesColoredWeekends)
+        #expect(!HolidayCountry.unitedStates.usesColoredWeekends)
+    }
+}
+
+@Suite("USWeekendColorSetting")
+struct USWeekendColorSettingTests {
+
+    @Test("미국 주말 색상 설정은 기본값이 무채색이고 저장값을 유지한다")
+    func defaultAndPersistence() {
+        let defaults = UserDefaults(suiteName: "SsCalendar.USWeekendColorSettingTests.default")!
+        defaults.removeObject(forKey: USWeekendColorSetting.storageKey)
+        defer { defaults.removeObject(forKey: USWeekendColorSetting.storageKey) }
+
+        #expect(USWeekendColorSetting.selected(in: defaults) == .monochrome)
+        #expect(!HolidayCountry.unitedStates.usesColoredWeekends(in: defaults))
+
+        defaults.set(USWeekendColorSetting.colored.rawValue, forKey: USWeekendColorSetting.storageKey)
+
+        #expect(USWeekendColorSetting.selected(in: defaults) == .colored)
+        #expect(HolidayCountry.unitedStates.usesColoredWeekends(in: defaults))
+        #expect(HolidayCountry.southKorea.usesColoredWeekends(in: defaults))
+    }
+
+    @Test("잘못된 미국 주말 색상 설정은 무채색 기본값으로 복원된다")
+    func invalidValueFallsBackToMonochrome() {
+        let defaults = UserDefaults(suiteName: "SsCalendar.USWeekendColorSettingTests.invalid")!
+        defaults.set("invalid", forKey: USWeekendColorSetting.storageKey)
+        defer { defaults.removeObject(forKey: USWeekendColorSetting.storageKey) }
+
+        #expect(USWeekendColorSetting.selected(in: defaults) == .monochrome)
+        #expect(!HolidayCountry.unitedStates.usesColoredWeekends(in: defaults))
+    }
+}
+
 /// 월간 달력의 Adaptive Event Title(단일 날짜 일정 2줄 확장) 배치 로직(WeekEventLayout) 테스트.
 /// 실제 렌더링에 쓰이는 값과 같은 상수(CalendarDayContentLayout.cellHeight 등)로 검증해,
 /// 배치 계산 높이와 렌더링 높이가 어긋나지 않는지 확인한다.

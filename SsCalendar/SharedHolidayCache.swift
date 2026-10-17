@@ -18,6 +18,25 @@ enum HolidayCountry: String, CaseIterable, Codable, Hashable, Identifiable, Send
         }
     }
 
+    /// 주말(토요일/일요일) 날짜 숫자·요일 머리글을 평일과 다른 색으로 구분해 표시하는지.
+    /// 공휴일 표시(빨강)는 이 값과 무관하게 항상 유지된다.
+    var usesColoredWeekends: Bool {
+        self == .southKorea
+    }
+
+    var usesColoredWeekendsForDisplay: Bool {
+        usesColoredWeekends(in: Self.settingsStore)
+    }
+
+    func usesColoredWeekends(in defaults: UserDefaults) -> Bool {
+        switch self {
+        case .southKorea:
+            true
+        case .unitedStates:
+            USWeekendColorSetting.selected(in: defaults).usesColoredWeekends
+        }
+    }
+
     static func selected(in defaults: UserDefaults) -> Self {
         guard
             let rawValue = defaults.string(forKey: storageKey),
@@ -27,6 +46,38 @@ enum HolidayCountry: String, CaseIterable, Codable, Hashable, Identifiable, Send
         }
 
         return country
+    }
+}
+
+enum USWeekendColorSetting: String, CaseIterable, Identifiable, Sendable {
+    case colored
+    case monochrome
+
+    static let storageKey = "usWeekendColorSetting"
+    static let defaultValue = Self.monochrome
+
+    var id: Self { self }
+
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .colored: "색상 표시"
+        case .monochrome: "무채색 표시"
+        }
+    }
+
+    var usesColoredWeekends: Bool {
+        self == .colored
+    }
+
+    static func selected(in defaults: UserDefaults) -> Self {
+        guard
+            let rawValue = defaults.string(forKey: storageKey),
+            let setting = Self(rawValue: rawValue)
+        else {
+            return defaultValue
+        }
+
+        return setting
     }
 }
 

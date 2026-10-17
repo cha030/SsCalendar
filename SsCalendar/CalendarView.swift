@@ -96,8 +96,8 @@ struct CalendarView: View {
                         Text(weekday)
                             .font(.subheadline)
                             .foregroundStyle(
-                                index == 0 ? .red :
-                                index == 6 ? .blue :
+                                holidayCountry.usesColoredWeekendsForDisplay && index == 0 ? .red :
+                                holidayCountry.usesColoredWeekendsForDisplay && index == 6 ? .blue :
                                 .primary
                             )
                             .frame(maxWidth: .infinity)

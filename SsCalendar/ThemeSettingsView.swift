@@ -10,6 +10,10 @@ struct ThemeSettingsView: View {
     private var showLunarDates = false
     @AppStorage(CalendarTextSizeSetting.storageKey, store: CalendarTextSizeSetting.store)
     private var calendarTextSizeLevel = 0
+    @AppStorage(
+        USWeekendColorSetting.storageKey,
+        store: HolidayCountry.settingsStore
+    ) private var usWeekendColorRawValue = USWeekendColorSetting.defaultValue.rawValue
 
     var body: some View {
         NavigationStack {
@@ -55,6 +59,22 @@ struct ThemeSettingsView: View {
                     .onChange(of: holidayCountryRawValue) { _, _ in
                         WidgetReloadManager.requestCalendarReload()
                         onHolidayCountryChanged()
+                    }
+                }
+
+                if selectedHolidayCountry == .unitedStates {
+                    Section("주말 날짜 색상") {
+                        Picker("주말 날짜 색상", selection: $usWeekendColorRawValue) {
+                            ForEach(USWeekendColorSetting.allCases) { setting in
+                                Text(setting.localizedTitle)
+                                    .tag(setting.rawValue)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: usWeekendColorRawValue) { _, _ in
+                            WidgetReloadManager.requestCalendarReload()
+                            onHolidayCountryChanged()
+                        }
                     }
                 }
 
@@ -126,6 +146,10 @@ struct ThemeSettingsView: View {
 
     private var selectedTheme: AppTheme {
         AppTheme(rawValue: selectedThemeRawValue) ?? .system
+    }
+
+    private var selectedHolidayCountry: HolidayCountry {
+        HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea
     }
 
     private var resolvedColorScheme: ColorScheme {

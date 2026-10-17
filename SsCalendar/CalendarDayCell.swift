@@ -110,6 +110,12 @@ struct CalendarDayCell: View {
 
     @AppStorage(LunarDisplaySetting.storageKey, store: LunarDisplaySetting.store)
     private var showLunarDates = false
+    @AppStorage(HolidayCountry.storageKey, store: HolidayCountry.settingsStore)
+    private var holidayCountryRawValue = HolidayCountry.southKorea.rawValue
+
+    private var usesColoredWeekends: Bool {
+        (HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea).usesColoredWeekendsForDisplay
+    }
 
     private var lunarDateText: String? {
         guard showLunarDates else { return nil }
@@ -229,9 +235,9 @@ struct CalendarDayCell: View {
 
         let weekday = calendar.component(.weekday, from: date)
 
-        if weekday == 1 {
+        if usesColoredWeekends, weekday == 1 {
             return .red
-        } else if weekday == 7 {
+        } else if usesColoredWeekends, weekday == 7 {
             return .blue
         } else {
             return .primary

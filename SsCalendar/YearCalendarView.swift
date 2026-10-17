@@ -272,6 +272,13 @@ private struct MiniMonthView: View {
     let cardWidth: CGFloat
     let cardHeight: CGFloat
 
+    @AppStorage(HolidayCountry.storageKey, store: HolidayCountry.settingsStore)
+    private var holidayCountryRawValue = HolidayCountry.southKorea.rawValue
+
+    private var usesColoredWeekends: Bool {
+        (HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea).usesColoredWeekendsForDisplay
+    }
+
     private static let titleHeight: CGFloat = 18
 
     private var monthStartDate: Date {
@@ -352,9 +359,9 @@ private struct MiniMonthView: View {
     /// 기존 월간 달력(CalendarDayCell.dateColor)과 같은 원칙: 일요일(0번 칸) 빨강, 토요일(6번 칸) 파랑.
     /// calendar.firstWeekday가 1(일요일)로 고정돼 있어 그리드 칸 위치가 곧 요일을 뜻한다.
     private func dayColor(weekdayColumn: Int) -> Color {
-        if weekdayColumn == 0 {
+        if usesColoredWeekends, weekdayColumn == 0 {
             return .red
-        } else if weekdayColumn == YearMiniMonthGrid.columnCount - 1 {
+        } else if usesColoredWeekends, weekdayColumn == YearMiniMonthGrid.columnCount - 1 {
             return .blue
         } else {
             return .primary
