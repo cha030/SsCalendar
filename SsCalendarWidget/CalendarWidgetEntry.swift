@@ -154,28 +154,28 @@ enum CalendarWidgetCalendar {
         let previewOccurrences = [
             CalendarWidgetOccurrence(
                 id: "preview-single-1",
-                title: "친구 만나기",
+                title: String(localized: "친구 만나기"),
                 colorName: "초록색",
                 firstDay: today,
                 lastDay: today
             ),
             CalendarWidgetOccurrence(
                 id: "preview-single-2",
-                title: "프로젝트 회의",
+                title: String(localized: "프로젝트 회의"),
                 colorName: "파란색",
                 firstDay: today,
                 lastDay: today
             ),
             CalendarWidgetOccurrence(
                 id: "preview-multi-1",
-                title: "여행",
+                title: String(localized: "여행"),
                 colorName: "보라색",
                 firstDay: sampleDates[1],
                 lastDay: calendar.date(byAdding: .day, value: 4, to: today) ?? sampleDates[1]
             ),
             CalendarWidgetOccurrence(
                 id: "preview-multi-2",
-                title: "출장",
+                title: String(localized: "출장"),
                 colorName: "빨간색",
                 firstDay: sampleDates[2],
                 lastDay: calendar.date(byAdding: .day, value: 14, to: today) ?? sampleDates[2]
@@ -199,7 +199,7 @@ enum CalendarWidgetCalendar {
                 isCurrentMonth: calendar.isDate(day, equalTo: grid.monthStart, toGranularity: .month),
                 isToday: calendar.isDateInToday(day),
                 isHoliday: holidayDate.map { calendar.isDate(day, inSameDayAs: $0) } ?? false,
-                holidayTitle: holidayDate.map { calendar.isDate(day, inSameDayAs: $0) } == true ? "추석" : nil,
+                holidayTitle: holidayDate.map { calendar.isDate(day, inSameDayAs: $0) } == true ? String(localized: "추석") : nil,
                 events: sampleEvents
             )
         }
