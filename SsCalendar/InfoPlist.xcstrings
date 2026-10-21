@@ -3,11 +3,10 @@
   "strings" : {
     "CFBundleDisplayName" : {
       "comment" : "Bundle display name",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "SsCalendar"
           }
         },
@@ -41,8 +40,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "SsCalendar needs calendar access to display events from your iPhone calendars (iCloud, Google, Exchange, and more) alongside your SsCalendar calendar."
+            "state" : "translated",
+            "value" : "SsCalendar needs access to your calendars to show events from your iPhone calendars (iCloud, Google, Exchange, and more) together with your SsCalendar events."
           }
         },
         "ko" : {

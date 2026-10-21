@@ -1,9 +1,7 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
-
-    },
+    "" : {},
     "%@ (Observed)" : {
       "localizations" : {
         "ko" : {
@@ -33,9 +31,21 @@
     "%lld개월마다" : {
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Every %lld months"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every month"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every %lld months"
+                }
+              }
+            }
           }
         },
         "ko" : {
@@ -49,9 +59,21 @@
     "%lld년마다" : {
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Every %lld years"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every year"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every %lld years"
+                }
+              }
+            }
           }
         },
         "ko" : {
@@ -82,9 +104,21 @@
     "%lld일마다" : {
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Every %lld days"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every %lld days"
+                }
+              }
+            }
           }
         },
         "ko" : {
@@ -98,9 +132,21 @@
     "%lld주마다" : {
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Every %lld weeks"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every week"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Every %lld weeks"
+                }
+              }
+            }
           }
         },
         "ko" : {
@@ -489,8 +535,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Individual Change Handling"
+            "state" : "translated",
+            "value" : "Edited Occurrences"
           }
         }
       }
@@ -499,8 +545,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Apply Series Changes to Individual Events"
+            "state" : "translated",
+            "value" : "Apply Changes to Edited Occurrences"
           }
         }
       }
@@ -509,8 +555,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Keep individually changed values, and update only unchanged values to match the new repeating event."
+            "state" : "translated",
+            "value" : "Keeps the values you changed on individual occurrences and updates only the unchanged values to match the new series."
           }
         }
       }
@@ -631,8 +677,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Keep Existing Individual Changes"
+            "state" : "translated",
+            "value" : "Keep Existing Edits"
           }
         }
       }
@@ -641,8 +687,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Handle Existing Individual Changes"
+            "state" : "translated",
+            "value" : "Existing Edits"
           }
         }
       }
@@ -907,7 +953,14 @@
       }
     },
     "무채색 표시" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neutral"
+          }
+        }
+      }
     },
     "미국" : {
       "localizations" : {
@@ -971,8 +1024,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Changing the repeat frequency or interval can’t safely preserve existing individual edits and deletions. You can’t change the repeat frequency or interval while exceptions exist."
+            "state" : "translated",
+            "value" : "Changing how often an event repeats can’t safely preserve occurrences you’ve already edited or deleted. You can’t change the repeat pattern while any exist."
           }
         }
       }
@@ -1008,8 +1061,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Repeat End"
+            "state" : "translated",
+            "value" : "End Repeat"
           }
         }
       }
@@ -1038,8 +1091,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Delete all recurring events?"
+            "state" : "translated",
+            "value" : "Delete all repeating events?"
           }
         },
         "ko" : {
@@ -1187,8 +1240,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Used as the initial save location for new events. Existing event locations aren’t changed."
+            "state" : "translated",
+            "value" : "Used as the starting calendar for new events. Existing events aren’t moved."
           }
         },
         "ko" : {
@@ -1226,7 +1279,14 @@
       }
     },
     "색상 표시" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colored"
+          }
+        }
+      }
     },
     "선거일" : {
       "localizations" : {
@@ -1597,8 +1657,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Calculated from this occurrence's date. The event list and widgets always show the next occurrence at each point in time."
+            "state" : "translated",
+            "value" : "Calculated from this occurrence’s date. The event list and widgets always use the next upcoming occurrence."
           }
         }
       }
@@ -1691,8 +1751,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Apply only the values changed in this edit to individually edited events."
+            "state" : "translated",
+            "value" : "Applies only the values changed in this edit to occurrences that were edited individually."
           }
         }
       }
@@ -1733,8 +1793,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Calculated from the event's start date."
+            "state" : "translated",
+            "value" : "Days remaining are calculated from the event’s start date."
           }
         }
       }
@@ -1988,7 +2048,14 @@
       }
     },
     "전체 반복 일정 수정" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit All Repeating Events"
+          }
+        }
+      }
     },
     "제목" : {
       "localizations" : {
@@ -2101,7 +2168,14 @@
       }
     },
     "주말 날짜 색상" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weekend Date Color"
+          }
+        }
+      }
     },
     "지난 일정" : {
       "localizations" : {
@@ -2366,8 +2440,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "View Mode"
+            "state" : "translated",
+            "value" : "Appearance"
           }
         },
         "ko" : {
@@ -2390,6 +2464,23 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "확인"
+          }
+        }
+      }
+    },
+    "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 외부 캘린더 일정은 보기 전용입니다." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows events from calendars connected to your iPhone, including iCloud, Google, and Exchange. External calendar events are view-only."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 외부 캘린더 일정은 보기 전용입니다."
           }
         }
       }

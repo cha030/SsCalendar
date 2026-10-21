@@ -410,7 +410,14 @@
       }
     },
     "무채색 표시" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neutral"
+          }
+        }
+      }
     },
     "미국" : {
       "localizations" : {
@@ -449,7 +456,14 @@
       }
     },
     "색상 표시" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colored"
+          }
+        }
+      }
     },
     "생일 파티" : {
       "localizations" : {
@@ -639,8 +653,8 @@
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "See the event coming up after Today, right on your Lock Screen."
+            "state" : "translated",
+            "value" : "Shows the next event after the one in the Today widget, right on your Lock Screen."
           }
         },
         "ko" : {
@@ -856,6 +870,57 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "회의"
+          }
+        }
+      }
+    },
+    "친구 만나기" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meet friends"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구 만나기"
+          }
+        }
+      }
+    },
+    "프로젝트 회의" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Project meeting"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로젝트 회의"
+          }
+        }
+      }
+    },
+    "출장" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Business trip"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "출장"
           }
         }
       }
