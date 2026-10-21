@@ -149,7 +149,7 @@ struct ThemeSettingsView: View {
     }
 
     private var selectedHolidayCountry: HolidayCountry {
-        HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea
+        HolidayCountry(rawValue: holidayCountryRawValue) ?? HolidayCountry.defaultCountry
     }
 
     private var resolvedColorScheme: ColorScheme {

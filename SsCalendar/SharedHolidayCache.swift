@@ -42,10 +42,20 @@ enum HolidayCountry: String, CaseIterable, Codable, Hashable, Identifiable, Send
             let rawValue = defaults.string(forKey: storageKey),
             let country = Self(rawValue: rawValue)
         else {
-            return .southKorea
+            return HolidayCountry.defaultCountry
         }
 
         return country
+    }
+}
+
+extension HolidayCountry {
+    static func defaultCountry(for region: Locale.Region?) -> HolidayCountry {
+        region?.identifier == "KR" ? .southKorea : .unitedStates
+    }
+
+    static var defaultCountry: HolidayCountry {
+        defaultCountry(for: Locale.current.region)
     }
 }
 

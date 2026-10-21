@@ -26,7 +26,7 @@ struct DayScheduleView: View {
     @AppStorage(
         HolidayCountry.storageKey,
         store: HolidayCountry.settingsStore
-    ) private var holidayCountryRawValue = HolidayCountry.southKorea.rawValue
+    ) private var holidayCountryRawValue = HolidayCountry.defaultCountry.rawValue
     @State private var systemOccurrences: [CalendarDisplayOccurrence] = []
     @State private var presentedSystemEvent: SystemEventPresentation?
     @State private var systemEventError: SystemCalendarAccessError?
@@ -142,7 +142,7 @@ struct DayScheduleView: View {
     }
 
     private var holidayCountry: HolidayCountry {
-        HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea
+        HolidayCountry(rawValue: holidayCountryRawValue) ?? HolidayCountry.defaultCountry
     }
 
     private var holidayTitle: String? {

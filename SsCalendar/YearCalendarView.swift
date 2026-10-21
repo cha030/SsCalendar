@@ -273,10 +273,10 @@ private struct MiniMonthView: View {
     let cardHeight: CGFloat
 
     @AppStorage(HolidayCountry.storageKey, store: HolidayCountry.settingsStore)
-    private var holidayCountryRawValue = HolidayCountry.southKorea.rawValue
+    private var holidayCountryRawValue = HolidayCountry.defaultCountry.rawValue
 
     private var usesColoredWeekends: Bool {
-        (HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea).usesColoredWeekendsForDisplay
+        (HolidayCountry(rawValue: holidayCountryRawValue) ?? HolidayCountry.defaultCountry).usesColoredWeekendsForDisplay
     }
 
     private static let titleHeight: CGFloat = 18

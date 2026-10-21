@@ -239,6 +239,14 @@ struct HolidayCountryTests {
         #expect(HolidayCountry.southKorea.usesColoredWeekends)
         #expect(!HolidayCountry.unitedStates.usesColoredWeekends)
     }
+
+    @Test("지역별 공휴일 국가 기본값을 선택한다")
+    func defaultCountryByRegion() {
+        #expect(HolidayCountry.defaultCountry(for: Locale.Region("KR")) == .southKorea)
+        #expect(HolidayCountry.defaultCountry(for: Locale.Region("US")) == .unitedStates)
+        #expect(HolidayCountry.defaultCountry(for: Locale.Region("GB")) == .unitedStates)
+        #expect(HolidayCountry.defaultCountry(for: nil) == .unitedStates)
+    }
 }
 
 @Suite("USWeekendColorSetting")

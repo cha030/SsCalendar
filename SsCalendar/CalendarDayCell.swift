@@ -111,10 +111,10 @@ struct CalendarDayCell: View {
     @AppStorage(LunarDisplaySetting.storageKey, store: LunarDisplaySetting.store)
     private var showLunarDates = false
     @AppStorage(HolidayCountry.storageKey, store: HolidayCountry.settingsStore)
-    private var holidayCountryRawValue = HolidayCountry.southKorea.rawValue
+    private var holidayCountryRawValue = HolidayCountry.defaultCountry.rawValue
 
     private var usesColoredWeekends: Bool {
-        (HolidayCountry(rawValue: holidayCountryRawValue) ?? .southKorea).usesColoredWeekendsForDisplay
+        (HolidayCountry(rawValue: holidayCountryRawValue) ?? HolidayCountry.defaultCountry).usesColoredWeekendsForDisplay
     }
 
     private var lunarDateText: String? {
