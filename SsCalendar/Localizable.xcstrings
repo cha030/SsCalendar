@@ -1,7 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {},
+    "" : {
+
+    },
     "%@ (Observed)" : {
       "localizations" : {
         "ko" : {
@@ -281,7 +283,25 @@
         }
       }
     },
+    "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 외부 캘린더 일정은 보기 전용입니다." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows events from calendars connected to your iPhone, including iCloud, Google, and Exchange. External calendar events are view-only."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 외부 캘린더 일정은 보기 전용입니다."
+          }
+        }
+      }
+    },
     "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -483,22 +503,6 @@
         }
       }
     },
-    "가장 크게" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Largest"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "가장 크게"
-          }
-        }
-      }
-    },
     "간격" : {
       "localizations" : {
         "en" : {
@@ -527,6 +531,22 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "값"
+          }
+        }
+      }
+    },
+    "가장 크게" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largest"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가장 크게"
           }
         }
       }
@@ -1715,6 +1735,16 @@
         }
       }
     },
+    "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applies only the values changed in this edit to occurrences that were edited individually."
+          }
+        }
+      }
+    },
     "이전 달" : {
       "localizations" : {
         "en" : {
@@ -1743,16 +1773,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "일"
-          }
-        }
-      }
-    },
-    "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Applies only the values changed in this edit to occurrences that were edited individually."
           }
         }
       }
@@ -2464,23 +2484,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "확인"
-          }
-        }
-      }
-    },
-    "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 외부 캘린더 일정은 보기 전용입니다." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Shows events from calendars connected to your iPhone, including iCloud, Google, and Exchange. External calendar events are view-only."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 외부 캘린더 일정은 보기 전용입니다."
           }
         }
       }

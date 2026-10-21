@@ -90,7 +90,7 @@ struct SystemCalendarSettingsSection: View {
         case .restricted:
             return String(localized: "이 기기에서는 캘린더 접근이 제한되어 있습니다.")
         default:
-            return String(localized: "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 일정을 탭하면 확인하고, 수정 가능한 캘린더의 일정은 수정·삭제할 수 있습니다.")
+            return String(localized: "iCloud, Google, Exchange 등 iPhone에 연결된 캘린더 일정을 함께 표시합니다. 외부 캘린더 일정은 보기 전용입니다.")
         }
     }
 
