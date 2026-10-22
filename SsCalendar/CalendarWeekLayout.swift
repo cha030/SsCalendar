@@ -119,7 +119,7 @@ struct WeekEventLayout {
                 return first.endColumn > second.endColumn
             }
 
-            return first.occurrence.startDate < second.occurrence.startDate
+            return first.occurrence.sortStartDate < second.occurrence.sortStartDate
         }
 
         // 이 주에서 각 날짜(컬럼)가 실제로 몇 개의 일정(단일 날짜 + 그 날을 지나는 여러 날 일정 포함)과

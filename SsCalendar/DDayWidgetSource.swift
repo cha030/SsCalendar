@@ -36,15 +36,21 @@ enum DDayWidgetSource {
                 .map { occurrence in
                     Item(
                         occurrence: occurrence,
-                        daysRemaining: DDayCalculator.daysRemaining(
-                            until: occurrence.startDate,
-                            now: now,
-                            calendar: calendar
-                        )
+                        daysRemaining: occurrence.localEventID != nil && occurrence.isAllDay
+                            ? AllDayDate.daysRemaining(
+                                untilStorageDate: occurrence.startDate,
+                                now: now,
+                                calendar: calendar
+                            )
+                            : DDayCalculator.daysRemaining(
+                                until: occurrence.startDate,
+                                now: now,
+                                calendar: calendar
+                            )
                     )
                 }
                 .filter { $0.daysRemaining >= 0 }
-                .sorted { $0.occurrence.startDate < $1.occurrence.startDate }
+                .sorted { $0.occurrence.sortStartDate < $1.occurrence.sortStartDate }
                 .prefix(limit)
                 .map { $0 }
         } catch {
@@ -101,16 +107,22 @@ enum DDayWidgetSource {
             // 유효한 다음 발생분을 찾지 못했다(비반복 일정이 이미 지났거나, 반복이 끝났거나,
             // 남은 발생분이 모두 개별 삭제된 경우) — 기존처럼 event.startDate로 돌아간다. 보통
             // 과거라 위의 daysRemaining >= 0 필터에서 자연히 제외된다.
-            let duration = max(0, event.endDate.timeIntervalSince(event.startDate))
+            let fallbackStartDate = event.isAllDay
+                ? AllDayDate.normalizedStorageDate(event.startDate)
+                : event.startDate
+            let fallbackEndDate = event.isAllDay
+                ? AllDayDate.normalizedStorageDate(event.endDate)
+                : event.endDate
+            let duration = max(0, fallbackEndDate.timeIntervalSince(fallbackStartDate))
             return CalendarDisplayOccurrence(
-                id: "local:\(event.id.uuidString):\(event.startDate.timeIntervalSince1970)",
+                id: "local:\(event.id.uuidString):\(fallbackStartDate.timeIntervalSince1970)",
                 source: .local(eventID: event.id),
                 title: event.title,
                 isAllDay: event.isAllDay,
-                startDate: event.startDate,
-                endDate: event.startDate.addingTimeInterval(duration),
+                startDate: fallbackStartDate,
+                endDate: fallbackStartDate.addingTimeInterval(duration),
                 color: colorForLocalEventColorName(event.color),
-                originalStartDate: event.startDate
+                originalStartDate: fallbackStartDate
             )
         }
     }

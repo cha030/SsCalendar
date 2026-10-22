@@ -162,13 +162,38 @@ enum RecurringSeriesExceptionUpdater {
         policy: RecurringSeriesExceptionUpdatePolicy,
         exceptions: [EventOccurrenceException]
     ) {
-        let startDelta = newValues.startDate.timeIntervalSince(oldValues.startDate)
-        let endDelta = newValues.endDate.timeIntervalSince(oldValues.endDate)
-        let scheduleChanged = startDelta != 0 || endDelta != 0
+        let startDelta = newValues.isAllDay && oldValues.isAllDay
+            ? AllDayDate.utcCalendar.dateComponents(
+                [.day],
+                from: AllDayDate.normalizedStorageDate(oldValues.startDate),
+                to: AllDayDate.normalizedStorageDate(newValues.startDate)
+            ).day ?? 0
+            : nil
+        let endDelta = newValues.isAllDay && oldValues.isAllDay
+            ? AllDayDate.utcCalendar.dateComponents(
+                [.day],
+                from: AllDayDate.normalizedStorageDate(oldValues.endDate),
+                to: AllDayDate.normalizedStorageDate(newValues.endDate)
+            ).day ?? 0
+            : nil
+        let timedStartDelta = newValues.startDate.timeIntervalSince(oldValues.startDate)
+        let timedEndDelta = newValues.endDate.timeIntervalSince(oldValues.endDate)
+        let scheduleChanged = (startDelta ?? 0) != 0 ||
+            (endDelta ?? 0) != 0 ||
+            timedStartDelta != 0 ||
+            timedEndDelta != 0
 
         for exception in exceptions {
             let oldOriginalStart = exception.originalOccurrenceStartDate
-            exception.originalOccurrenceStartDate = oldOriginalStart.addingTimeInterval(startDelta)
+            if let startDelta {
+                exception.originalOccurrenceStartDate = AllDayDate.adding(
+                    .day,
+                    value: startDelta,
+                    toStorageDate: oldOriginalStart
+                ) ?? oldOriginalStart
+            } else {
+                exception.originalOccurrenceStartDate = oldOriginalStart.addingTimeInterval(timedStartDelta)
+            }
 
             // 개별 삭제는 항상 삭제 상태를 유지한다. 새 반복 시작점에 맞춰 식별 슬롯만 옮긴다.
             guard !exception.isExcluded else { continue }
@@ -181,8 +206,21 @@ enum RecurringSeriesExceptionUpdater {
                     exception: exception
                 )
                 // 개별 시간 이동량을 보존하면서 시리즈의 날짜·시간 이동도 함께 적용한다.
-                exception.overrideStartDate = exception.overrideStartDate.addingTimeInterval(startDelta)
-                exception.overrideEndDate = exception.overrideEndDate.addingTimeInterval(endDelta)
+                if exception.overrideIsAllDay {
+                    exception.overrideStartDate = AllDayDate.adding(
+                        .day,
+                        value: startDelta ?? Int(timedStartDelta / 86_400),
+                        toStorageDate: exception.overrideStartDate
+                    ) ?? exception.overrideStartDate
+                    exception.overrideEndDate = AllDayDate.adding(
+                        .day,
+                        value: endDelta ?? Int(timedEndDelta / 86_400),
+                        toStorageDate: exception.overrideEndDate
+                    ) ?? exception.overrideEndDate
+                } else {
+                    exception.overrideStartDate = exception.overrideStartDate.addingTimeInterval(timedStartDelta)
+                    exception.overrideEndDate = exception.overrideEndDate.addingTimeInterval(timedEndDelta)
+                }
 
             case .applyChangedSeriesValues:
                 applyChangedSeriesFields(
@@ -191,8 +229,23 @@ enum RecurringSeriesExceptionUpdater {
                     exception: exception
                 )
                 if scheduleChanged {
-                    let newOriginalStart = oldOriginalStart.addingTimeInterval(startDelta)
-                    let newDuration = max(0, newValues.endDate.timeIntervalSince(newValues.startDate))
+                    let newOriginalStart: Date
+                    let newDuration: TimeInterval
+                    if newValues.isAllDay {
+                        newOriginalStart = AllDayDate.adding(
+                            .day,
+                            value: startDelta ?? Int(timedStartDelta / 86_400),
+                            toStorageDate: oldOriginalStart
+                        ) ?? oldOriginalStart
+                        newDuration = max(
+                            0,
+                            AllDayDate.normalizedStorageDate(newValues.endDate)
+                                .timeIntervalSince(AllDayDate.normalizedStorageDate(newValues.startDate))
+                        )
+                    } else {
+                        newOriginalStart = oldOriginalStart.addingTimeInterval(timedStartDelta)
+                        newDuration = max(0, newValues.endDate.timeIntervalSince(newValues.startDate))
+                    }
                     exception.overrideStartDate = newOriginalStart
                     exception.overrideEndDate = newOriginalStart.addingTimeInterval(newDuration)
                 }

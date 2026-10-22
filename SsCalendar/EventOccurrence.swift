@@ -56,8 +56,12 @@ struct EventOccurrence: Identifiable {
         }
 
         if isAllDay {
-            let eventStartDay = calendar.startOfDay(for: startDate)
-            let eventEndDay = calendar.startOfDay(for: endDate)
+            let eventStartDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(fromStorageDate: startDate, calendar: calendar)
+            )
+            let eventEndDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(fromStorageDate: endDate, calendar: calendar)
+            )
             return eventStartDay <= dayStart && dayStart <= eventEndDay
         }
 
@@ -69,8 +73,19 @@ struct EventOccurrence: Identifiable {
     }
 
     func occupiedDayRange(calendar: Calendar) -> ClosedRange<Date> {
-        let firstDay = calendar.startOfDay(for: startDate)
-        let endDay = calendar.startOfDay(for: endDate)
+        let firstDay: Date
+        let endDay: Date
+        if isAllDay {
+            firstDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(fromStorageDate: startDate, calendar: calendar)
+            )
+            endDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(fromStorageDate: endDate, calendar: calendar)
+            )
+        } else {
+            firstDay = calendar.startOfDay(for: startDate)
+            endDay = calendar.startOfDay(for: endDate)
+        }
 
         if isAllDay || startDate == endDate || endDate > endDay {
             return firstDay...max(firstDay, endDay)
@@ -129,6 +144,11 @@ enum EventOccurrenceService {
                     return first.isAllDay
                 }
 
+                if first.isAllDay {
+                    return AllDayDate.normalizedStorageDate(first.startDate)
+                        < AllDayDate.normalizedStorageDate(second.startDate)
+                }
+
                 return first.startDate < second.startDate
             }
     }
@@ -141,15 +161,23 @@ enum EventOccurrenceService {
         exceptions: [EventOccurrenceException] = []
     ) -> [EventOccurrence] {
         let interval = max(1, event.repeatInterval)
-        let duration = max(0, event.endDate.timeIntervalSince(event.startDate))
+        let isAllDay = event.isAllDay
+        let startDate = isAllDay
+            ? AllDayDate.normalizedStorageDate(event.startDate)
+            : event.startDate
+        let endDate = isAllDay
+            ? AllDayDate.normalizedStorageDate(event.endDate)
+            : event.endDate
+        let duration = max(0, endDate.timeIntervalSince(startDate))
+        let recurrenceCalendar = isAllDay ? AllDayDate.utcCalendar : calendar
 
         let supportedRepeatUnits = ["일", "주", "개월", "년"]
         guard supportedRepeatUnits.contains(event.repeatUnit) else {
             // 반복하지 않는 일정은 개별 수정·삭제 예외 대상이 아니다(반복 일정에만 적용).
             let occurrence = EventOccurrence(
                 event: event,
-                startDate: event.startDate,
-                endDate: event.endDate
+                startDate: startDate,
+                endDate: endDate
             )
             return occurrence.intersects(range, calendar: calendar)
                 ? [occurrence]
@@ -158,9 +186,11 @@ enum EventOccurrenceService {
 
         // 반복 종료일(포함)을 하루 끝 기준으로 미리 구해 둔다. 날짜만 비교하므로 종료일 당일의
         // 발생분은 시각과 무관하게 항상 포함된다.
-        let repeatEndDay = event.repeatEndDate.map { calendar.startOfDay(for: $0) }
+        let repeatEndDay = event.repeatEndDate.map {
+            isAllDay ? AllDayDate.normalizedStorageDate($0) : calendar.startOfDay(for: $0)
+        }
         let exceptionsByKey = Dictionary(
-            exceptions.map { (exceptionKey(for: $0.originalOccurrenceStartDate), $0) },
+            exceptions.map { (exceptionKey(for: $0.originalOccurrenceStartDate, isAllDay: isAllDay), $0) },
             uniquingKeysWith: { first, _ in first }
         )
 
@@ -174,7 +204,8 @@ enum EventOccurrenceService {
                 repeatUnit: event.repeatUnit,
                 occurrenceIndex: occurrenceIndex,
                 interval: interval,
-                calendar: calendar
+                calendar: recurrenceCalendar,
+                isAllDay: isAllDay
             ) else {
                 occurrenceIndex += 1
                 continue
@@ -187,16 +218,23 @@ enum EventOccurrenceService {
             // 반복 종료일을 지난 발생분은 더 만들지 않는다(종료일 당일까지는 포함). 이 판단은
             // 항상 "원래" 발생일(occurrenceStart) 기준이다 — override로 날짜를 옮겼어도 반복
             // 시리즈 자체의 종료 조건은 원본 슬롯 기준으로 일관되게 적용한다.
-            if let repeatEndDay, calendar.startOfDay(for: occurrenceStart) > repeatEndDay {
+            if let repeatEndDay,
+               (isAllDay ? AllDayDate.normalizedStorageDate(occurrenceStart) : calendar.startOfDay(for: occurrenceStart)) > repeatEndDay {
                 break
             }
 
-            if let exception = exceptionsByKey[exceptionKey(for: occurrenceStart)] {
+            if let exception = exceptionsByKey[exceptionKey(for: occurrenceStart, isAllDay: isAllDay)] {
                 if !exception.isExcluded {
+                    let overrideStartDate = exception.overrideIsAllDay
+                        ? AllDayDate.normalizedStorageDate(exception.overrideStartDate)
+                        : exception.overrideStartDate
+                    let overrideEndDate = exception.overrideIsAllDay
+                        ? AllDayDate.normalizedStorageDate(exception.overrideEndDate)
+                        : exception.overrideEndDate
                     let occurrence = EventOccurrence(
                         event: event,
-                        startDate: exception.overrideStartDate,
-                        endDate: exception.overrideEndDate,
+                        startDate: overrideStartDate,
+                        endDate: overrideEndDate,
                         originalStartDate: occurrenceStart,
                         exception: exception
                     )
@@ -236,8 +274,9 @@ enum EventOccurrenceService {
     /// 예외(EventOccurrenceException) 매칭 키. 부동소수점 오차로 같은 발생일이 다르게 매칭되지
     /// 않도록 초 단위로 반올림한다 — originalOccurrenceStartDate는 항상 이 서비스가 계산한
     /// 값을 그대로 저장하므로(EventEditorView), 정상적인 경우 오차가 생기지 않는다.
-    private static func exceptionKey(for date: Date) -> Int {
-        Int(date.timeIntervalSince1970.rounded())
+    private static func exceptionKey(for date: Date, isAllDay: Bool) -> Int {
+        let keyDate = isAllDay ? AllDayDate.normalizedStorageDate(date) : date
+        return Int(keyDate.timeIntervalSince1970.rounded())
     }
 
     private static func recurrenceDate(
@@ -245,19 +284,24 @@ enum EventOccurrenceService {
         repeatUnit: String,
         occurrenceIndex: Int,
         interval: Int,
-        calendar: Calendar
+        calendar: Calendar,
+        isAllDay: Bool = false
     ) -> Date? {
         let step = occurrenceIndex * interval
 
         switch repeatUnit {
         case "일":
-            return calendar.date(
+            return isAllDay
+                ? AllDayDate.adding(.day, value: step, toStorageDate: startDate)
+                : calendar.date(
                 byAdding: .day,
                 value: step,
                 to: startDate
             )
         case "주":
-            return calendar.date(
+            return isAllDay
+                ? AllDayDate.adding(.weekOfYear, value: step, toStorageDate: startDate)
+                : calendar.date(
                 byAdding: .weekOfYear,
                 value: step,
                 to: startDate
@@ -266,13 +310,13 @@ enum EventOccurrenceService {
             return monthlyDate(
                 from: startDate,
                 monthOffset: step,
-                calendar: calendar
+                calendar: isAllDay ? AllDayDate.utcCalendar : calendar
             )
         case "년":
             return yearlyDate(
                 from: startDate,
                 yearOffset: step,
-                calendar: calendar
+                calendar: isAllDay ? AllDayDate.utcCalendar : calendar
             )
         default:
             return occurrenceIndex == 0 ? startDate : nil
@@ -293,16 +337,22 @@ enum EventOccurrenceService {
         onOrAfter now: Date,
         calendar: Calendar,
         repeatEndDate: Date? = nil,
-        exceptions: [EventOccurrenceException] = []
+        exceptions: [EventOccurrenceException] = [],
+        isAllDay: Bool = false
     ) -> Date? {
         let supportedRepeatUnits = ["일", "주", "개월", "년"]
         guard supportedRepeatUnits.contains(repeatUnit) else { return nil }
 
         let interval = max(1, repeatInterval)
-        let todayStart = calendar.startOfDay(for: now)
-        let repeatEndDay = repeatEndDate.map { calendar.startOfDay(for: $0) }
+        let recurrenceCalendar = isAllDay ? AllDayDate.utcCalendar : calendar
+        let todayStart = isAllDay
+            ? AllDayDate.storageDate(for: now, calendar: calendar)
+            : calendar.startOfDay(for: now)
+        let repeatEndDay = repeatEndDate.map {
+            isAllDay ? AllDayDate.normalizedStorageDate($0) : calendar.startOfDay(for: $0)
+        }
         let exceptionsByKey = Dictionary(
-            exceptions.map { (exceptionKey(for: $0.originalOccurrenceStartDate), $0) },
+            exceptions.map { (exceptionKey(for: $0.originalOccurrenceStartDate, isAllDay: isAllDay), $0) },
             uniquingKeysWith: { first, _ in first }
         )
         let maximumIterations = 500_000
@@ -314,22 +364,30 @@ enum EventOccurrenceService {
                 repeatUnit: repeatUnit,
                 occurrenceIndex: occurrenceIndex,
                 interval: interval,
-                calendar: calendar
+                calendar: recurrenceCalendar,
+                isAllDay: isAllDay
             ) else {
                 occurrenceIndex += 1
                 continue
             }
 
-            let occurrenceDay = calendar.startOfDay(for: occurrenceStart)
+            let occurrenceDay = isAllDay
+                ? AllDayDate.normalizedStorageDate(occurrenceStart)
+                : calendar.startOfDay(for: occurrenceStart)
 
             if let repeatEndDay, occurrenceDay > repeatEndDay {
                 return nil
             }
 
-            if let exception = exceptionsByKey[exceptionKey(for: occurrenceStart)] {
+            if let exception = exceptionsByKey[exceptionKey(for: occurrenceStart, isAllDay: isAllDay)] {
                 if !exception.isExcluded {
-                    let effectiveDate = exception.overrideStartDate
-                    if calendar.startOfDay(for: effectiveDate) >= todayStart {
+                    let effectiveDate = exception.overrideIsAllDay
+                        ? AllDayDate.normalizedStorageDate(exception.overrideStartDate)
+                        : exception.overrideStartDate
+                    let effectiveDay = exception.overrideIsAllDay
+                        ? AllDayDate.normalizedStorageDate(effectiveDate)
+                        : calendar.startOfDay(for: effectiveDate)
+                    if effectiveDay >= todayStart {
                         return effectiveDate
                     }
                 }
@@ -359,7 +417,8 @@ enum EventOccurrenceService {
             onOrAfter: now,
             calendar: calendar,
             repeatEndDate: event.repeatEndDate,
-            exceptions: exceptions.filter { $0.eventID == event.id }
+            exceptions: exceptions.filter { $0.eventID == event.id },
+            isAllDay: event.isAllDay
         )
     }
 

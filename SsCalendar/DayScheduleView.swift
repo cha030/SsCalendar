@@ -222,7 +222,20 @@ struct DayScheduleView: View {
         }
         guard isEnabled else { return nil }
 
-        let days = DDayCalculator.daysRemaining(until: occurrence.startDate, calendar: DeviceCalendar.current)
+        let calendar = DeviceCalendar.current
+        let days: Int
+        if occurrence.localEventID != nil && occurrence.isAllDay {
+            days = AllDayDate.daysRemaining(
+                untilStorageDate: AllDayDate.storageDate(for: occurrence.startDate, calendar: calendar),
+                now: Date(),
+                calendar: calendar
+            )
+        } else {
+            days = DDayCalculator.daysRemaining(
+                until: occurrence.startDate,
+                calendar: calendar
+            )
+        }
         guard days >= 0 else { return nil }
         return DDayCalculator.displayText(forDaysRemaining: days)
     }

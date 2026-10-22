@@ -60,6 +60,16 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
         return nil
     }
 
+    var sortStartDate: Date {
+        guard isAllDay else { return startDate }
+        switch source {
+        case .local:
+            return AllDayDate.storageDate(for: startDate)
+        case .system:
+            return startDate
+        }
+    }
+
     // 아래 두 날짜 계산은 EventOccurrence와 동일한 규칙을 따른다(기존 로컬 일정 배치 보존).
 
     func occurs(on date: Date, calendar: Calendar) -> Bool {
@@ -73,8 +83,18 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
         }
 
         if isAllDay {
-            let eventStartDay = calendar.startOfDay(for: startDate)
-            let eventEndDay = calendar.startOfDay(for: endDate)
+            let eventStartDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(
+                    fromStorageDate: AllDayDate.storageDate(for: startDate, calendar: calendar),
+                    calendar: calendar
+                )
+            )
+            let eventEndDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(
+                    fromStorageDate: AllDayDate.storageDate(for: endDate, calendar: calendar),
+                    calendar: calendar
+                )
+            )
             return eventStartDay <= dayStart && dayStart <= eventEndDay
         }
 
@@ -86,8 +106,25 @@ struct CalendarDisplayOccurrence: Identifiable, Hashable {
     }
 
     func occupiedDayRange(calendar: Calendar) -> ClosedRange<Date> {
-        let firstDay = calendar.startOfDay(for: startDate)
-        let endDay = calendar.startOfDay(for: endDate)
+        let firstDay: Date
+        let endDay: Date
+        if isAllDay {
+            firstDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(
+                    fromStorageDate: AllDayDate.storageDate(for: startDate, calendar: calendar),
+                    calendar: calendar
+                )
+            )
+            endDay = calendar.startOfDay(
+                for: AllDayDate.displayDate(
+                    fromStorageDate: AllDayDate.storageDate(for: endDate, calendar: calendar),
+                    calendar: calendar
+                )
+            )
+        } else {
+            firstDay = calendar.startOfDay(for: startDate)
+            endDay = calendar.startOfDay(for: endDate)
+        }
 
         if isAllDay || startDate == endDate || endDate > endDay {
             return firstDay...max(firstDay, endDay)
@@ -133,7 +170,7 @@ extension CalendarDisplayOccurrence {
                 return first.isAllDay
             }
 
-            return first.startDate < second.startDate
+            return first.sortStartDate < second.sortStartDate
         }
     }
 }

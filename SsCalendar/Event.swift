@@ -64,7 +64,7 @@ final class Event {
 }
 
 enum AllDayDate {
-    private static var utcCalendar: Calendar {
+    static var utcCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
         calendar.firstWeekday = 1
@@ -95,5 +95,30 @@ enum AllDayDate {
     ) -> Date {
         let components = components(fromStorageDate: date)
         return calendar.date(from: components) ?? date
+    }
+
+    static func adding(
+        _ component: Calendar.Component,
+        value: Int,
+        toStorageDate date: Date
+    ) -> Date? {
+        utcCalendar.date(
+            byAdding: component,
+            value: value,
+            to: normalizedStorageDate(date)
+        )
+    }
+
+    static func daysRemaining(
+        untilStorageDate date: Date,
+        now: Date,
+        calendar: Calendar = DeviceCalendar.current
+    ) -> Int {
+        let targetDate = displayDate(fromStorageDate: date, calendar: calendar)
+        return calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: now),
+            to: calendar.startOfDay(for: targetDate)
+        ).day ?? 0
     }
 }

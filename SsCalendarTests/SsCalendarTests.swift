@@ -455,6 +455,165 @@ struct DeviceCalendarTests {
     }
 }
 
+@Suite("종일 일정 반복·예외·D-Day")
+struct AllDayOccurrenceTests {
+    private func calendar(_ identifier: String) -> Calendar {
+        DeviceCalendar.make(timeZone: TimeZone(identifier: identifier)!)
+    }
+
+    private func event(
+        start: Date,
+        repeatUnit: String,
+        repeatEndDate: Date? = nil
+    ) -> Event {
+        Event(
+            title: "종일 일정",
+            isAllDay: true,
+            startDate: start,
+            endDate: start,
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: repeatUnit,
+            repeatInterval: 1,
+            memo: "",
+            repeatEndDate: repeatEndDate
+        )
+    }
+
+    private func range(year: Int, month: Int, day: Int, calendar: Calendar) -> DateInterval {
+        let start = calendar.date(from: DateComponents(year: year, month: month, day: day))!
+        let end = calendar.date(byAdding: .month, value: 2, to: start)!
+        return DateInterval(start: start, end: end)
+    }
+
+    @Test("종일 반복(매일·매주·매월)은 서울·LA·Kiritimati·Pago Pago에서 같은 날짜를 만든다")
+    func recurringAllDayDatesAreStableAcrossTimeZones() {
+        let timeZones = ["Asia/Seoul", "America/Los_Angeles", "Pacific/Kiritimati", "Pacific/Pago_Pago"]
+        let start = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+
+        for unit in ["일", "주", "개월"] {
+            var dateComponentsByZone: [[DateComponents]] = []
+            for identifier in timeZones {
+                let deviceCalendar = calendar(identifier)
+                let results = EventOccurrenceService.occurrences(
+                    for: event(start: start, repeatUnit: unit),
+                    intersecting: range(year: 2026, month: 10, day: 1, calendar: deviceCalendar),
+                    calendar: deviceCalendar,
+                    limit: 3
+                )
+                dateComponentsByZone.append(results.map { AllDayDate.components(fromStorageDate: $0.startDate) })
+            }
+            #expect(dateComponentsByZone.dropFirst().allSatisfy { $0 == dateComponentsByZone[0] })
+        }
+
+        let dailyEvent = event(
+            start: AllDayDate.storageDate(year: 2026, month: 10, day: 31),
+            repeatUnit: "일",
+            repeatEndDate: AllDayDate.storageDate(year: 2026, month: 11, day: 2)
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: dailyEvent,
+            intersecting: range(year: 2026, month: 10, day: 1, calendar: calendar("America/Los_Angeles")),
+            calendar: calendar("America/Los_Angeles")
+        )
+        #expect(results.map { AllDayDate.components(fromStorageDate: $0.startDate).day } == [31, 1, 2])
+    }
+
+    @Test("종일 반복 일정의 예외 이동·삭제는 시간대가 바뀌어도 같은 날짜에 적용된다")
+    func allDayExceptionsUseStorageDates() {
+        let event = self.event(
+            start: AllDayDate.storageDate(year: 2026, month: 10, day: 5),
+            repeatUnit: "주"
+        )
+        let moved = EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: AllDayDate.storageDate(year: 2026, month: 10, day: 12),
+            isExcluded: false,
+            overrideIsAllDay: true,
+            overrideStartDate: AllDayDate.storageDate(year: 2026, month: 10, day: 13),
+            overrideEndDate: AllDayDate.storageDate(year: 2026, month: 10, day: 13)
+        )
+        let deleted = EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: AllDayDate.storageDate(year: 2026, month: 10, day: 19),
+            isExcluded: true
+        )
+
+        for identifier in ["Asia/Seoul", "America/Los_Angeles", "Pacific/Kiritimati", "Pacific/Pago_Pago"] {
+            let deviceCalendar = calendar(identifier)
+            let results = EventOccurrenceService.occurrences(
+                for: event,
+                intersecting: DateInterval(
+                    start: deviceCalendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!,
+                    end: deviceCalendar.date(from: DateComponents(year: 2026, month: 11, day: 1))!
+                ),
+                calendar: deviceCalendar,
+                exceptions: [moved, deleted]
+            )
+            #expect(results.map { AllDayDate.components(fromStorageDate: $0.startDate).day } == [5, 13, 26])
+        }
+    }
+
+    @Test("종일 일정 D-Day는 서울과 LA에서 같다")
+    func allDayDDayUsesDateComponents() {
+        let target = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+        let values = ["Asia/Seoul", "America/Los_Angeles"].map { identifier in
+            let deviceCalendar = calendar(identifier)
+            let now = deviceCalendar.date(from: DateComponents(year: 2026, month: 10, day: 20))!
+            return AllDayDate.daysRemaining(
+                untilStorageDate: target,
+                now: now,
+                calendar: calendar(identifier)
+            )
+        }
+        #expect(values == [2, 2])
+    }
+
+    @Test("정렬은 종일 일정을 먼저 두고 같은 종류 안에서는 날짜·시각 순서를 유지한다")
+    func allDayEventsSortBeforeTimedEvents() {
+        let deviceCalendar = calendar("America/Los_Angeles")
+        let day1 = AllDayDate.storageDate(year: 2026, month: 10, day: 21)
+        let day2 = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+        let allDayEarlier = event(start: day1, repeatUnit: "반복 안 함")
+        let allDayLater = event(start: day2, repeatUnit: "반복 안 함")
+        let timed = Event(
+            title: "시간 일정",
+            isAllDay: false,
+            startDate: deviceCalendar.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 9))!,
+            endDate: deviceCalendar.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 10))!,
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "반복 안 함",
+            repeatInterval: 1,
+            memo: ""
+        )
+        let results = EventOccurrenceService.occurrences(
+            for: [timed, allDayLater, allDayEarlier],
+            intersecting: DateInterval(
+                start: deviceCalendar.date(from: DateComponents(year: 2026, month: 10, day: 21))!,
+                end: deviceCalendar.date(from: DateComponents(year: 2026, month: 10, day: 23))!
+            ),
+            calendar: deviceCalendar
+        )
+        #expect(results.map(\.isAllDay) == [true, true, false])
+        #expect(results.prefix(2).map { AllDayDate.components(fromStorageDate: $0.startDate).day } == [21, 22])
+    }
+
+    @Test("시간 있는 일정은 시간대에 따라 절대 시각이 이동한다")
+    func timedEventKeepsAbsoluteInstant() {
+        let utc = calendar("UTC")
+        let instant = utc.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 6))!
+        #expect(calendar("Asia/Seoul").component(.hour, from: instant) == 15)
+        #expect(calendar("America/Los_Angeles").component(.hour, from: instant) == 23)
+    }
+}
+
 @Suite("USWeekendColorSetting")
 struct USWeekendColorSettingTests {
 

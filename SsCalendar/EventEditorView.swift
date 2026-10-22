@@ -868,7 +868,13 @@ struct EventEditorView: View {
         // 자체를 바꾸지 않으므로(UI에서 숨김) 이 검사가 필요 없다.
         if !isEditingSingleOccurrenceOfRepeatingSeries, let repeatEndDate = effectiveRepeatEndDate {
             let calendar = DeviceCalendar.current
-            guard calendar.startOfDay(for: repeatEndDate) >= calendar.startOfDay(for: startDate) else {
+            let repeatEndDay = isAllDay
+                ? AllDayDate.storageDate(for: repeatEndDate, calendar: calendar)
+                : calendar.startOfDay(for: repeatEndDate)
+            let startDay = isAllDay
+                ? AllDayDate.storageDate(for: startDate, calendar: calendar)
+                : calendar.startOfDay(for: startDate)
+            guard repeatEndDay >= startDay else {
                 saveErrorMessage = String(localized: "반복 종료 날짜는 시작일보다 빠를 수 없습니다.")
                 return
             }
