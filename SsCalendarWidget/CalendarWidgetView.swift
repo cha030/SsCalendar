@@ -56,7 +56,7 @@ struct CalendarWidgetView: View {
         }
         .padding(contentPadding)
         .contentTransition(.identity)
-        .widgetURL(CalendarWidgetDeepLink.monthURL(for: entry.monthStart))
+        .widgetURL(CalendarWidgetDeepLink.monthURL(dateString: entry.monthDateString))
         .containerBackground(Color(uiColor: .systemBackground), for: .widget)
     }
 
@@ -87,7 +87,7 @@ struct CalendarWidgetView: View {
             HStack(spacing: 5) {
                 Spacer()
 
-                Link(destination: CalendarWidgetDeepLink.newEventURL(for: selectedDateForNewEvent)) {
+                Link(destination: CalendarWidgetDeepLink.newEventURL(dateString: entry.selectedDateString ?? entry.monthDateString)) {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .semibold))
                         .frame(width: todayButtonSize, height: todayButtonSize)
@@ -147,7 +147,7 @@ struct CalendarWidgetView: View {
     }
 
     private var monthTitle: String {
-        CalendarWidgetCalendar.monthTitle(for: entry.monthStart)
+        CalendarWidgetCalendar.monthTitle(year: entry.monthYear, month: entry.monthNumber)
     }
 
     private func weekdayColor(at index: Int) -> Color {
@@ -206,11 +206,7 @@ struct CalendarWidgetView: View {
     }
 
     private var todayDayNumber: String {
-        String(DeviceCalendar.current.component(.day, from: Date()))
-    }
-
-    private var selectedDateForNewEvent: Date {
-        entry.selectedDate ?? Date()
+        String(entry.todayDayNumber)
     }
 
     private func isSelected(_ date: Date) -> Bool {
@@ -480,7 +476,7 @@ private struct CalendarWidgetExpandedDayView: View {
 
     private var dateNumber: some View {
         let isLargestToday = metrics.textSizeLevel == 3 && day.isToday
-        return Text(String(calendar.component(.day, from: day.date)))
+        return Text(String(day.dayNumber))
             .font(
                 .system(
                     size: metrics.dateFontSize,
@@ -503,7 +499,7 @@ private struct CalendarWidgetExpandedDayView: View {
 
     private var dateControls: some View {
         ZStack {
-            Link(destination: CalendarWidgetDeepLink.dayURL(for: day.date)) {
+            Link(destination: CalendarWidgetDeepLink.dayURL(dateString: day.dateString)) {
                 dateNumber
             }
         }
@@ -512,21 +508,17 @@ private struct CalendarWidgetExpandedDayView: View {
 
     private var lunarText: String? {
         guard LunarDisplaySetting.isEnabled else { return nil }
-        guard calendar.component(.weekday, from: day.date) == 1 else {
+        guard day.weekday == 1 else {
             return nil
         }
-        let components = calendar.dateComponents([.year, .month, .day], from: day.date)
-        guard let year = components.year, let month = components.month, let day = components.day else {
-            return nil
-        }
-        return LunarCalendarService.lunarDate(year: year, month: month, day: day)?.displayText
+        return LunarCalendarService.lunarDate(year: day.year, month: day.month, day: day.dayNumber)?.displayText
     }
 
     private var dateColor: Color {
         if day.isHoliday { return .red }
         guard usesColoredWeekends else { return .primary }
 
-        switch calendar.component(.weekday, from: day.date) {
+        switch day.weekday {
         case 1: return .red
         case 7: return .blue
         default: return .primary
@@ -616,8 +608,8 @@ private struct CalendarWidgetMediumDayView: View {
     var body: some View {
         VStack(spacing: 2) {
             ZStack {
-                Link(destination: CalendarWidgetDeepLink.dayURL(for: day.date)) {
-                    Text(String(calendar.component(.day, from: day.date)))
+                Link(destination: CalendarWidgetDeepLink.dayURL(dateString: day.dateString)) {
+                    Text(String(day.dayNumber))
                         .font(
                             .system(
                                 size: 10,
@@ -668,7 +660,7 @@ private struct CalendarWidgetMediumDayView: View {
         if day.isHoliday { return .red }
         guard usesColoredWeekends else { return .primary }
 
-        switch calendar.component(.weekday, from: day.date) {
+        switch day.weekday {
         case 1: return .red
         case 7: return .blue
         default: return .primary
@@ -989,20 +981,21 @@ private struct CalendarWidgetWeekMetrics {
 
 // Today 위젯(TodayWidget.swift)도 dayURL(for:)을 재사용하므로 파일 범위보다 넓게 연다.
 enum CalendarWidgetDeepLink {
-    static func monthURL(for date: Date) -> URL {
-        url(host: "month", date: date)
+    static func monthURL(dateString: String) -> URL {
+        url(host: "month", dateString: dateString)
     }
 
-    static func dayURL(for date: Date) -> URL {
-        url(host: "day", date: date)
+    static func dayURL(dateString: String) -> URL {
+        url(host: "day", dateString: dateString)
     }
 
-    static func newEventURL(for date: Date) -> URL {
-        url(host: "new-event", date: date)
+    static func newEventURL(dateString: String) -> URL {
+        url(host: "new-event", dateString: dateString)
     }
 
     static func eventURL(
         for eventID: UUID,
+        dateString: String,
         occurrenceStartDate: Date,
         originalOccurrenceStartDate: Date
     ) -> URL {
@@ -1010,7 +1003,7 @@ enum CalendarWidgetDeepLink {
         components.scheme = "sscalendar"
         components.host = "event"
         components.queryItems = [
-            URLQueryItem(name: "date", value: dateFormatter().string(from: occurrenceStartDate)),
+            URLQueryItem(name: "date", value: dateString),
             URLQueryItem(name: "eventID", value: eventID.uuidString),
             URLQueryItem(name: "occurrenceStart", value: String(occurrenceStartDate.timeIntervalSince1970)),
             URLQueryItem(
@@ -1018,22 +1011,19 @@ enum CalendarWidgetDeepLink {
                 value: String(originalOccurrenceStartDate.timeIntervalSince1970)
             )
         ]
-        return components.url ?? dayURL(for: occurrenceStartDate)
+        return components.url ?? dayURL(dateString: dateString)
     }
 
-    private static func url(host: String, date: Date) -> URL {
+    private static func url(host: String, dateString: String) -> URL {
         var components = URLComponents()
         components.scheme = "sscalendar"
         components.host = host
         components.queryItems = [
-            URLQueryItem(name: "date", value: dateFormatter().string(from: date))
+            URLQueryItem(name: "date", value: dateString)
         ]
         return components.url ?? URL(string: "sscalendar://\(host)")!
     }
 
-    private static func dateFormatter() -> DateFormatter {
-        DeviceCalendar.dateFormatter(format: "yyyy-MM-dd", calendar: DeviceCalendar.current)
-    }
 }
 
 private enum CalendarWidgetColor {

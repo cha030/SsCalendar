@@ -10,7 +10,7 @@ struct NextWidgetView: View {
             occurrence: entry.occurrence,
             emptyText: String(localized: "다음 일정 없음")
         )
-        .widgetURL(CalendarWidgetDeepLink.dayURL(for: entry.date))
+        .widgetURL(CalendarWidgetDeepLink.dayURL(dateString: entry.dateString))
     }
 }
 

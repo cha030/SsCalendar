@@ -33,7 +33,7 @@ struct DDayHomeWidgetView: View {
         }
         .widgetURL(
             family == .systemSmall
-                ? visibleItems.first.map { CalendarWidgetDeepLink.dayURL(for: $0.startDate) }
+                ? visibleItems.first.map { CalendarWidgetDeepLink.dayURL(dateString: $0.dateString) }
                 : nil
         )
     }
@@ -180,6 +180,7 @@ private struct DDayHomeMediumRow: View {
             Link(
                 destination: CalendarWidgetDeepLink.eventURL(
                     for: localEventID,
+                    dateString: item.dateString,
                     occurrenceStartDate: item.startDate,
                     originalOccurrenceStartDate: item.originalStartDate
                 )

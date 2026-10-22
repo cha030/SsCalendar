@@ -6,7 +6,9 @@ struct DDayHomeWidgetItem: Hashable, Sendable {
     let displayTitle: String
     let isSensitiveTitle: Bool
     let startDate: Date
+    let dateString: String
     let originalStartDate: Date
+    let originalDateString: String
     let localEventID: UUID?
     let daysRemaining: Int
 }
@@ -28,7 +30,9 @@ extension DDayHomeWidgetEntry {
                     displayTitle: String(localized: "생일 파티"),
                     isSensitiveTitle: false,
                     startDate: now.addingTimeInterval(86_400 * 3),
+                    dateString: CalendarWidgetCalendar.dateString(for: now.addingTimeInterval(86_400 * 3)),
                     originalStartDate: now.addingTimeInterval(86_400 * 3),
+                    originalDateString: CalendarWidgetCalendar.dateString(for: now.addingTimeInterval(86_400 * 3)),
                     localEventID: nil,
                     daysRemaining: 3
                 ),
@@ -36,7 +40,9 @@ extension DDayHomeWidgetEntry {
                     displayTitle: String(localized: "여행"),
                     isSensitiveTitle: false,
                     startDate: now.addingTimeInterval(86_400 * 10),
+                    dateString: CalendarWidgetCalendar.dateString(for: now.addingTimeInterval(86_400 * 10)),
                     originalStartDate: now.addingTimeInterval(86_400 * 10),
+                    originalDateString: CalendarWidgetCalendar.dateString(for: now.addingTimeInterval(86_400 * 10)),
                     localEventID: nil,
                     daysRemaining: 10
                 )

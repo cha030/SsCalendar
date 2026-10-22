@@ -19,6 +19,7 @@ struct TodayWidgetOccurrenceSummary: Hashable, Sendable {
 /// `occurrence`가 nil이면 해당 위젯의 "일정 없음" 문구를 보여준다(Today/Next는 문구만 다르다 — TodayWidgetView/NextWidgetView 참고).
 struct TodayWidgetEntry: TimelineEntry, Sendable {
     let date: Date
+    let dateString: String
     let occurrence: TodayWidgetOccurrenceSummary?
 }
 
@@ -28,6 +29,7 @@ extension TodayWidgetEntry {
         let now = Date()
         return TodayWidgetEntry(
             date: now,
+            dateString: CalendarWidgetCalendar.dateString(for: now),
             occurrence: TodayWidgetOccurrenceSummary(
                 displayTitle: String(localized: "디자인 리뷰"),
                 isSensitiveTitle: false,
@@ -44,6 +46,7 @@ extension TodayWidgetEntry {
         let now = Date()
         return TodayWidgetEntry(
             date: now,
+            dateString: CalendarWidgetCalendar.dateString(for: now),
             occurrence: TodayWidgetOccurrenceSummary(
                 displayTitle: String(localized: "회의"),
                 isSensitiveTitle: false,
@@ -56,6 +59,6 @@ extension TodayWidgetEntry {
     }
 
     static func empty(for date: Date) -> TodayWidgetEntry {
-        TodayWidgetEntry(date: date, occurrence: nil)
+        TodayWidgetEntry(date: date, dateString: CalendarWidgetCalendar.dateString(for: date), occurrence: nil)
     }
 }

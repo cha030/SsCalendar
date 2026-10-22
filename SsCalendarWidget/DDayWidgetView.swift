@@ -19,8 +19,8 @@ struct DDayWidgetView: View {
             emptyText: String(localized: "D-Day 일정 없음")
         )
         .widgetURL(
-            entry.item.map { CalendarWidgetDeepLink.dayURL(for: $0.startDate) }
-                ?? CalendarWidgetDeepLink.monthURL(for: entry.date)
+            entry.item.map { CalendarWidgetDeepLink.dayURL(dateString: $0.dateString) }
+                ?? CalendarWidgetDeepLink.monthURL(dateString: entry.dateString)
         )
     }
 }
@@ -36,8 +36,8 @@ struct DDayNextWidgetView: View {
             emptyText: String(localized: "D-Day 일정 없음")
         )
         .widgetURL(
-            entry.item.map { CalendarWidgetDeepLink.dayURL(for: $0.startDate) }
-                ?? CalendarWidgetDeepLink.monthURL(for: entry.date)
+            entry.item.map { CalendarWidgetDeepLink.dayURL(dateString: $0.dateString) }
+                ?? CalendarWidgetDeepLink.monthURL(dateString: entry.dateString)
         )
     }
 }

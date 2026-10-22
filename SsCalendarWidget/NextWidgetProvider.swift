@@ -34,6 +34,7 @@ struct NextWidgetProvider: TimelineProvider {
             // Next는 항상 아직 시작하지 않은 일정이므로 "진행" 표시가 없다.
             TodayWidgetEntry(
                 date: moment.date,
+                dateString: CalendarWidgetCalendar.dateString(for: moment.date),
                 occurrence: LockScreenWidgetMoments.summary(
                     for: moment.status.next,
                     isOngoing: false,

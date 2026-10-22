@@ -81,8 +81,8 @@ struct CalendarWidgetProvider: TimelineProvider {
             let widgetOccurrences = items.map(\.widgetOccurrence)
 
             let days = grid.dates.map { day in
-                let components = calendar.dateComponents([.year, .month, .day], from: day)
-                let dayKey = "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
+                let components = CalendarWidgetCalendar.components(for: day, calendar: calendar)
+                let dayKey = "\(components.year)-\(components.month)-\(components.day)"
                 let holidays = (holidaysByDate[dayKey] ?? [])
                     .filter(\.isHoliday)
                 let dayEvents = items
@@ -91,6 +91,11 @@ struct CalendarWidgetProvider: TimelineProvider {
 
                 return CalendarWidgetDay(
                     date: day,
+                    dateString: CalendarWidgetCalendar.dateString(for: day, calendar: calendar),
+                    year: components.year,
+                    month: components.month,
+                    dayNumber: components.day,
+                    weekday: components.weekday,
                     isCurrentMonth: calendar.isDate(day, equalTo: grid.monthStart, toGranularity: .month),
                     isToday: calendar.isDateInToday(day),
                     isHoliday: !holidays.isEmpty,
@@ -105,7 +110,12 @@ struct CalendarWidgetProvider: TimelineProvider {
             return CalendarWidgetEntry(
                 date: date,
                 monthStart: grid.monthStart,
+                monthDateString: CalendarWidgetCalendar.dateString(for: grid.monthStart, calendar: calendar),
+                monthYear: CalendarWidgetCalendar.components(for: grid.monthStart, calendar: calendar).year,
+                monthNumber: CalendarWidgetCalendar.components(for: grid.monthStart, calendar: calendar).month,
                 selectedDate: selectedDate,
+                selectedDateString: selectedDate.map { CalendarWidgetCalendar.dateString(for: $0, calendar: calendar) },
+                todayDayNumber: CalendarWidgetCalendar.components(for: date, calendar: calendar).day,
                 days: days,
                 occurrences: widgetOccurrences
             )

@@ -65,6 +65,11 @@ struct CalendarWidgetOccurrence: Identifiable, Hashable, Sendable {
 
 struct CalendarWidgetDay: Identifiable, Hashable, Sendable {
     let date: Date
+    let dateString: String
+    let year: Int
+    let month: Int
+    let dayNumber: Int
+    let weekday: Int
     let isCurrentMonth: Bool
     let isToday: Bool
     let isHoliday: Bool
@@ -77,7 +82,12 @@ struct CalendarWidgetDay: Identifiable, Hashable, Sendable {
 struct CalendarWidgetEntry: TimelineEntry, Sendable {
     let date: Date
     let monthStart: Date
+    let monthDateString: String
+    let monthYear: Int
+    let monthNumber: Int
     let selectedDate: Date?
+    let selectedDateString: String?
+    let todayDayNumber: Int
     let days: [CalendarWidgetDay]
     let occurrences: [CalendarWidgetOccurrence]
 }
@@ -121,26 +131,44 @@ enum CalendarWidgetCalendar {
     }
 
     static func monthTitle(
-        for monthStart: Date,
+        year: Int,
+        month: Int,
         now: Date = Date(),
         calendar: Calendar = DeviceCalendar.current
     ) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = calendar.locale ?? Locale.current
-        formatter.timeZone = calendar.timeZone
-        let displayed = calendar.component(.year, from: monthStart)
         let current = calendar.component(.year, from: now)
-        formatter.dateFormat = displayed == current ? "MMMM" : "yyyy MMMM"
-        return formatter.string(from: monthStart)
+        let monthName = calendar.monthSymbols.indices.contains(month - 1)
+            ? calendar.monthSymbols[month - 1]
+            : ""
+        return year == current ? monthName : "\(year) \(monthName)"
+    }
+
+    static func dateString(for date: Date, calendar: Calendar = DeviceCalendar.current) -> String {
+        DeviceCalendar.dateFormatter(format: "yyyy-MM-dd", calendar: calendar).string(from: date)
+    }
+
+    static func components(for date: Date, calendar: Calendar = DeviceCalendar.current) -> (year: Int, month: Int, day: Int, weekday: Int) {
+        let components = calendar.dateComponents([.year, .month, .day, .weekday], from: date)
+        return (
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0,
+            components.weekday ?? 0
+        )
     }
 
     static func emptyEntry(for date: Date) -> CalendarWidgetEntry {
         let grid = monthGrid(containing: date)
         let calendar = korean
         let days = grid.dates.map { day in
-            CalendarWidgetDay(
+            let components = Self.components(for: day, calendar: calendar)
+            return CalendarWidgetDay(
                 date: day,
+                dateString: Self.dateString(for: day, calendar: calendar),
+                year: components.year,
+                month: components.month,
+                dayNumber: components.day,
+                weekday: components.weekday,
                 isCurrentMonth: calendar.isDate(day, equalTo: grid.monthStart, toGranularity: .month),
                 isToday: calendar.isDateInToday(day),
                 isHoliday: false,
@@ -151,7 +179,12 @@ enum CalendarWidgetCalendar {
         return CalendarWidgetEntry(
             date: date,
             monthStart: grid.monthStart,
+            monthDateString: Self.dateString(for: grid.monthStart, calendar: calendar),
+            monthYear: Self.components(for: grid.monthStart, calendar: calendar).year,
+            monthNumber: Self.components(for: grid.monthStart, calendar: calendar).month,
             selectedDate: nil,
+            selectedDateString: nil,
+            todayDayNumber: Self.components(for: date, calendar: calendar).day,
             days: days,
             occurrences: []
         )
@@ -204,6 +237,7 @@ enum CalendarWidgetCalendar {
         ]
 
         let days = grid.dates.map { day in
+            let components = Self.components(for: day, calendar: calendar)
             let sampleEvents: [CalendarWidgetEvent] = previewOccurrences.compactMap { occurrence in
                 guard occurrence.firstDay <= day, day <= occurrence.lastDay else {
                     return nil
@@ -217,6 +251,11 @@ enum CalendarWidgetCalendar {
 
             return CalendarWidgetDay(
                 date: day,
+                dateString: Self.dateString(for: day, calendar: calendar),
+                year: components.year,
+                month: components.month,
+                dayNumber: components.day,
+                weekday: components.weekday,
                 isCurrentMonth: calendar.isDate(day, equalTo: grid.monthStart, toGranularity: .month),
                 isToday: calendar.isDateInToday(day),
                 isHoliday: holidayDate.map { calendar.isDate(day, inSameDayAs: $0) } ?? false,
@@ -227,7 +266,12 @@ enum CalendarWidgetCalendar {
         return CalendarWidgetEntry(
             date: now,
             monthStart: grid.monthStart,
+            monthDateString: Self.dateString(for: grid.monthStart, calendar: calendar),
+            monthYear: Self.components(for: grid.monthStart, calendar: calendar).year,
+            monthNumber: Self.components(for: grid.monthStart, calendar: calendar).month,
             selectedDate: today,
+            selectedDateString: Self.dateString(for: today, calendar: calendar),
+            todayDayNumber: Self.components(for: now, calendar: calendar).day,
             days: days,
             occurrences: previewOccurrences
         )

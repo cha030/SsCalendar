@@ -147,6 +147,7 @@ struct TodayWidgetProvider: TimelineProvider {
         let entries = moments.map { moment in
             TodayWidgetEntry(
                 date: moment.date,
+                dateString: CalendarWidgetCalendar.dateString(for: moment.date, calendar: DeviceCalendar.current),
                 occurrence: LockScreenWidgetMoments.summary(
                     for: moment.status.today,
                     isOngoing: moment.status.isTodayOngoing,

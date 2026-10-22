@@ -113,8 +113,14 @@ func calendarTextSizePreviewEntry(level: Int) -> CalendarWidgetEntry {
         }
         let isHoliday = calendar.isDate(day, inSameDayAs: holidayDay)
 
+        let components = CalendarWidgetCalendar.components(for: day, calendar: calendar)
         return CalendarWidgetDay(
             date: day,
+            dateString: CalendarWidgetCalendar.dateString(for: day, calendar: calendar),
+            year: components.year,
+            month: components.month,
+            dayNumber: components.day,
+            weekday: components.weekday,
             isCurrentMonth: calendar.isDate(day, equalTo: grid.monthStart, toGranularity: .month),
             isToday: calendar.isDate(day, inSameDayAs: busyDay),
             isHoliday: isHoliday,
@@ -126,7 +132,12 @@ func calendarTextSizePreviewEntry(level: Int) -> CalendarWidgetEntry {
     return CalendarWidgetEntry(
         date: Date(),
         monthStart: grid.monthStart,
+        monthDateString: CalendarWidgetCalendar.dateString(for: grid.monthStart, calendar: calendar),
+        monthYear: CalendarWidgetCalendar.components(for: grid.monthStart, calendar: calendar).year,
+        monthNumber: CalendarWidgetCalendar.components(for: grid.monthStart, calendar: calendar).month,
         selectedDate: busyDay,
+        selectedDateString: CalendarWidgetCalendar.dateString(for: busyDay, calendar: calendar),
+        todayDayNumber: CalendarWidgetCalendar.components(for: Date(), calendar: calendar).day,
         days: days,
         occurrences: occurrences
     )

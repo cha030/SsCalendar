@@ -37,11 +37,16 @@ struct DDayNextWidgetProvider: TimelineProvider {
                 displayTitle: showsEventTitles ? item.occurrence.title : String(localized: "일정 있음"),
                 isSensitiveTitle: showsEventTitles,
                 startDate: item.occurrence.startDate,
+                dateString: CalendarWidgetCalendar.dateString(for: item.occurrence.startDate),
                 daysRemaining: item.daysRemaining
             )
         }
 
-        let entry = DDayWidgetEntry(date: now, item: summary)
+        let entry = DDayWidgetEntry(
+            date: now,
+            dateString: CalendarWidgetCalendar.dateString(for: now),
+            item: summary
+        )
         return Timeline(entries: [entry], policy: .after(nextMidnight))
     }
 }

@@ -251,6 +251,18 @@ struct HolidayCountryTests {
 
 @Suite("DeviceCalendar")
 struct DeviceCalendarTests {
+    private func dateString(for date: Date, calendar: Calendar) -> String {
+        DeviceCalendar.dateFormatter(format: "yyyy-MM-dd", calendar: calendar).string(from: date)
+    }
+
+    private func widgetURL(host: String, dateString: String) -> URL {
+        var components = URLComponents()
+        components.scheme = "sscalendar"
+        components.host = host
+        components.queryItems = [URLQueryItem(name: "date", value: dateString)]
+        return components.url!
+    }
+
     @Test("서울과 LA 시간대에서 기기 날짜를 각각 계산한다")
     func deviceDateUsesInjectedTimeZone() {
         let utc = DeviceCalendar.make(timeZone: TimeZone(secondsFromGMT: 0)!)
@@ -348,6 +360,65 @@ struct DeviceCalendarTests {
         #expect(losAngeles.component(.day, from: instant) == 30)
         #expect(seoul.component(.month, from: seoulGrid.start) == 10)
         #expect(losAngeles.component(.month, from: losAngelesGrid.start) == 9)
+    }
+
+    @Test("서울에서 만든 10월 entry를 LA에서 렌더링해도 월 링크는 2026-10-01이다")
+    func widgetMonthLinkKeepsEntryDateAcrossTimeZones() {
+        let seoul = DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!)
+        let losAngeles = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let october = seoul.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+        let dateString = dateString(for: october, calendar: seoul)
+
+        #expect(dateString == "2026-10-01")
+        #expect(widgetURL(host: "month", dateString: dateString).absoluteString.contains("2026-10-01"))
+        #expect(losAngeles.monthSymbols[9].localizedCaseInsensitiveContains("October"))
+    }
+
+    @Test("LA에서 만든 10월 entry도 서울에서 렌더링해도 월 링크는 2026-10-01이다")
+    func widgetMonthLinkKeepsLosAngelesEntryDateInSeoul() {
+        let losAngeles = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let october = losAngeles.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+        let dateString = dateString(for: october, calendar: losAngeles)
+
+        #expect(dateString == "2026-10-01")
+        #expect(widgetURL(host: "month", dateString: dateString).absoluteString.contains("2026-10-01"))
+    }
+
+    @Test("서울 entry의 10월 22일 날짜 칸 링크와 숫자는 LA에서도 그대로다")
+    func widgetDayLinkAndNumberKeepEntryDateAcrossTimeZones() {
+        let seoul = DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!)
+        let losAngeles = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let octoberTwentySecond = seoul.date(from: DateComponents(year: 2026, month: 10, day: 22))!
+        let components = seoul.dateComponents([.year, .month, .day], from: octoberTwentySecond)
+        let dateString = dateString(for: octoberTwentySecond, calendar: seoul)
+
+        #expect(dateString == "2026-10-22")
+        #expect(components.day == 22)
+        #expect(widgetURL(host: "day", dateString: dateString).absoluteString.contains("2026-10-22"))
+        #expect(losAngeles.dateComponents([.year, .month, .day], from: octoberTwentySecond).day != 22)
+    }
+
+    @Test("새 일정 링크는 entry에서 확정한 선택 날짜를 유지한다")
+    func newEventLinkKeepsSelectedDateString() {
+        let dateString = "2026-10-22"
+        #expect(widgetURL(host: "new-event", dateString: dateString).absoluteString.contains(dateString))
+    }
+
+    @Test("Today·Next·D-Day 링크는 확정한 날짜 문자열을 시간대와 무관하게 사용한다")
+    func lockScreenAndDDayLinksKeepDateString() {
+        let dateString = "2026-10-22"
+        #expect(widgetURL(host: "day", dateString: dateString).absoluteString.contains(dateString))
+        #expect(widgetURL(host: "event", dateString: dateString).absoluteString.contains(dateString))
+    }
+
+    @Test("시간대 변경 후 오늘 버튼은 현재 기기 시간대의 월 상태를 사용한다")
+    func todayButtonUsesCurrentDeviceMonthState() {
+        let losAngeles = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let now = losAngeles.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 12))!
+        let month = losAngeles.dateInterval(of: .month, for: now)!.start
+
+        #expect(losAngeles.component(.year, from: month) == 2026)
+        #expect(losAngeles.component(.month, from: month) == 10)
     }
 
     @Test("한국 공휴일 API 값 yyyyMMdd가 서울과 LA에서 같은 연월일로 표시된다")

@@ -35,7 +35,9 @@ struct DDayHomeWidgetProvider: TimelineProvider {
                 displayTitle: showsEventTitles ? item.occurrence.title : String(localized: "일정 있음"),
                 isSensitiveTitle: showsEventTitles,
                 startDate: item.occurrence.startDate,
+                dateString: CalendarWidgetCalendar.dateString(for: item.occurrence.startDate),
                 originalStartDate: item.occurrence.originalStartDate,
+                originalDateString: CalendarWidgetCalendar.dateString(for: item.occurrence.originalStartDate),
                 localEventID: item.occurrence.localEventID,
                 daysRemaining: item.daysRemaining
             )
