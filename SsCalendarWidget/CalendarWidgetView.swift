@@ -515,7 +515,11 @@ private struct CalendarWidgetExpandedDayView: View {
         guard calendar.component(.weekday, from: day.date) == 1 else {
             return nil
         }
-        return LunarCalendarService.lunarDate(for: day.date)?.displayText
+        let components = calendar.dateComponents([.year, .month, .day], from: day.date)
+        guard let year = components.year, let month = components.month, let day = components.day else {
+            return nil
+        }
+        return LunarCalendarService.lunarDate(year: year, month: month, day: day)?.displayText
     }
 
     private var dateColor: Color {

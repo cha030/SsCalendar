@@ -1,9 +1,16 @@
 import Foundation
 
 enum HolidayDisplayFormatter {
-    static func title(for names: [String], on date: Date) -> String? {
+    static func title(for names: [String], on date: Date, calendar: Calendar = DeviceCalendar.current) -> String? {
         var displayedNames: [String] = []
-        let lunarDate = LunarCalendarService.lunarDate(for: date)
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let lunarDate = components.year.flatMap { year in
+            components.month.flatMap { month in
+                components.day.flatMap { day in
+                    LunarCalendarService.lunarDate(year: year, month: month, day: day)
+                }
+            }
+        }
 
         for name in names {
             guard shouldDisplay(name, lunarDate: lunarDate) else { continue }

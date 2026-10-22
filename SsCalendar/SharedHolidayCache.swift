@@ -133,14 +133,42 @@ struct HolidayMonth: Hashable, Comparable, Sendable {
 
 struct SharedHolidayRecord: Codable, Hashable, Sendable {
     let date: Date
+    let year: Int
+    let month: Int
+    let day: Int
     let name: String
     let isHoliday: Bool
+
+    init(date: Date, name: String, isHoliday: Bool, calendar: Calendar = DeviceCalendar.current) {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        self.date = date
+        self.year = components.year ?? 0
+        self.month = components.month ?? 0
+        self.day = components.day ?? 0
+        self.name = name
+        self.isHoliday = isHoliday
+    }
+
+    init(year: Int, month: Int, day: Int, name: String, isHoliday: Bool, calendar: Calendar = DeviceCalendar.current) {
+        self.date = calendar.date(from: DateComponents(year: year, month: month, day: day)) ?? .distantPast
+        self.year = year
+        self.month = month
+        self.day = day
+        self.name = name
+        self.isHoliday = isHoliday
+    }
 }
 
 @MainActor
 enum SharedHolidayCache {
     private struct Payload: Codable {
+        let version: Int
         var months: [String: [SharedHolidayRecord]] = [:]
+
+        init(months: [String: [SharedHolidayRecord]] = [:]) {
+            version = 2
+            self.months = months
+        }
     }
 
     private static let relativePath = "Library/Caches/Holidays/holidays.json"
@@ -155,13 +183,6 @@ enum SharedHolidayCache {
         let prefix = "\(country.rawValue)-"
         return payload.months.flatMap { key, records in
             if key.hasPrefix(prefix) {
-                return records
-            }
-
-            // 이전 버전의 한국 캐시(예: 2026-10)는 한국 데이터로만 해석한다.
-            if country == .southKorea,
-               key.count == 7,
-               payload.months["\(prefix)\(key)"] == nil {
                 return records
             }
 
@@ -202,10 +223,14 @@ enum SharedHolidayCache {
             return Payload()
         }
 
-        return try JSONDecoder().decode(
-            Payload.self,
-            from: Data(contentsOf: url)
-        )
+        do {
+            let payload = try JSONDecoder().decode(Payload.self, from: Data(contentsOf: url))
+            guard payload.version == 2 else { throw SharedHolidayCacheError.staleCache }
+            return payload
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            return Payload()
+        }
     }
 
     private static func cacheURL() throws -> URL {
@@ -230,33 +255,29 @@ enum SharedHolidayCache {
         _ lhs: SharedHolidayRecord,
         _ rhs: SharedHolidayRecord
     ) -> Bool {
-        if lhs.date != rhs.date { return lhs.date < rhs.date }
+        if lhs.year != rhs.year { return lhs.year < rhs.year }
+        if lhs.month != rhs.month { return lhs.month < rhs.month }
+        if lhs.day != rhs.day { return lhs.day < rhs.day }
         return lhs.name < rhs.name
     }
 }
 
 /// 미국 연방 공휴일을 날짜 전용 값으로 계산한다.
-/// 모든 날짜는 앱과 위젯의 기존 날짜 기준(Asia/Seoul 자정)으로 생성하므로
-/// 공휴일 표시가 미국 시간대의 시각 변환 때문에 하루 밀리지 않는다.
+/// 공휴일은 연·월·일을 보존해 앱과 위젯의 기기 시간대에서 같은 날짜로 매칭한다.
 enum USFederalHolidayCalculator {
-    private static let timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-
-    static func records(for month: HolidayMonth) -> [SharedHolidayRecord] {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
+    static func records(
+        for month: HolidayMonth,
+        calendar: Calendar = DeviceCalendar.current
+    ) -> [SharedHolidayRecord] {
 
         let years = [month.year - 1, month.year, month.year + 1]
         var records: Set<SharedHolidayRecord> = []
 
         for year in years {
             for holiday in holidays(in: year, calendar: calendar) {
-                let holidayComponents = calendar.dateComponents(
-                    [.year, .month],
-                    from: holiday.date
-                )
                 guard
-                    holidayComponents.year == month.year,
-                    holidayComponents.month == month.month
+                    holiday.year == month.year,
+                    holiday.month == month.month
                 else {
                     continue
                 }
@@ -265,7 +286,9 @@ enum USFederalHolidayCalculator {
         }
 
         return records.sorted { lhs, rhs in
-            if lhs.date != rhs.date { return lhs.date < rhs.date }
+            if lhs.year != rhs.year { return lhs.year < rhs.year }
+            if lhs.month != rhs.month { return lhs.month < rhs.month }
+            if lhs.day != rhs.day { return lhs.day < rhs.day }
             return lhs.name < rhs.name
         }
     }
@@ -287,7 +310,7 @@ enum USFederalHolidayCalculator {
                 return
             }
 
-            result.append(SharedHolidayRecord(date: date, name: name, isHoliday: true))
+            result.append(SharedHolidayRecord(date: date, name: name, isHoliday: true, calendar: calendar))
 
             let weekday = calendar.component(.weekday, from: date)
             let observedOffset: Int?
@@ -303,7 +326,8 @@ enum USFederalHolidayCalculator {
                     SharedHolidayRecord(
                         date: observedDate,
                         name: String(localized: "\(name) (Observed)"),
-                        isHoliday: true
+                        isHoliday: true,
+                        calendar: calendar
                     )
                 )
             }
@@ -318,31 +342,37 @@ enum USFederalHolidayCalculator {
         appendMovable(
             date: nthWeekday(of: year, month: 1, weekday: 2, ordinal: 3, calendar: calendar),
             name: String(localized: "Martin Luther King Jr. Day"),
+            calendar: calendar,
             to: &result
         )
         appendMovable(
             date: nthWeekday(of: year, month: 2, weekday: 2, ordinal: 3, calendar: calendar),
             name: String(localized: "Washington's Birthday"),
+            calendar: calendar,
             to: &result
         )
         appendMovable(
             date: lastWeekday(of: year, month: 5, weekday: 2, calendar: calendar),
             name: String(localized: "Memorial Day"),
+            calendar: calendar,
             to: &result
         )
         appendMovable(
             date: nthWeekday(of: year, month: 9, weekday: 2, ordinal: 1, calendar: calendar),
             name: String(localized: "Labor Day"),
+            calendar: calendar,
             to: &result
         )
         appendMovable(
             date: nthWeekday(of: year, month: 10, weekday: 2, ordinal: 2, calendar: calendar),
             name: String(localized: "Columbus Day"),
+            calendar: calendar,
             to: &result
         )
         appendMovable(
             date: nthWeekday(of: year, month: 11, weekday: 5, ordinal: 4, calendar: calendar),
             name: String(localized: "Thanksgiving Day"),
+            calendar: calendar,
             to: &result
         )
 
@@ -352,10 +382,11 @@ enum USFederalHolidayCalculator {
     private static func appendMovable(
         date: Date?,
         name: String,
+        calendar: Calendar,
         to records: inout [SharedHolidayRecord]
     ) {
         guard let date else { return }
-        records.append(SharedHolidayRecord(date: date, name: name, isHoliday: true))
+        records.append(SharedHolidayRecord(date: date, name: name, isHoliday: true, calendar: calendar))
     }
 
     private static func date(
@@ -404,4 +435,5 @@ enum USFederalHolidayCalculator {
 
 enum SharedHolidayCacheError: Error {
     case appGroupUnavailable
+    case staleCache
 }

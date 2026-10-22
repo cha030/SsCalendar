@@ -349,6 +349,59 @@ struct DeviceCalendarTests {
         #expect(seoul.component(.month, from: seoulGrid.start) == 10)
         #expect(losAngeles.component(.month, from: losAngelesGrid.start) == 9)
     }
+
+    @Test("한국 공휴일 API 값 yyyyMMdd가 서울과 LA에서 같은 연월일로 표시된다")
+    func koreanHolidayAPIValueKeepsDateComponents() {
+        let components = HolidayService.dateComponents(from: "20261022")!
+        let calendars = [
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!),
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        ]
+
+        for calendar in calendars {
+            let date = calendar.date(from: components)!
+            #expect(calendar.dateComponents([.year, .month, .day], from: date).year == 2026)
+            #expect(calendar.dateComponents([.year, .month, .day], from: date).month == 10)
+            #expect(calendar.dateComponents([.year, .month, .day], from: date).day == 22)
+        }
+    }
+
+    @Test("미국 연방 공휴일의 고정일과 관찰일이 서울과 LA에서 같은 날짜로 매칭된다")
+    func federalHolidayDateComponentsAreTimeZoneIndependent() {
+        let calendars = [
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!),
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        ]
+        let expected = Set(["2021-07-04-Independence Day", "2021-07-05-Independence Day (Observed)"])
+
+        for calendar in calendars {
+            let records = USFederalHolidayCalculator.records(
+                for: HolidayMonth(year: 2021, month: 7),
+                calendar: calendar
+            )
+            let actual = Set(records.map { "\($0.year)-\(String(format: "%02d", $0.month))-\(String(format: "%02d", $0.day))-\($0.name)" })
+            #expect(expected.isSubset(of: actual))
+        }
+    }
+
+    @Test("같은 기기 날짜의 음력 월일이 서울과 LA에서 같다")
+    func lunarDateUsesSolarDateComponentsOnly() {
+        let calendars = [
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!),
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        ]
+        let lunarDates = calendars.map { calendar in
+            let date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 22))!
+            let components = calendar.dateComponents([.year, .month, .day], from: date)
+            return LunarCalendarService.lunarDate(
+                year: components.year!,
+                month: components.month!,
+                day: components.day!
+            )
+        }
+
+        #expect(lunarDates[0] == lunarDates[1])
+    }
 }
 
 @Suite("USWeekendColorSetting")

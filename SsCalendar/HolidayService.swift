@@ -26,7 +26,13 @@ final class HolidayService {
 
         if country == .unitedStates {
             let holidays = USFederalHolidayCalculator.records(for: month).map {
-                Holiday(date: $0.date, name: $0.name, isHoliday: $0.isHoliday)
+                Holiday(
+                    year: $0.year,
+                    month: $0.month,
+                    day: $0.day,
+                    name: $0.name,
+                    isHoliday: $0.isHoliday
+                )
             }
             cache[cacheKey] = holidays
             updateSharedCache(with: holidays, for: month, country: country)
@@ -99,7 +105,9 @@ final class HolidayService {
     ) {
         let records = holidays.map {
             SharedHolidayRecord(
-                date: $0.date,
+                year: $0.year,
+                month: $0.month,
+                day: $0.day,
                 name: $0.name,
                 isHoliday: $0.isHoliday
             )
@@ -120,34 +128,30 @@ final class HolidayService {
     private func makeHoliday(
         from item: HolidayResponseItem
     ) -> Holiday? {
+        guard item.isHoliday == "Y", let components = Self.dateComponents(from: item.locationDate) else {
+            return nil
+        }
+
         guard
-            item.isHoliday == "Y",
-            item.locationDate.count == 8,
-            let year = Int(item.locationDate.prefix(4)),
-            let month = Int(item.locationDate.dropFirst(4).prefix(2)),
-            let day = Int(item.locationDate.suffix(2))
+            let year = components.year,
+            let month = components.month,
+            let day = components.day
+        else { return nil }
+
+        return Holiday(year: year, month: month, day: day, name: item.name, isHoliday: true)
+    }
+
+    nonisolated static func dateComponents(from locationDate: String) -> DateComponents? {
+        guard
+            locationDate.count == 8,
+            let year = Int(locationDate.prefix(4)),
+            let month = Int(locationDate.dropFirst(4).prefix(2)),
+            let day = Int(locationDate.suffix(2))
         else {
             return nil
         }
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-
-        guard let date = calendar.date(
-            from: DateComponents(
-                year: year,
-                month: month,
-                day: day
-            )
-        ) else {
-            return nil
-        }
-
-        return Holiday(
-            date: date,
-            name: item.name,
-            isHoliday: true
-        )
+        return DateComponents(year: year, month: month, day: day)
     }
 }
 

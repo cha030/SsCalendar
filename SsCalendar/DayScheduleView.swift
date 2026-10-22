@@ -148,7 +148,8 @@ struct DayScheduleView: View {
     private var holidayTitle: String? {
         HolidayDisplayFormatter.title(
             for: dayHolidays.filter(\.isHoliday).map(\.name),
-            on: currentDate
+            on: currentDate,
+            calendar: DeviceCalendar.current
         )
     }
 
@@ -188,7 +189,11 @@ struct DayScheduleView: View {
             )
             guard !Task.isCancelled else { return }
             dayHolidays = holidays.filter {
-                $0.isHoliday && DeviceCalendar.current.isDate($0.date, inSameDayAs: key.date)
+                let components = DeviceCalendar.current.dateComponents([.year, .month, .day], from: key.date)
+                return $0.isHoliday
+                    && $0.year == components.year
+                    && $0.month == components.month
+                    && $0.day == components.day
             }
         } catch {
             dayHolidays = []

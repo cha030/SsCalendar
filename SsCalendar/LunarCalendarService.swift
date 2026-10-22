@@ -15,29 +15,18 @@ enum LunarCalendarService {
     private static let seoulTimeZone =
         TimeZone(identifier: "Asia/Seoul") ?? .current
 
-    static func lunarDate(for date: Date) -> LunarDate? {
+    static func lunarDate(year: Int, month: Int, day: Int) -> LunarDate? {
         var gregorianCalendar = Calendar(identifier: .gregorian)
         gregorianCalendar.timeZone = seoulTimeZone
-
-        let solarComponents = gregorianCalendar.dateComponents(
-            [.year, .month, .day],
-            from: date
-        )
-
-        guard
-            let year = solarComponents.year,
-            let month = solarComponents.month,
-            let day = solarComponents.day,
-            let normalizedDate = gregorianCalendar.date(
-                from: DateComponents(
-                    timeZone: seoulTimeZone,
-                    year: year,
-                    month: month,
-                    day: day,
-                    hour: 12
-                )
+        guard let normalizedDate = gregorianCalendar.date(
+            from: DateComponents(
+                timeZone: seoulTimeZone,
+                year: year,
+                month: month,
+                day: day,
+                hour: 12
             )
-        else {
+        ) else {
             return nil
         }
 

@@ -338,7 +338,13 @@ struct CalendarView: View {
                     country: country
                 )
                 for holiday in holidays where holiday.isHoliday {
-                    let day = calendar.startOfDay(for: holiday.date)
+                    guard let day = calendar.date(
+                        from: DateComponents(
+                            year: holiday.year,
+                            month: holiday.month,
+                            day: holiday.day
+                        )
+                    ) else { continue }
                     loadedByDate[day, default: []].append(holiday)
                 }
             } catch {

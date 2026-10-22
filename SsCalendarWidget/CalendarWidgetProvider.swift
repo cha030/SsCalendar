@@ -76,12 +76,14 @@ struct CalendarWidgetProvider: TimelineProvider {
                 in: grid
             )
             let holidaysByDate = Dictionary(grouping: holidayRecords) {
-                calendar.startOfDay(for: $0.date)
+                "\($0.year)-\($0.month)-\($0.day)"
             }
             let widgetOccurrences = items.map(\.widgetOccurrence)
 
             let days = grid.dates.map { day in
-                let holidays = (holidaysByDate[calendar.startOfDay(for: day)] ?? [])
+                let components = calendar.dateComponents([.year, .month, .day], from: day)
+                let dayKey = "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
+                let holidays = (holidaysByDate[dayKey] ?? [])
                     .filter(\.isHoliday)
                 let dayEvents = items
                     .filter { $0.occurs(day, calendar) }
@@ -94,7 +96,8 @@ struct CalendarWidgetProvider: TimelineProvider {
                     isHoliday: !holidays.isEmpty,
                     holidayTitle: HolidayDisplayFormatter.title(
                         for: holidays.map(\.name),
-                        on: day
+                        on: day,
+                        calendar: calendar
                     ),
                     events: dayEvents
                 )

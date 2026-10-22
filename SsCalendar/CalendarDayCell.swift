@@ -23,16 +23,22 @@ enum CalendarDayContentLayout {
             return nil
         }
 
-        return LunarCalendarService.lunarDate(for: date)?.displayText
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        guard let year = components.year, let month = components.month, let day = components.day else {
+            return nil
+        }
+        return LunarCalendarService.lunarDate(year: year, month: month, day: day)?.displayText
     }
 
     static func holidayTitle(
         for holidays: [Holiday],
-        on date: Date
+        on date: Date,
+        calendar: Calendar = DeviceCalendar.current
     ) -> String? {
         HolidayDisplayFormatter.title(
             for: holidays.filter(\.isHoliday).map(\.name),
-            on: date
+            on: date,
+            calendar: calendar
         )
     }
 
@@ -71,9 +77,10 @@ enum CalendarDayContentLayout {
     static func holidayHeight(
         for date: Date,
         holidays: [Holiday],
-        availableWidth: CGFloat? = nil
+        availableWidth: CGFloat? = nil,
+        calendar: Calendar = DeviceCalendar.current
     ) -> CGFloat {
-        let title = holidayTitle(for: holidays, on: date)
+        let title = holidayTitle(for: holidays, on: date, calendar: calendar)
         return CGFloat(
             holidayLineCount(for: title, availableWidth: availableWidth)
         ) * holidayLineHeight
@@ -89,7 +96,8 @@ enum CalendarDayContentLayout {
             + holidayHeight(
                 for: date,
                 holidays: holidays,
-                availableWidth: availableWidth
+                availableWidth: availableWidth,
+                calendar: calendar
             )
             + contentSpacing
     }
@@ -125,7 +133,8 @@ struct CalendarDayCell: View {
     private var holidayTitle: String? {
         CalendarDayContentLayout.holidayTitle(
             for: holidays,
-            on: date
+            on: date,
+            calendar: calendar
         )
     }
 
