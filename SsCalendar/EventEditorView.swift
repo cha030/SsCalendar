@@ -321,15 +321,22 @@ struct EventEditorView: View {
             to: selectedDay
         ) ?? defaultStartDate
 
-        let occurrenceStartDate = event != nil ? date : defaultStartDate
-        let occurrenceEndDate = event != nil ? (occurrenceEndDate ?? date) : defaultEndDate
+        let isExistingAllDay = existingException?.overrideIsAllDay ?? event?.isAllDay ?? false
+        let occurrenceStartDate = event != nil
+            ? (isExistingAllDay ? AllDayDate.displayDate(fromStorageDate: date) : date)
+            : defaultStartDate
+        let occurrenceEndDate = event != nil
+            ? (isExistingAllDay
+                ? AllDayDate.displayDate(fromStorageDate: occurrenceEndDate ?? date)
+                : (occurrenceEndDate ?? date))
+            : defaultEndDate
         originalOccurrenceStartDate = occurrenceStartDate
         originalOccurrenceEndDate = occurrenceEndDate
         exceptionKeyDate = recurrenceSlotDate ?? occurrenceStartDate
         _editScope = State(initialValue: .singleOccurrence)
 
         _title = State(initialValue: existingException?.overrideTitle ?? event?.title ?? "")
-        _isAllDay = State(initialValue: existingException?.overrideIsAllDay ?? event?.isAllDay ?? false)
+        _isAllDay = State(initialValue: isExistingAllDay)
         _startDate = State(initialValue: occurrenceStartDate)
         _endDate = State(initialValue: occurrenceEndDate)
         _eventColor = State(
@@ -915,8 +922,8 @@ struct EventEditorView: View {
             let newEvent = Event(
                 title: title,
                 isAllDay: isAllDay,
-                startDate: startDate,
-                endDate: endDate,
+                startDate: isAllDay ? AllDayDate.storageDate(for: startDate) : startDate,
+                endDate: isAllDay ? AllDayDate.storageDate(for: endDate) : endDate,
                 color: eventColor.rawValue,
                 alarmOption: reminderSetting.option.rawValue,
                 alarmTimeIntervalBeforeStart: reminderSetting.timeIntervalBeforeStart,
@@ -991,8 +998,13 @@ struct EventEditorView: View {
 
         event.title = title
         event.isAllDay = isAllDay
-        event.startDate = event.startDate.addingTimeInterval(startDelta)
-        event.endDate = event.endDate.addingTimeInterval(endDelta)
+        if isAllDay {
+            event.startDate = AllDayDate.storageDate(for: startDate)
+            event.endDate = AllDayDate.storageDate(for: endDate)
+        } else {
+            event.startDate = event.startDate.addingTimeInterval(startDelta)
+            event.endDate = event.endDate.addingTimeInterval(endDelta)
+        }
         event.color = eventColor.rawValue
         event.alarmOption = reminderSetting.option.rawValue
         event.alarmTimeIntervalBeforeStart = reminderSetting.timeIntervalBeforeStart
@@ -1020,8 +1032,12 @@ struct EventEditorView: View {
         return RecurringSeriesValues(
             title: title,
             isAllDay: isAllDay,
-            startDate: event.startDate.addingTimeInterval(startDelta),
-            endDate: event.endDate.addingTimeInterval(endDelta),
+            startDate: isAllDay
+                ? AllDayDate.storageDate(for: startDate)
+                : event.startDate.addingTimeInterval(startDelta),
+            endDate: isAllDay
+                ? AllDayDate.storageDate(for: endDate)
+                : event.endDate.addingTimeInterval(endDelta),
             color: eventColor.rawValue,
             alarmOption: reminderSetting.option.rawValue,
             alarmTimeIntervalBeforeStart: reminderSetting.timeIntervalBeforeStart,
@@ -1040,7 +1056,9 @@ struct EventEditorView: View {
     private func upsertSingleOccurrenceException(for event: Event) {
         let exception = existingException ?? EventOccurrenceException(
             eventID: event.id,
-            originalOccurrenceStartDate: exceptionKeyDate,
+            originalOccurrenceStartDate: isAllDay
+                ? AllDayDate.normalizedStorageDate(exceptionKeyDate)
+                : exceptionKeyDate,
             isExcluded: false
         )
 
@@ -1051,8 +1069,8 @@ struct EventEditorView: View {
         exception.isExcluded = false
         exception.overrideTitle = title
         exception.overrideIsAllDay = isAllDay
-        exception.overrideStartDate = startDate
-        exception.overrideEndDate = endDate
+        exception.overrideStartDate = isAllDay ? AllDayDate.storageDate(for: startDate) : startDate
+        exception.overrideEndDate = isAllDay ? AllDayDate.storageDate(for: endDate) : endDate
         exception.overrideColor = eventColor.rawValue
         exception.overrideAlarmOption = reminderSetting.option.rawValue
         exception.overrideAlarmTimeIntervalBeforeStart = reminderSetting.timeIntervalBeforeStart

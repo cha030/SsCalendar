@@ -62,3 +62,38 @@ final class Event {
         self.repeatEndDate = repeatEndDate
     }
 }
+
+enum AllDayDate {
+    private static var utcCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+        calendar.firstWeekday = 1
+        return calendar
+    }
+
+    static func storageDate(for date: Date, calendar: Calendar = DeviceCalendar.current) -> Date {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return utcCalendar.date(from: components) ?? date
+    }
+
+    static func storageDate(year: Int, month: Int, day: Int) -> Date {
+        utcCalendar.date(from: DateComponents(year: year, month: month, day: day)) ?? .distantPast
+    }
+
+    static func components(fromStorageDate date: Date) -> DateComponents {
+        utcCalendar.dateComponents([.year, .month, .day], from: date)
+    }
+
+    static func normalizedStorageDate(_ date: Date) -> Date {
+        let components = components(fromStorageDate: date)
+        return utcCalendar.date(from: components) ?? date
+    }
+
+    static func displayDate(
+        fromStorageDate date: Date,
+        calendar: Calendar = DeviceCalendar.current
+    ) -> Date {
+        let components = components(fromStorageDate: date)
+        return calendar.date(from: components) ?? date
+    }
+}

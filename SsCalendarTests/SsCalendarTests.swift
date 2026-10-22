@@ -402,6 +402,57 @@ struct DeviceCalendarTests {
 
         #expect(lunarDates[0] == lunarDates[1])
     }
+
+    @Test("서울·LA·Kiritimati·Pago Pago에서 종일 일정의 날짜가 바뀌지 않는다")
+    func allDayDateIsStableAcrossTimeZones() {
+        let storageDate = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+        let timeZones = [
+            "Asia/Seoul",
+            "America/Los_Angeles",
+            "Pacific/Kiritimati",
+            "Pacific/Pago_Pago"
+        ]
+
+        for identifier in timeZones {
+            let calendar = DeviceCalendar.make(timeZone: TimeZone(identifier: identifier)!)
+            let displayDate = AllDayDate.displayDate(fromStorageDate: storageDate, calendar: calendar)
+            let components = calendar.dateComponents([.year, .month, .day], from: displayDate)
+            #expect(components.year == 2026)
+            #expect(components.month == 10)
+            #expect(components.day == 22)
+        }
+    }
+
+    @Test("여러 날 종일 일정 막대의 시작·끝 칸이 서울과 LA에서 같다")
+    func multiDayAllDayRangeIsStableAcrossTimeZones() {
+        let startStorage = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+        let endStorage = AllDayDate.storageDate(year: 2026, month: 10, day: 24)
+        let timeZones = ["Asia/Seoul", "America/Los_Angeles"]
+        var ranges: [(Int, Int)] = []
+
+        for identifier in timeZones {
+            let calendar = DeviceCalendar.make(timeZone: TimeZone(identifier: identifier)!)
+            let occurrence = CalendarDisplayOccurrence(
+                id: identifier,
+                source: .local(eventID: UUID()),
+                title: "여행",
+                isAllDay: true,
+                startDate: AllDayDate.displayDate(fromStorageDate: startStorage, calendar: calendar),
+                endDate: AllDayDate.displayDate(fromStorageDate: endStorage, calendar: calendar),
+                color: .clear
+            )
+            let range = occurrence.occupiedDayRange(calendar: calendar)
+            ranges.append((
+                calendar.component(.day, from: range.lowerBound),
+                calendar.component(.day, from: range.upperBound)
+            ))
+        }
+
+        #expect(ranges[0].0 == 22)
+        #expect(ranges[0].1 == 24)
+        #expect(ranges[0].0 == ranges[1].0)
+        #expect(ranges[0].1 == ranges[1].1)
+    }
 }
 
 @Suite("USWeekendColorSetting")
