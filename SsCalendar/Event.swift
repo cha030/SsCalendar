@@ -121,4 +121,12 @@ enum AllDayDate {
             to: calendar.startOfDay(for: targetDate)
         ).day ?? 0
     }
+
+    static func notificationDate(
+        forStorageDate date: Date,
+        calendar: Calendar = DeviceCalendar.current
+    ) -> Date {
+        let dayStart = displayDate(fromStorageDate: date, calendar: calendar)
+        return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: dayStart) ?? dayStart
+    }
 }

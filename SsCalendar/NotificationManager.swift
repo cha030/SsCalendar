@@ -17,7 +17,7 @@ enum EventNotificationPlanner {
     static func schedules(
         for event: Event,
         now: Date = Date(),
-        calendar: Calendar = .current,
+        calendar: Calendar = DeviceCalendar.current,
         exceptions: [EventOccurrenceException] = []
     ) -> [EventNotificationSchedule] {
         // 시리즈 알림이 꺼져 있어도 특정 발생분이 개별 수정으로 알림을 따로 켰을 수 있으므로,
@@ -52,7 +52,13 @@ enum EventNotificationPlanner {
                     return nil
                 }
 
-                let fireDate = occurrence.startDate.addingTimeInterval(
+                let alarmBaseDate = occurrence.isAllDay
+                    ? AllDayDate.notificationDate(
+                        forStorageDate: occurrence.startDate,
+                        calendar: calendar
+                    )
+                    : occurrence.startDate
+                let fireDate = alarmBaseDate.addingTimeInterval(
                     -alarmOffset
                 )
 

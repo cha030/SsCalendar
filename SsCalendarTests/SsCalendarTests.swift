@@ -455,7 +455,8 @@ struct DeviceCalendarTests {
     }
 }
 
-@Suite("종일 일정 반복·예외·D-Day")
+@MainActor
+@Suite("종일 일정 반복·예외·D-Day", .serialized)
 struct AllDayOccurrenceTests {
     private func calendar(_ identifier: String) -> Calendar {
         DeviceCalendar.make(timeZone: TimeZone(identifier: identifier)!)
@@ -611,6 +612,101 @@ struct AllDayOccurrenceTests {
         let instant = utc.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 6))!
         #expect(calendar("Asia/Seoul").component(.hour, from: instant) == 15)
         #expect(calendar("America/Los_Angeles").component(.hour, from: instant) == 23)
+    }
+
+    @Test("미국 서머타임 시작·종료 전후에도 종일 반복 간격은 날짜 기준으로 같다")
+    func recurringAllDayDatesAreStableAcrossDSTStartAndEnd() {
+        for (startDay, endDay) in [(31, 2), (13, 15)] {
+            let startMonth = startDay == 31 ? 10 : 3
+            let endMonth = startDay == 31 ? 11 : 3
+            let expectedDays = startDay == 31 ? [31, 1, 2] : [13, 14, 15]
+            let start = AllDayDate.storageDate(year: startDay == 31 ? 2026 : 2027, month: startMonth, day: startDay)
+            let end = AllDayDate.storageDate(year: startDay == 31 ? 2026 : 2027, month: endMonth, day: endDay)
+            let event = self.event(start: start, repeatUnit: "일", repeatEndDate: end)
+
+            for identifier in ["Asia/Seoul", "America/Los_Angeles", "Pacific/Kiritimati", "Pacific/Pago_Pago"] {
+                let deviceCalendar = calendar(identifier)
+                let results = EventOccurrenceService.occurrences(
+                    for: event,
+                    intersecting: DateInterval(
+                        start: deviceCalendar.date(from: DateComponents(year: startDay == 31 ? 2026 : 2027, month: startMonth, day: 1))!,
+                        end: deviceCalendar.date(from: DateComponents(year: startDay == 31 ? 2026 : 2027, month: endMonth, day: endDay + 1))!
+                    ),
+                    calendar: deviceCalendar
+                )
+                #expect(results.count == 3)
+                #expect(results.map { AllDayDate.components(fromStorageDate: $0.startDate).day } == expectedDays)
+            }
+        }
+    }
+
+    @Test("월간 위젯의 종일 일정은 서울과 LA에서 같은 날짜 칸과 여러 날 범위를 사용한다")
+    func monthlyWidgetAllDayPlacementUsesSameDateCells() {
+        let storageStart = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+        let storageEnd = AllDayDate.storageDate(year: 2026, month: 10, day: 24)
+        var ranges: [(Int, Int)] = []
+
+        for identifier in ["Asia/Seoul", "America/Los_Angeles"] {
+            let deviceCalendar = calendar(identifier)
+            let occurrence = EventOccurrence(
+                event: event(start: storageStart, repeatUnit: "반복 안 함"),
+                startDate: storageStart,
+                endDate: storageEnd
+            )
+            let range = occurrence.occupiedDayRange(calendar: deviceCalendar)
+            ranges.append((
+                deviceCalendar.component(.day, from: range.lowerBound),
+                deviceCalendar.component(.day, from: range.upperBound)
+            ))
+        }
+
+        #expect(ranges.count == 2)
+        #expect(ranges[0].0 == 22)
+        #expect(ranges[0].1 == 24)
+        #expect(ranges[0].0 == ranges[1].0)
+        #expect(ranges[0].1 == ranges[1].1)
+    }
+
+    @Test("Today·Next 위젯용 로컬 종일 발생분은 시간대 변경 후에도 같은 날짜를 사용한다")
+    func todayAndNextAllDayDateUsesDeviceDateComponents() {
+        let storageDate = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+        let dates = ["Asia/Seoul", "America/Los_Angeles"].map { identifier in
+            let deviceCalendar = calendar(identifier)
+            return AllDayDate.displayDate(fromStorageDate: storageDate, calendar: deviceCalendar)
+        }
+
+        #expect(dates.map { calendar("Asia/Seoul").component(.day, from: $0) } == [22, 22])
+    }
+
+    @Test("종일 일정 알림은 기기 시간대의 해당 날짜 오전 9시에서 오프셋을 뺀 시각에 예약된다")
+    func allDayNotificationUsesDeviceNineAM() {
+        let storageDate = AllDayDate.storageDate(year: 2026, month: 10, day: 22)
+        for identifier in ["Asia/Seoul", "America/Los_Angeles"] {
+            let deviceCalendar = calendar(identifier)
+            let event = Event(
+                title: "종일 알림",
+                isAllDay: true,
+                startDate: storageDate,
+                endDate: storageDate,
+                color: "파란색",
+                alarmOption: "사용자 설정",
+                alarmTimeIntervalBeforeStart: 3_600,
+                alarmCustomValue: 1,
+                alarmCustomUnit: "일",
+                repeatUnit: "반복 안 함",
+                repeatInterval: 1,
+                memo: ""
+            )
+            let now = deviceCalendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+            let schedule = EventNotificationPlanner.schedules(
+                for: event,
+                now: now,
+                calendar: deviceCalendar
+            ).first
+
+            #expect(schedule.map { deviceCalendar.component(.day, from: $0.fireDate) } == 22)
+            #expect(schedule.map { deviceCalendar.component(.hour, from: $0.fireDate) } == 8)
+        }
     }
 }
 

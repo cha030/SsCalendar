@@ -87,13 +87,19 @@ enum LockScreenWidgetMoments {
 
             return EventOccurrenceService.occurrences(for: events, intersecting: interval, calendar: calendar)
                 .map { occurrence in
-                    CalendarDisplayOccurrence(
+                    let startDate = occurrence.isAllDay
+                        ? AllDayDate.displayDate(fromStorageDate: occurrence.startDate, calendar: calendar)
+                        : occurrence.startDate
+                    let endDate = occurrence.isAllDay
+                        ? AllDayDate.displayDate(fromStorageDate: occurrence.endDate, calendar: calendar)
+                        : occurrence.endDate
+                    return CalendarDisplayOccurrence(
                         id: "local:\(occurrence.event.id.uuidString):\(occurrence.startDate.timeIntervalSince1970)",
                         source: .local(eventID: occurrence.event.id),
                         title: occurrence.event.title,
                         isAllDay: occurrence.isAllDay,
-                        startDate: occurrence.startDate,
-                        endDate: occurrence.endDate,
+                        startDate: startDate,
+                        endDate: endDate,
                         color: .clear
                     )
                 }

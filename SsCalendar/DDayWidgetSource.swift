@@ -34,19 +34,44 @@ enum DDayWidgetSource {
 
             return (localOccurrences + externalOccurrences)
                 .map { occurrence in
-                    Item(
-                        occurrence: occurrence,
-                        daysRemaining: occurrence.localEventID != nil && occurrence.isAllDay
-                            ? AllDayDate.daysRemaining(
-                                untilStorageDate: occurrence.startDate,
-                                now: now,
+                    let daysRemaining = occurrence.localEventID != nil && occurrence.isAllDay
+                        ? AllDayDate.daysRemaining(
+                            untilStorageDate: occurrence.startDate,
+                            now: now,
+                            calendar: calendar
+                        )
+                        : DDayCalculator.daysRemaining(
+                            until: occurrence.startDate,
+                            now: now,
+                            calendar: calendar
+                        )
+                    let displayOccurrence: CalendarDisplayOccurrence
+                    if occurrence.localEventID != nil && occurrence.isAllDay {
+                        displayOccurrence = CalendarDisplayOccurrence(
+                            id: occurrence.id,
+                            source: occurrence.source,
+                            title: occurrence.title,
+                            isAllDay: occurrence.isAllDay,
+                            startDate: AllDayDate.displayDate(
+                                fromStorageDate: occurrence.startDate,
+                                calendar: calendar
+                            ),
+                            endDate: AllDayDate.displayDate(
+                                fromStorageDate: occurrence.endDate,
+                                calendar: calendar
+                            ),
+                            color: occurrence.color,
+                            originalStartDate: AllDayDate.displayDate(
+                                fromStorageDate: occurrence.originalStartDate,
                                 calendar: calendar
                             )
-                            : DDayCalculator.daysRemaining(
-                                until: occurrence.startDate,
-                                now: now,
-                                calendar: calendar
-                            )
+                        )
+                    } else {
+                        displayOccurrence = occurrence
+                    }
+                    return Item(
+                        occurrence: displayOccurrence,
+                        daysRemaining: daysRemaining
                     )
                 }
                 .filter { $0.daysRemaining >= 0 }

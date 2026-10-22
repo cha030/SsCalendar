@@ -161,7 +161,9 @@ private struct CalendarWidgetItem {
         let occupiedRange = occurrence.occupiedDayRange(calendar: calendar)
 
         isAllDay = occurrence.isAllDay
-        startDate = occurrence.startDate
+        startDate = occurrence.isAllDay
+            ? AllDayDate.normalizedStorageDate(occurrence.startDate)
+            : occurrence.startDate
         widgetOccurrence = CalendarWidgetOccurrence(
             id: id,
             title: occurrence.event.title,
