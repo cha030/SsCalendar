@@ -3,6 +3,7 @@ import SwiftUI
 import UIKit
 
 struct CalendarView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Event.startDate, order: .forward) private var events: [Event]
     /// 반복 일정의 개별 수정·삭제 예외(Step 5-2). 월간 달력 표시에도 반영한다.
     @Query private var occurrenceExceptions: [EventOccurrenceException]
@@ -16,6 +17,7 @@ struct CalendarView: View {
     @State private var isPresentingYearCalendar = false
     @State private var monthChangeDirection: MonthChangeDirection = .toNextMonth
     @State private var timeZoneRefreshGeneration = 0
+    @State private var dateStateTimeZoneIdentifier = TimeZone.autoupdatingCurrent.identifier
     /// 헤더 왼쪽 연도 칸·오른쪽 오늘·설정 버튼 칸에 똑같이 적용하는 고정 너비. 두 칸이 같은
     /// 너비여야 그 사이(가운데)가 화면 전체 기준으로 정확한 중앙이 된다(아래 body 주석 참고).
     private static let headerSideSlotWidth: CGFloat = 100
@@ -142,6 +144,7 @@ struct CalendarView: View {
                     onNavigateToDate: { navigatedDate in
                         currentDate = navigatedDate
                         selectedDate = navigatedDate
+                        schedulePath = [navigatedDate]
                     }
                 )
                 // NavigationStack이 schedulePath를 교체(예: 위젯 딥링크로 [이전 날짜] → [새 날짜])할 때,
@@ -205,12 +208,14 @@ struct CalendarView: View {
             }
             .onOpenURL(perform: handleDeepLink)
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name.NSSystemTimeZoneDidChange)) { _ in
-                timeZoneRefreshGeneration += 1
-                WidgetReloadManager.reloadCalendar()
+                refreshDateStateForTimeZoneChange()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
-                timeZoneRefreshGeneration += 1
-                WidgetReloadManager.reloadCalendar()
+                refreshDateStateForTimeZoneChange()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                refreshDateStateForTimeZoneChange()
             }
             .onChange(of: holidayCountryRawValue) { _, _ in
                 holidaysByDate = [:]
@@ -254,6 +259,77 @@ struct CalendarView: View {
     private func syncHolidayCountryFromSettings() {
         holidaysByDate = [:]
         holidayRefreshGeneration += 1
+    }
+
+    private func refreshDateStateForTimeZoneChange() {
+        let newCalendar = DeviceCalendar.current
+        let newIdentifier = newCalendar.timeZone.identifier
+        guard newIdentifier != dateStateTimeZoneIdentifier else { return }
+
+        let oldTimeZone = TimeZone(identifier: dateStateTimeZoneIdentifier) ?? newCalendar.timeZone
+        let rebased = Self.rebaseDateStates(
+            currentDate: currentDate,
+            selectedDate: selectedDate,
+            schedulePath: schedulePath,
+            newEventDate: newEventDate,
+            from: oldTimeZone,
+            to: newCalendar
+        )
+        currentDate = rebased.currentDate
+        selectedDate = rebased.selectedDate
+        schedulePath = rebased.schedulePath
+        newEventDate = rebased.newEventDate
+        dateStateTimeZoneIdentifier = newIdentifier
+
+        holidaysByDate = Self.rebaseHolidayDates(
+            holidaysByDate,
+            from: oldTimeZone,
+            to: newCalendar
+        )
+        holidayRefreshGeneration += 1
+        timeZoneRefreshGeneration += 1
+        WidgetReloadManager.reloadCalendar()
+    }
+
+    static func rebaseDate(
+        _ date: Date,
+        from oldTimeZone: TimeZone,
+        to newCalendar: Calendar
+    ) -> Date {
+        var oldCalendar = Calendar(identifier: .gregorian)
+        oldCalendar.locale = newCalendar.locale
+        oldCalendar.firstWeekday = newCalendar.firstWeekday
+        oldCalendar.timeZone = oldTimeZone
+        let components = oldCalendar.dateComponents([.year, .month, .day], from: date)
+        return newCalendar.date(from: components) ?? date
+    }
+
+    static func rebaseDateStates(
+        currentDate: Date,
+        selectedDate: Date,
+        schedulePath: [Date],
+        newEventDate: Date?,
+        from oldTimeZone: TimeZone,
+        to newCalendar: Calendar
+    ) -> (currentDate: Date, selectedDate: Date, schedulePath: [Date], newEventDate: Date?) {
+        (
+            rebaseDate(currentDate, from: oldTimeZone, to: newCalendar),
+            rebaseDate(selectedDate, from: oldTimeZone, to: newCalendar),
+            schedulePath.map { rebaseDate($0, from: oldTimeZone, to: newCalendar) },
+            newEventDate.map { rebaseDate($0, from: oldTimeZone, to: newCalendar) }
+        )
+    }
+
+    static func rebaseHolidayDates(
+        _ holidaysByDate: [Date: [Holiday]],
+        from oldTimeZone: TimeZone,
+        to newCalendar: Calendar
+    ) -> [Date: [Holiday]] {
+        Dictionary(
+            uniqueKeysWithValues: holidaysByDate.map { date, holidays in
+                (rebaseDate(date, from: oldTimeZone, to: newCalendar), holidays)
+            }
+        )
     }
 
     private var visibleInterval: DateInterval? {

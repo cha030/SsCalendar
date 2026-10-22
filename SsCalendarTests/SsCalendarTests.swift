@@ -678,6 +678,213 @@ struct MonthLinkSelectionTests {
     }
 }
 
+@Suite("CalendarView 시간대 변경 날짜 상태")
+struct CalendarViewTimeZoneRebaseTests {
+    private func calendar(_ identifier: String) -> Calendar {
+        DeviceCalendar.make(timeZone: TimeZone(identifier: identifier)!)
+    }
+
+    private func date(_ calendar: Calendar, _ year: Int, _ month: Int, _ day: Int) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day))!
+    }
+
+    private func day(_ date: Date, in calendar: Calendar) -> Int {
+        calendar.component(.day, from: date)
+    }
+
+    @Test("서울 상태를 LA로 옮겨도 currentDate의 10월 22일이 유지된다")
+    func seoulToLosAngelesKeepsCurrentDate() {
+        let old = calendar("Asia/Seoul")
+        let new = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDate(date(old, 2026, 10, 22), from: old.timeZone, to: new)
+        #expect(new.dateComponents([.year, .month, .day], from: result) == DateComponents(year: 2026, month: 10, day: 22))
+    }
+
+    @Test("LA 상태를 서울로 옮겨도 선택 날짜가 유지된다")
+    func losAngelesToSeoulKeepsSelectedDate() {
+        let old = calendar("America/Los_Angeles")
+        let new = calendar("Asia/Seoul")
+        let result = CalendarView.rebaseDate(date(old, 2026, 10, 22), from: old.timeZone, to: new)
+        #expect(day(result, in: new) == 22)
+    }
+
+    @Test("currentDate와 selectedDate를 함께 같은 날짜로 옮긴다")
+    func rebasesCurrentAndSelectedDate() {
+        let old = calendar("Asia/Seoul")
+        let new = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDateStates(
+            currentDate: date(old, 2026, 10, 1),
+            selectedDate: date(old, 2026, 10, 22),
+            schedulePath: [],
+            newEventDate: nil,
+            from: old.timeZone,
+            to: new
+        )
+        #expect(day(result.currentDate, in: new) == 1)
+        #expect(day(result.selectedDate, in: new) == 22)
+    }
+
+    @Test("schedulePath의 여러 날짜를 모두 유지한다")
+    func rebasesAllSchedulePathDates() {
+        let old = calendar("Asia/Seoul")
+        let new = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDateStates(
+            currentDate: date(old, 2026, 10, 1),
+            selectedDate: date(old, 2026, 10, 22),
+            schedulePath: [date(old, 2026, 10, 21), date(old, 2026, 10, 23)],
+            newEventDate: nil,
+            from: old.timeZone,
+            to: new
+        )
+        #expect(result.schedulePath.map { day($0, in: new) } == [21, 23])
+    }
+
+    @Test("newEventDate도 같은 날짜로 유지한다")
+    func rebasesNewEventDate() {
+        let old = calendar("Asia/Seoul")
+        let new = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDateStates(
+            currentDate: date(old, 2026, 10, 1),
+            selectedDate: date(old, 2026, 10, 22),
+            schedulePath: [],
+            newEventDate: date(old, 2026, 10, 22),
+            from: old.timeZone,
+            to: new
+        )
+        #expect(result.newEventDate.map { day($0, in: new) } == 22)
+    }
+
+    @Test("서울에서 LA로 바꿨다가 다시 서울로 바꿔도 10월 22일이다")
+    func roundTripKeepsDate() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let first = CalendarView.rebaseDate(date(seoul, 2026, 10, 22), from: seoul.timeZone, to: la)
+        let second = CalendarView.rebaseDate(first, from: la.timeZone, to: seoul)
+        #expect(day(second, in: seoul) == 22)
+    }
+
+    @Test("같은 시간대 식별자이면 재변환하지 않는 기준을 유지한다")
+    func sameTimeZoneDoesNotNeedRebase() {
+        #expect(TimeZone(identifier: "Asia/Seoul")?.identifier == "Asia/Seoul")
+    }
+
+    @Test("두 알림이 연달아 와도 두 번째 변환은 같은 날짜를 유지한다")
+    func consecutiveNotificationsAreIdempotent() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let first = CalendarView.rebaseDate(date(seoul, 2026, 10, 22), from: seoul.timeZone, to: la)
+        let second = CalendarView.rebaseDate(first, from: la.timeZone, to: la)
+        #expect(day(first, in: la) == 22)
+        #expect(day(second, in: la) == 22)
+    }
+
+    @Test("공휴일 재로딩에 사용하는 날짜도 새 시간대에서 같은 날이다")
+    func holidayDateAfterReloadKeepsDay() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let rebased = CalendarView.rebaseDate(date(seoul, 2026, 10, 3), from: seoul.timeZone, to: la)
+        #expect(la.dateComponents([.year, .month, .day], from: rebased).day == 3)
+    }
+
+    @Test("일간 화면에서 옆으로 넘긴 날짜가 시간대 변경 뒤에도 유지된다")
+    func navigatedDayIsPreserved() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let navigated = date(seoul, 2026, 10, 23)
+        let result = CalendarView.rebaseDate(navigated, from: seoul.timeZone, to: la)
+        #expect(day(result, in: la) == 23)
+    }
+
+    @Test("22일에서 23일로 넘긴 뒤 시간대가 바뀌어도 실제 일간 화면 날짜는 23일이다")
+    func navigatedDayAndSchedulePathStayInSync() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDateStates(
+            currentDate: date(seoul, 2026, 10, 23),
+            selectedDate: date(seoul, 2026, 10, 23),
+            schedulePath: [date(seoul, 2026, 10, 23)],
+            newEventDate: nil,
+            from: seoul.timeZone,
+            to: la
+        )
+        #expect(day(result.currentDate, in: la) == 23)
+        #expect(day(result.selectedDate, in: la) == 23)
+        #expect(result.schedulePath.map { day($0, in: la) } == [23])
+    }
+
+    @Test("시간대 알림 없이 앱이 active가 되어도 10월 22일이 유지된다")
+    func activeTransitionRebasesDateWithoutNotification() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDate(
+            date(seoul, 2026, 10, 22),
+            from: seoul.timeZone,
+            to: la
+        )
+        #expect(day(result, in: la) == 22)
+    }
+
+    @Test("월 상태가 LA에서도 10월로 유지된다")
+    func monthDoesNotMoveToPreviousMonth() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDate(date(seoul, 2026, 10, 1), from: seoul.timeZone, to: la)
+        #expect(la.dateComponents([.year, .month], from: result) == DateComponents(year: 2026, month: 10))
+    }
+
+    @Test("Kiritimati에서도 날짜가 유지된다")
+    func kiritimatiKeepsDate() {
+        let old = calendar("Asia/Seoul")
+        let new = calendar("Pacific/Kiritimati")
+        let result = CalendarView.rebaseDate(date(old, 2026, 10, 22), from: old.timeZone, to: new)
+        #expect(day(result, in: new) == 22)
+    }
+
+    @Test("Pago Pago에서도 날짜가 유지된다")
+    func pagoPagoKeepsDate() {
+        let old = calendar("Asia/Seoul")
+        let new = calendar("Pacific/Pago_Pago")
+        let result = CalendarView.rebaseDate(date(old, 2026, 10, 22), from: old.timeZone, to: new)
+        #expect(day(result, in: new) == 22)
+    }
+
+    @Test("schedulePath를 교체해도 일간 화면의 날짜가 유지된다")
+    func replacingSchedulePathPreservesDay() {
+        let old = calendar("Asia/Seoul")
+        let new = calendar("America/Los_Angeles")
+        let result = CalendarView.rebaseDateStates(
+            currentDate: date(old, 2026, 10, 22),
+            selectedDate: date(old, 2026, 10, 22),
+            schedulePath: [date(old, 2026, 10, 23)],
+            newEventDate: nil,
+            from: old.timeZone,
+            to: new
+        )
+        #expect(day(result.schedulePath[0], in: new) == 23)
+    }
+
+    @Test("공휴일 표시 기준은 변환 뒤 다시 로드할 수 있는 동일한 날짜다")
+    func holidayLookupDateIsStable() {
+        let old = calendar("America/Los_Angeles")
+        let new = calendar("Asia/Seoul")
+        let result = CalendarView.rebaseDate(date(old, 2026, 12, 25), from: old.timeZone, to: new)
+        #expect(new.dateComponents([.year, .month, .day], from: result).day == 25)
+    }
+
+    @Test("시간대 왕복 후 선택 날짜 구성요소가 모두 같다")
+    func roundTripPreservesAllDateComponents() {
+        let seoul = calendar("Asia/Seoul")
+        let la = calendar("America/Los_Angeles")
+        let original = date(seoul, 2026, 10, 22)
+        let result = CalendarView.rebaseDate(
+            CalendarView.rebaseDate(original, from: seoul.timeZone, to: la),
+            from: la.timeZone,
+            to: seoul
+        )
+        #expect(seoul.dateComponents([.year, .month, .day], from: result) == DateComponents(year: 2026, month: 10, day: 22))
+    }
+}
+
 @MainActor
 @Suite("종일 일정 반복·예외·D-Day", .serialized)
 struct AllDayOccurrenceTests {
