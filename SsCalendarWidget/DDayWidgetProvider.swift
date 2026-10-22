@@ -29,9 +29,7 @@ struct DDayWidgetProvider: TimelineProvider {
 
     @MainActor
     private func makeTimeline(now: Date) -> Timeline<DDayWidgetEntry> {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: now)
-        let nextMidnight = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? now.addingTimeInterval(86_400)
+        let nextMidnight = CalendarWidgetCalendar.nextMidnight(after: now)
         let showsEventTitles = LockScreenWidgetMoments.showsEventTitles()
 
         // Next 위젯과 같은 조회(최대 2건)를 공유해 둘이 항상 같은 정렬 기준을 쓰게 한다.

@@ -280,6 +280,75 @@ struct DeviceCalendarTests {
 
         #expect(DDayCalculator.daysRemaining(until: evening, now: evening, calendar: calendar) == 0)
     }
+
+    @Test("LA에서 10월 위젯의 월 이름이 September가 아니다")
+    func widgetMonthTitleUsesLosAngelesCalendar() {
+        let calendars = [
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!),
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        ]
+
+        for calendar in calendars {
+            let october = calendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+            let formatter = DateFormatter()
+            formatter.calendar = calendar
+            formatter.locale = calendar.locale ?? Locale.current
+            formatter.timeZone = calendar.timeZone
+            formatter.dateFormat = "MMMM"
+            let title = formatter.string(from: october)
+            #expect(!title.localizedCaseInsensitiveContains("September"))
+            #expect(calendar.component(.month, from: october) == 10)
+        }
+    }
+
+    @Test("LA에서 위젯 월 그리드가 서울 날짜 기준으로 한 달 이전에 표시되지 않는다")
+    func widgetMonthGridUsesInjectedCalendar() {
+        let calendars = [
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!),
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        ]
+
+        for calendar in calendars {
+            let october = calendar.date(from: DateComponents(year: 2026, month: 10, day: 1))!
+            let monthStart = calendar.dateInterval(of: .month, for: october)!.start
+            #expect(calendar.component(.year, from: monthStart) == 2026)
+            #expect(calendar.component(.month, from: monthStart) == 10)
+        }
+    }
+
+    @Test("위젯 Timeline 갱신 시각이 서울과 LA에서 기기 시간대의 다음 자정이다")
+    func widgetTimelineRefreshesAtNextDeviceMidnight() {
+        let calendars = [
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!),
+            DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        ]
+        let now = Date(timeIntervalSince1970: 1_792_938_600)
+
+        for calendar in calendars {
+            let dayStart = calendar.startOfDay(for: now)
+            let nextMidnight = calendar.date(byAdding: .day, value: 1, to: dayStart)!
+            #expect(calendar.component(.hour, from: nextMidnight) == 0)
+            #expect(calendar.component(.minute, from: nextMidnight) == 0)
+            #expect(nextMidnight > now)
+            #expect(calendar.component(.day, from: nextMidnight) != calendar.component(.day, from: now))
+        }
+    }
+
+    @Test("시간대 변경 후 위젯이 서울과 LA의 새 오늘 날짜와 월을 쓴다")
+    func widgetUsesNewTimeZoneForTodayAndMonth() {
+        let seoul = DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!)
+        let losAngeles = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let utc = DeviceCalendar.make(timeZone: TimeZone(secondsFromGMT: 0)!)
+        let instant = utc.date(from: DateComponents(year: 2026, month: 10, day: 1, hour: 6))!
+
+        let seoulGrid = seoul.dateInterval(of: .month, for: instant)!
+        let losAngelesGrid = losAngeles.dateInterval(of: .month, for: instant)!
+
+        #expect(seoul.component(.day, from: instant) == 1)
+        #expect(losAngeles.component(.day, from: instant) == 30)
+        #expect(seoul.component(.month, from: seoulGrid.start) == 10)
+        #expect(losAngeles.component(.month, from: losAngelesGrid.start) == 9)
+    }
 }
 
 @Suite("USWeekendColorSetting")

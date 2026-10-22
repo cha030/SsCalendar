@@ -25,12 +25,7 @@ struct CalendarWidgetProvider: TimelineProvider {
         Task { @MainActor in
             let now = Date()
             let entry = loadEntry(for: now)
-            let calendar = CalendarWidgetCalendar.korean
-            let nextMidnight = calendar.date(
-                byAdding: .day,
-                value: 1,
-                to: calendar.startOfDay(for: now)
-            ) ?? now.addingTimeInterval(86_400)
+            let nextMidnight = CalendarWidgetCalendar.nextMidnight(after: now)
             completion(Timeline(entries: [entry], policy: .after(nextRefreshDate(now: now, nextMidnight: nextMidnight))))
         }
     }
@@ -54,7 +49,7 @@ struct CalendarWidgetProvider: TimelineProvider {
     private func loadEntry(for date: Date) -> CalendarWidgetEntry {
         let displayedMonth = WidgetMonthState.displayedMonthStart(now: date)
         let grid = CalendarWidgetCalendar.monthGrid(containing: displayedMonth)
-        let calendar = CalendarWidgetCalendar.korean
+        let calendar = DeviceCalendar.current
         let selectedDate = WidgetMonthState.selectedDate()
             ?? (calendar.isDate(displayedMonth, equalTo: date, toGranularity: .month)
                 ? calendar.startOfDay(for: date)

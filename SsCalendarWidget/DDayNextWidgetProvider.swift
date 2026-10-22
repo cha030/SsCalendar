@@ -27,9 +27,7 @@ struct DDayNextWidgetProvider: TimelineProvider {
 
     @MainActor
     private func makeTimeline(now: Date) -> Timeline<DDayWidgetEntry> {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: now)
-        let nextMidnight = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? now.addingTimeInterval(86_400)
+        let nextMidnight = CalendarWidgetCalendar.nextMidnight(after: now)
         let showsEventTitles = LockScreenWidgetMoments.showsEventTitles()
 
         let items = DDayWidgetSource.items(now: now, limit: 2)

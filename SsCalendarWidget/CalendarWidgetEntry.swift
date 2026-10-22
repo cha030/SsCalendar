@@ -84,15 +84,13 @@ struct CalendarWidgetEntry: TimelineEntry, Sendable {
 
 enum CalendarWidgetCalendar {
     static var korean: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = Locale(identifier: "ko_KR")
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        calendar.firstWeekday = 1
-        return calendar
+        DeviceCalendar.current
     }
 
-    static func monthGrid(containing date: Date) -> (monthStart: Date, interval: DateInterval, dates: [Date]) {
-        let calendar = korean
+    static func monthGrid(
+        containing date: Date,
+        calendar: Calendar = DeviceCalendar.current
+    ) -> (monthStart: Date, interval: DateInterval, dates: [Date]) {
         guard
             let monthInterval = calendar.dateInterval(of: .month, for: date),
             let firstWeek = calendar.dateInterval(of: .weekOfYear, for: monthInterval.start),
@@ -112,6 +110,29 @@ enum CalendarWidgetCalendar {
             cursor = next
         }
         return (monthInterval.start, interval, dates)
+    }
+
+    static func nextMidnight(after now: Date, calendar: Calendar = DeviceCalendar.current) -> Date {
+        calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: now)
+        ) ?? now.addingTimeInterval(86_400)
+    }
+
+    static func monthTitle(
+        for monthStart: Date,
+        now: Date = Date(),
+        calendar: Calendar = DeviceCalendar.current
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = calendar.locale ?? Locale.current
+        formatter.timeZone = calendar.timeZone
+        let displayed = calendar.component(.year, from: monthStart)
+        let current = calendar.component(.year, from: now)
+        formatter.dateFormat = displayed == current ? "MMMM" : "yyyy MMMM"
+        return formatter.string(from: monthStart)
     }
 
     static func emptyEntry(for date: Date) -> CalendarWidgetEntry {

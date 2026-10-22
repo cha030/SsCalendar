@@ -4,33 +4,43 @@ import WidgetKit
 
 @MainActor
 enum WidgetMonthState {
-    private static let selectedMonthKey = "widgetSelectedMonthIndex"
+    private static let selectedMonthKey = "widgetSelectedMonth"
     private static let selectedDateKey = "widgetSelectedDate"
 
     static func displayedMonthStart(now: Date = Date()) -> Date {
-        let calendar = koreanCalendar
-        let current = monthIndex(for: now, calendar: calendar)
-        let selected = sharedDefaults?.object(forKey: selectedMonthKey) as? Int
-        return monthStart(for: selected ?? current, calendar: calendar) ?? now
+        let calendar = DeviceCalendar.current
+        let current = calendar.dateInterval(of: .month, for: now)?.start ?? now
+        let selected = sharedDefaults?.string(forKey: selectedMonthKey).flatMap {
+            date(from: $0, calendar: calendar)
+        }
+        return selected.flatMap { calendar.dateInterval(of: .month, for: $0)?.start } ?? current
     }
 
     @discardableResult
     static func move(by value: Int, now: Date = Date()) -> Bool {
         guard value != 0, let defaults = sharedDefaults else { return false }
-        let calendar = koreanCalendar
-        let current = monthIndex(for: now, calendar: calendar)
-        let selected = defaults.object(forKey: selectedMonthKey) as? Int
-        defaults.set((selected ?? current) + value, forKey: selectedMonthKey)
+        let calendar = DeviceCalendar.current
+        let current = calendar.dateInterval(of: .month, for: now)?.start ?? now
+        let selected = defaults.string(forKey: selectedMonthKey).flatMap {
+            date(from: $0, calendar: calendar)
+        } ?? current
+        guard let moved = calendar.date(byAdding: .month, value: value, to: selected) else {
+            return false
+        }
+        let movedMonth = calendar.dateInterval(of: .month, for: moved)?.start ?? moved
+        defaults.set(dateString(for: movedMonth, calendar: calendar), forKey: selectedMonthKey)
         return true
     }
 
     @discardableResult
     static func returnToCurrentMonth(now: Date = Date()) -> Bool {
         guard let defaults = sharedDefaults else { return false }
-        let calendar = koreanCalendar
-        let current = monthIndex(for: now, calendar: calendar)
-        guard let selected = defaults.object(forKey: selectedMonthKey) as? Int,
-              selected != current else {
+        let calendar = DeviceCalendar.current
+        let current = calendar.dateInterval(of: .month, for: now)?.start ?? now
+        guard let selected = defaults.string(forKey: selectedMonthKey).flatMap({
+            date(from: $0, calendar: calendar)
+        }),
+        !calendar.isDate(selected, equalTo: current, toGranularity: .month) else {
             if defaults.object(forKey: selectedMonthKey) != nil {
                 defaults.removeObject(forKey: selectedMonthKey)
             }
@@ -42,18 +52,21 @@ enum WidgetMonthState {
     }
 
     static func selectedDate() -> Date? {
-        sharedDefaults?.object(forKey: selectedDateKey) as? Date
+        guard let value = sharedDefaults?.string(forKey: selectedDateKey) else { return nil }
+        return Self.date(from: value, calendar: DeviceCalendar.current)
     }
 
     @discardableResult
     static func select(date: Date) -> Bool {
         guard let defaults = sharedDefaults else { return false }
-        let normalizedDate = koreanCalendar.startOfDay(for: date)
-        if let selected = defaults.object(forKey: selectedDateKey) as? Date,
-           koreanCalendar.isDate(selected, inSameDayAs: normalizedDate) {
+        let calendar = DeviceCalendar.current
+        let normalizedDate = calendar.startOfDay(for: date)
+        if let selected = defaults.string(forKey: selectedDateKey).flatMap({
+            Self.date(from: $0, calendar: calendar)
+        }), calendar.isDate(selected, inSameDayAs: normalizedDate) {
             return false
         }
-        defaults.set(normalizedDate, forKey: selectedDateKey)
+        defaults.set(dateString(for: normalizedDate, calendar: calendar), forKey: selectedDateKey)
         return true
     }
 
@@ -61,25 +74,12 @@ enum WidgetMonthState {
         UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier)
     }
 
-    private static var koreanCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        return calendar
+    private static func dateString(for date: Date, calendar: Calendar) -> String {
+        DeviceCalendar.dateFormatter(format: "yyyy-MM-dd", calendar: calendar).string(from: date)
     }
 
-    private static func monthIndex(for date: Date, calendar: Calendar) -> Int {
-        let components = calendar.dateComponents([.year, .month], from: date)
-        let year = components.year ?? 1
-        let month = components.month ?? 1
-        return year * 12 + month - 1
-    }
-
-    private static func monthStart(for index: Int, calendar: Calendar) -> Date? {
-        let year = index >= 0 ? index / 12 : (index - 11) / 12
-        let monthIndex = index - year * 12
-        return calendar.date(
-            from: DateComponents(year: year, month: monthIndex + 1, day: 1)
-        )
+    private static func date(from value: String, calendar: Calendar) -> Date? {
+        DeviceCalendar.dateFormatter(format: "yyyy-MM-dd", calendar: calendar).date(from: value)
     }
 }
 

@@ -20,7 +20,7 @@ enum DDayWidgetSource {
     /// 반복 일정은 다음 발생일을 기준으로 한다(Step 5-2 반복 일정 D-Day 정책). 지난 일정(과거
     /// 날짜)은 D-Day 설정값과 무관하게 여기서 제외한다(설정 자체는 건드리지 않는다).
     static func items(now: Date = Date(), limit: Int) -> [Item] {
-        let calendar = Calendar.current
+        let calendar = DeviceCalendar.current
 
         do {
             // WidgetDataStore는 위젯 타깃 전용 얇은 래퍼(내부적으로 SharedModelContainer를 그대로

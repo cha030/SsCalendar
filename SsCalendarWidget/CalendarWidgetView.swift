@@ -147,14 +147,7 @@ struct CalendarWidgetView: View {
     }
 
     private var monthTitle: String {
-        let calendar = displayCalendar
-        let displayed = calendar.dateComponents([.year], from: entry.monthStart)
-        let current = calendar.dateComponents([.year], from: Date())
-
-        if displayed.year == current.year {
-            return entry.monthStart.formatted(.dateTime.month(.wide).locale(calendar.locale ?? .current))
-        }
-        return entry.monthStart.formatted(.dateTime.year().month(.wide).locale(calendar.locale ?? .current))
+        CalendarWidgetCalendar.monthTitle(for: entry.monthStart)
     }
 
     private func weekdayColor(at index: Int) -> Color {
@@ -213,7 +206,7 @@ struct CalendarWidgetView: View {
     }
 
     private var todayDayNumber: String {
-        String(CalendarWidgetCalendar.korean.component(.day, from: Date()))
+        String(DeviceCalendar.current.component(.day, from: Date()))
     }
 
     private var selectedDateForNewEvent: Date {
@@ -222,7 +215,7 @@ struct CalendarWidgetView: View {
 
     private func isSelected(_ date: Date) -> Bool {
         guard let selectedDate = entry.selectedDate else { return false }
-        return CalendarWidgetCalendar.korean.isDate(date, inSameDayAs: selectedDate)
+        return DeviceCalendar.current.isDate(date, inSameDayAs: selectedDate)
     }
 
     private var monthTitleWidth: CGFloat {
@@ -316,7 +309,7 @@ private struct CalendarWidgetWeekView: View {
 
     private func isSelected(_ date: Date) -> Bool {
         guard let selectedDate else { return false }
-        return CalendarWidgetCalendar.korean.isDate(date, inSameDayAs: selectedDate)
+        return DeviceCalendar.current.isDate(date, inSameDayAs: selectedDate)
     }
 }
 
@@ -1013,7 +1006,7 @@ enum CalendarWidgetDeepLink {
         components.scheme = "sscalendar"
         components.host = "event"
         components.queryItems = [
-            URLQueryItem(name: "date", value: dateFormatter.string(from: occurrenceStartDate)),
+            URLQueryItem(name: "date", value: dateFormatter().string(from: occurrenceStartDate)),
             URLQueryItem(name: "eventID", value: eventID.uuidString),
             URLQueryItem(name: "occurrenceStart", value: String(occurrenceStartDate.timeIntervalSince1970)),
             URLQueryItem(
@@ -1029,19 +1022,14 @@ enum CalendarWidgetDeepLink {
         components.scheme = "sscalendar"
         components.host = host
         components.queryItems = [
-            URLQueryItem(name: "date", value: dateFormatter.string(from: date))
+            URLQueryItem(name: "date", value: dateFormatter().string(from: date))
         ]
         return components.url ?? URL(string: "sscalendar://\(host)")!
     }
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
+    private static func dateFormatter() -> DateFormatter {
+        DeviceCalendar.dateFormatter(format: "yyyy-MM-dd", calendar: DeviceCalendar.current)
+    }
 }
 
 private enum CalendarWidgetColor {

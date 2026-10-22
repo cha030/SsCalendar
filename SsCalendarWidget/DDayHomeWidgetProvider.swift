@@ -26,9 +26,7 @@ struct DDayHomeWidgetProvider: TimelineProvider {
 
     @MainActor
     private func makeTimeline(now: Date) -> Timeline<DDayHomeWidgetEntry> {
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: now)
-        let nextMidnight = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? now.addingTimeInterval(86_400)
+        let nextMidnight = CalendarWidgetCalendar.nextMidnight(after: now)
         let showsEventTitles = LockScreenWidgetMoments.showsEventTitles()
 
         // Medium이 최대 2건을 보여주므로 여기서 2개까지만 가져온다(Small은 뷰에서 첫 번째만 쓴다).

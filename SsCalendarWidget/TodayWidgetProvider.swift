@@ -19,7 +19,7 @@ enum LockScreenWidgetMoments {
     /// - Returns: 오늘 안에서 상태가 바뀔 수 있는 시각마다 하나씩 만든 모먼트 목록과,
     ///   그 타임라인을 다시 요청할 시각(자정).
     static func make(now: Date) -> (moments: [Moment], refreshAt: Date) {
-        let calendar = Calendar.current
+        let calendar = DeviceCalendar.current
         let dayStart = calendar.startOfDay(for: now)
         guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else {
             let fallback = now.addingTimeInterval(3_600)

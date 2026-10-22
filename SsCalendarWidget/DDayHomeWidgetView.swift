@@ -164,7 +164,7 @@ private struct DDayHomeMediumRow: View {
     let leftColumnWidth: CGFloat
 
     private var dateText: String {
-        let calendar = Calendar.current
+        let calendar = DeviceCalendar.current
         let components = calendar.dateComponents([.year, .month, .day], from: item.startDate)
         return String(
             format: "%04d.%02d.%02d",
