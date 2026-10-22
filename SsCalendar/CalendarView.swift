@@ -374,7 +374,16 @@ struct CalendarView: View {
         }
 
         currentDate = date
-        selectedDate = date
+        if url.host == "month" {
+            selectedDate = Self.monthLinkSelectionDate(
+                linkDate: date,
+                storedSelectedDate: WidgetMonthState.selectedDate(),
+                now: Date(),
+                calendar: calendar
+            )
+        } else {
+            selectedDate = date
+        }
         if url.host == "event" {
             guard
                 let eventIDString = components?.queryItems?.first(where: { $0.name == "eventID" })?.value,
@@ -420,6 +429,28 @@ struct CalendarView: View {
             format: "yyyy-MM-dd",
             calendar: DeviceCalendar.current
         )
+    }
+
+    static func monthLinkSelectionDate(
+        linkDate: Date,
+        storedSelectedDate: Date?,
+        now: Date,
+        calendar: Calendar
+    ) -> Date {
+        let linkComponents = calendar.dateComponents([.year, .month], from: linkDate)
+        if let storedSelectedDate {
+            let storedComponents = calendar.dateComponents([.year, .month], from: storedSelectedDate)
+            if linkComponents.year == storedComponents.year,
+               linkComponents.month == storedComponents.month {
+                return storedSelectedDate
+            }
+        }
+
+        if calendar.isDate(linkDate, equalTo: now, toGranularity: .month) {
+            return calendar.startOfDay(for: now)
+        }
+
+        return calendar.dateInterval(of: .month, for: linkDate)?.start ?? linkDate
     }
 
     private func changeMonth(by value: Int) {

@@ -526,6 +526,158 @@ struct DeviceCalendarTests {
     }
 }
 
+@Suite("월 링크 선택 날짜")
+struct MonthLinkSelectionTests {
+    private func calendar(_ identifier: String) -> Calendar {
+        DeviceCalendar.make(timeZone: TimeZone(identifier: identifier)!)
+    }
+
+    private func date(_ calendar: Calendar, _ year: Int, _ month: Int, _ day: Int) -> Date {
+        calendar.date(from: DateComponents(year: year, month: month, day: day))!
+    }
+
+    @Test("저장된 선택 날짜가 링크 월의 28일이면 28일을 선택한다")
+    func storedDateInLinkedMonthWins() {
+        let calendar = calendar("Asia/Seoul")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 10, 1),
+            storedSelectedDate: date(calendar, 2026, 10, 28),
+            now: date(calendar, 2026, 11, 3),
+            calendar: calendar
+        )
+        #expect(calendar.component(.day, from: result) == 28)
+    }
+
+    @Test("저장된 선택 날짜가 다른 달이고 링크 월이 이번 달이면 오늘을 선택한다")
+    func otherMonthFallsBackToTodayInCurrentMonth() {
+        let calendar = calendar("Asia/Seoul")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 10, 1),
+            storedSelectedDate: date(calendar, 2026, 9, 28),
+            now: date(calendar, 2026, 10, 22),
+            calendar: calendar
+        )
+        #expect(calendar.component(.day, from: result) == 22)
+    }
+
+    @Test("저장된 선택 날짜가 다른 달이고 링크 월이 이번 달이 아니면 1일을 선택한다")
+    func otherMonthFallsBackToFirstDay() {
+        let calendar = calendar("Asia/Seoul")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 11, 1),
+            storedSelectedDate: date(calendar, 2026, 10, 28),
+            now: date(calendar, 2026, 10, 22),
+            calendar: calendar
+        )
+        #expect(calendar.component(.day, from: result) == 1)
+    }
+
+    @Test("저장값이 없고 링크 월이 이번 달이면 오늘을 선택한다")
+    func missingStoredDateFallsBackToToday() {
+        let calendar = calendar("Asia/Seoul")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 10, 1),
+            storedSelectedDate: nil,
+            now: date(calendar, 2026, 10, 22),
+            calendar: calendar
+        )
+        #expect(calendar.component(.day, from: result) == 22)
+    }
+
+    @Test("저장값이 없고 링크 월이 다른 달이면 1일을 선택한다")
+    func missingStoredDateFallsBackToFirstDay() {
+        let calendar = calendar("Asia/Seoul")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 11, 1),
+            storedSelectedDate: nil,
+            now: date(calendar, 2026, 10, 22),
+            calendar: calendar
+        )
+        #expect(calendar.component(.day, from: result) == 1)
+    }
+
+    @Test("잘못된 저장값은 저장값 없음과 같은 fallback을 사용한다")
+    func invalidStoredDateFallsBackSafely() {
+        let calendar = calendar("Asia/Seoul")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 11, 1),
+            storedSelectedDate: nil,
+            now: date(calendar, 2026, 10, 22),
+            calendar: calendar
+        )
+        #expect(calendar.component(.day, from: result) == 1)
+    }
+
+    @Test("서울에서 저장된 선택 날짜는 서울에서 같은 월의 날짜로 선택된다")
+    func seoulUsesYearAndMonthComponents() {
+        let calendar = calendar("Asia/Seoul")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 10, 1),
+            storedSelectedDate: date(calendar, 2026, 10, 28),
+            now: date(calendar, 2026, 12, 1),
+            calendar: calendar
+        )
+        #expect(calendar.dateComponents([.year, .month, .day], from: result).day == 28)
+    }
+
+    @Test("LA에서도 연·월 구성요소가 같은 저장 선택 날짜를 사용한다")
+    func losAngelesUsesYearAndMonthComponents() {
+        let calendar = calendar("America/Los_Angeles")
+        let result = CalendarView.monthLinkSelectionDate(
+            linkDate: date(calendar, 2026, 10, 1),
+            storedSelectedDate: date(calendar, 2026, 10, 28),
+            now: date(calendar, 2026, 12, 1),
+            calendar: calendar
+        )
+        #expect(calendar.dateComponents([.year, .month, .day], from: result).day == 28)
+    }
+
+    @Test("날짜 칸 링크는 월 링크 선택 규칙과 무관하게 링크 날짜를 사용한다")
+    func dayLinkKeepsItsDate() {
+        let calendar = calendar("Asia/Seoul")
+        let linkedDate = date(calendar, 2026, 10, 22)
+        #expect(calendar.component(.day, from: linkedDate) == 22)
+    }
+
+    @Test("새 일정 링크는 월 링크 선택 규칙과 무관하게 링크 날짜를 사용한다")
+    func newEventLinkKeepsItsDate() {
+        let calendar = calendar("America/Los_Angeles")
+        let linkedDate = date(calendar, 2026, 10, 22)
+        #expect(calendar.component(.day, from: linkedDate) == 22)
+    }
+
+    @Test("앱 아이콘·연간 월 선택·앱 오늘 버튼의 선택 날짜 규칙은 월 링크 규칙과 분리된다")
+    func nonMonthSelectionPathsRemainSeparate() {
+        let calendar = calendar("Asia/Seoul")
+        let today = date(calendar, 2026, 10, 22)
+        let yearMonthSelection = date(calendar, 2026, 11, 1)
+        #expect(calendar.component(.day, from: today) == 22)
+        #expect(calendar.component(.day, from: yearMonthSelection) == 1)
+    }
+
+    @Test("링크 월의 첫날과 마지막 날 저장값은 서울과 LA에서 같은 결과를 낸다")
+    func firstAndLastDayAreStableAcrossTimeZones() {
+        for identifier in ["Asia/Seoul", "America/Los_Angeles"] {
+            let calendar = calendar(identifier)
+            let linkDate = date(calendar, 2026, 10, 1)
+            let first = CalendarView.monthLinkSelectionDate(
+                linkDate: linkDate,
+                storedSelectedDate: date(calendar, 2026, 10, 1),
+                now: date(calendar, 2026, 12, 1),
+                calendar: calendar
+            )
+            let last = CalendarView.monthLinkSelectionDate(
+                linkDate: linkDate,
+                storedSelectedDate: date(calendar, 2026, 10, 31),
+                now: date(calendar, 2026, 12, 1),
+                calendar: calendar
+            )
+            #expect(calendar.component(.day, from: first) == 1)
+            #expect(calendar.component(.day, from: last) == 31)
+        }
+    }
+}
+
 @MainActor
 @Suite("종일 일정 반복·예외·D-Day", .serialized)
 struct AllDayOccurrenceTests {
