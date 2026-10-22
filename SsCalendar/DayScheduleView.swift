@@ -63,7 +63,7 @@ struct DayScheduleView: View {
     }
 
     private var dayInterval: DateInterval? {
-        let calendar = Calendar.current
+        let calendar = DeviceCalendar.current
         let dayStart = calendar.startOfDay(for: currentDate)
 
         guard let nextDayStart = calendar.date(
@@ -79,7 +79,7 @@ struct DayScheduleView: View {
 
     /// 하루 앞/뒤로 이동한다. Calendar 기반 날짜 연산이라 월말·연말도 자연히 처리된다.
     private func navigate(by dayDelta: Int) {
-        guard let newDate = Calendar.current.date(
+        guard let newDate = DeviceCalendar.current.date(
             byAdding: .day,
             value: dayDelta,
             to: currentDate
@@ -130,7 +130,7 @@ struct DayScheduleView: View {
         let localOccurrences = EventOccurrenceService.occurrences(
             for: events,
             intersecting: dayInterval,
-            calendar: Calendar.current,
+            calendar: DeviceCalendar.current,
             exceptions: occurrenceExceptions
         )
         .map { CalendarDisplayOccurrence(local: $0) }
@@ -154,7 +154,7 @@ struct DayScheduleView: View {
 
     private var holidayFetchKey: DayHolidayFetchKey {
         DayHolidayFetchKey(
-            date: Calendar.current.startOfDay(for: currentDate),
+            date: DeviceCalendar.current.startOfDay(for: currentDate),
             country: holidayCountry
         )
     }
@@ -169,7 +169,7 @@ struct DayScheduleView: View {
     }
 
     private func loadDayHolidays(for key: DayHolidayFetchKey) async {
-        let components = Calendar.current.dateComponents(
+        let components = DeviceCalendar.current.dateComponents(
             [.year, .month],
             from: key.date
         )
@@ -188,7 +188,7 @@ struct DayScheduleView: View {
             )
             guard !Task.isCancelled else { return }
             dayHolidays = holidays.filter {
-                $0.isHoliday && Calendar.current.isDate($0.date, inSameDayAs: key.date)
+                $0.isHoliday && DeviceCalendar.current.isDate($0.date, inSameDayAs: key.date)
             }
         } catch {
             dayHolidays = []
@@ -217,7 +217,7 @@ struct DayScheduleView: View {
         }
         guard isEnabled else { return nil }
 
-        let days = DDayCalculator.daysRemaining(until: occurrence.startDate, calendar: Calendar.current)
+        let days = DDayCalculator.daysRemaining(until: occurrence.startDate, calendar: DeviceCalendar.current)
         guard days >= 0 else { return nil }
         return DDayCalculator.displayText(forDaysRemaining: days)
     }

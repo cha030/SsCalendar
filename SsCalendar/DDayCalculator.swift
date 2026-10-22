@@ -1,5 +1,28 @@
 import Foundation
 
+enum DeviceCalendar {
+    static var current: Calendar {
+        make(timeZone: .autoupdatingCurrent)
+    }
+
+    static func make(timeZone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale.current
+        calendar.timeZone = timeZone
+        calendar.firstWeekday = 1
+        return calendar
+    }
+
+    static func dateFormatter(format: String, calendar: Calendar) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = format
+        return formatter
+    }
+}
+
 /// D-Day(남은 일수) 계산. 자체 일정(SwiftData `Event`)과 외부 일정(EventKit)이 같은 규칙을
 /// 쓰도록 공통화한다(Step 5-2). 앱과 위젯이 함께 쓰므로 위젯 폴더에 심볼릭 링크로 공유한다
 /// (CalendarWidgetConstants/SystemCalendarQuery와 같은 패턴).

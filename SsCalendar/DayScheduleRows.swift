@@ -66,7 +66,7 @@ private struct ScheduleEventRowContent: View {
             return String(localized: "종일")
         }
 
-        if Calendar.current.isDate(
+        if DeviceCalendar.current.isDate(
             occurrence.startDate,
             inSameDayAs: occurrence.endDate
         ) {

@@ -249,6 +249,39 @@ struct HolidayCountryTests {
     }
 }
 
+@Suite("DeviceCalendar")
+struct DeviceCalendarTests {
+    @Test("서울과 LA 시간대에서 기기 날짜를 각각 계산한다")
+    func deviceDateUsesInjectedTimeZone() {
+        let utc = DeviceCalendar.make(timeZone: TimeZone(secondsFromGMT: 0)!)
+        let instant = utc.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 6))!
+        let seoul = DeviceCalendar.make(timeZone: TimeZone(identifier: "Asia/Seoul")!)
+        let losAngeles = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+
+        #expect(seoul.dateComponents([.year, .month, .day], from: instant).day == 22)
+        #expect(losAngeles.dateComponents([.year, .month, .day], from: instant).day == 21)
+    }
+
+    @Test("LA의 2026-10-22 딥링크 날짜는 22일로 해석된다")
+    func deepLinkDateUsesDeviceTimeZone() {
+        let calendar = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let formatter = DeviceCalendar.dateFormatter(format: "yyyy-MM-dd", calendar: calendar)
+        let date = formatter.date(from: "2026-10-22")!
+
+        #expect(calendar.component(.day, from: date) == 22)
+        #expect(calendar.component(.month, from: date) == 10)
+    }
+
+    @Test("저녁 9시 일정의 D-Day는 기기 시간대의 같은 날짜로 계산된다")
+    func eveningEventStaysOnDeviceDate() {
+        let calendar = DeviceCalendar.make(timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let dayStart = calendar.date(from: DateComponents(year: 2026, month: 10, day: 22))!
+        let evening = calendar.date(byAdding: .hour, value: 21, to: dayStart)!
+
+        #expect(DDayCalculator.daysRemaining(until: evening, now: evening, calendar: calendar) == 0)
+    }
+}
+
 @Suite("USWeekendColorSetting")
 struct USWeekendColorSettingTests {
 

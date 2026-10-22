@@ -15,6 +15,7 @@ struct CalendarView: View {
     @State private var newEventDate: Date?
     @State private var isPresentingYearCalendar = false
     @State private var monthChangeDirection: MonthChangeDirection = .toNextMonth
+    @State private var timeZoneRefreshGeneration = 0
     /// 헤더 왼쪽 연도 칸·오른쪽 오늘·설정 버튼 칸에 똑같이 적용하는 고정 너비. 두 칸이 같은
     /// 너비여야 그 사이(가운데)가 화면 전체 기준으로 정확한 중앙이 된다(아래 body 주석 참고).
     private static let headerSideSlotWidth: CGFloat = 100
@@ -37,11 +38,7 @@ struct CalendarView: View {
     }
 
     private var calendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = Locale.current
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        calendar.firstWeekday = 1
-        return calendar
+        DeviceCalendar.current
     }
 
     private var weekdays: [String] {
@@ -207,6 +204,14 @@ struct CalendarView: View {
                 )
             }
             .onOpenURL(perform: handleDeepLink)
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name.NSSystemTimeZoneDidChange)) { _ in
+                timeZoneRefreshGeneration += 1
+                WidgetReloadManager.reloadCalendar()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                timeZoneRefreshGeneration += 1
+                WidgetReloadManager.reloadCalendar()
+            }
             .onChange(of: holidayCountryRawValue) { _, _ in
                 holidaysByDate = [:]
             }
@@ -357,7 +362,7 @@ struct CalendarView: View {
         let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         guard
             let dateString = components?.queryItems?.first(where: { $0.name == "date" })?.value,
-            let date = Self.deepLinkDateFormatter.date(from: dateString)
+            let date = Self.deepLinkDateFormatter().date(from: dateString)
         else {
             return
         }
@@ -404,14 +409,12 @@ struct CalendarView: View {
         }
     }
 
-    private static let deepLinkDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
+    private static func deepLinkDateFormatter() -> DateFormatter {
+        DeviceCalendar.dateFormatter(
+            format: "yyyy-MM-dd",
+            calendar: DeviceCalendar.current
+        )
+    }
 
     private func changeMonth(by value: Int) {
         guard let newDate = calendar.date(

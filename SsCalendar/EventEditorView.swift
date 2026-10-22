@@ -308,7 +308,7 @@ struct EventEditorView: View {
         self.event = event
         self.existingException = existingException
 
-        let calendar = Calendar.current
+        let calendar = DeviceCalendar.current
         let selectedDay = calendar.startOfDay(for: date)
         let defaultStartDate = calendar.date(
             byAdding: .hour,
@@ -813,7 +813,7 @@ struct EventEditorView: View {
     /// 보여줘야 하며, 시리즈의 "오늘 이후 다음 발생일"을 임의로 대신 보여주지 않는다). @State인
     /// startDate를 직접 읽으므로 날짜를 바꾸면 body가 다시 그려질 때 즉시 재계산된다.
     private var dDayPreviewText: String {
-        let days = DDayCalculator.daysRemaining(until: startDate, calendar: Calendar.current)
+        let days = DDayCalculator.daysRemaining(until: startDate, calendar: DeviceCalendar.current)
         guard days >= 0 else {
             return String(localized: "지난 일정")
         }
@@ -860,7 +860,7 @@ struct EventEditorView: View {
         // 바꿨을 수 있어 저장 직전에 한 번 더 확인한다. "이 일정만" 수정 중에는 반복 종료일
         // 자체를 바꾸지 않으므로(UI에서 숨김) 이 검사가 필요 없다.
         if !isEditingSingleOccurrenceOfRepeatingSeries, let repeatEndDate = effectiveRepeatEndDate {
-            let calendar = Calendar.current
+            let calendar = DeviceCalendar.current
             guard calendar.startOfDay(for: repeatEndDate) >= calendar.startOfDay(for: startDate) else {
                 saveErrorMessage = String(localized: "반복 종료 날짜는 시작일보다 빠를 수 없습니다.")
                 return
