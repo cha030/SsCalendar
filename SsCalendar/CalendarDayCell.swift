@@ -214,23 +214,29 @@ struct CalendarDayCell: View {
     }
 
     private var dateHeader: some View {
-        ZStack(alignment: .top) {
-            if isToday {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 32, height: 32)
-                    .padding(.top, 3)
+        Text("\(calendar.component(.day, from: date))")
+            .font(.body)
+            .foregroundStyle(isToday ? Color.white : dateColor)
+            .padding(.top, 8)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: CalendarDayContentLayout.dateHeaderHeight,
+                maxHeight: CalendarDayContentLayout.dateHeaderHeight,
+                alignment: .top
+            )
+            .background(alignment: .top) {
+                if isToday {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 32, height: 32)
+                        .padding(.top, 3)
+                }
             }
-
-            ImportantMarkerStamp(marker: importantMarker)
-                .allowsHitTesting(false)
-
-            Text("\(calendar.component(.day, from: date))")
-                .font(.body)
-                .foregroundStyle(isToday ? Color.white : dateColor)
-                .padding(.top, 8)
-        }
-        .frame(height: CalendarDayContentLayout.dateHeaderHeight)
+            .overlay(alignment: .center) {
+                ImportantMarkerStamp(marker: importantMarker)
+                    .allowsHitTesting(false)
+                    .zIndex(-1)
+            }
     }
 
     private var isHoliday: Bool {
@@ -277,6 +283,50 @@ struct CalendarDayCell: View {
         calendar: Calendar.current,
         importantMarker: .none
     )
+}
+
+private func markerAlignmentPreview() -> some View {
+    let calendar = Calendar.current
+    let startDate = calendar.date(from: DateComponents(year: 2026, month: 10, day: 26)) ?? Date()
+    let markers: [ImportantMarker] = [.none, .none, .star, .sun, .none]
+
+    return HStack(spacing: 0) {
+        ForEach(Array(markers.enumerated()), id: \.offset) { index, marker in
+            CalendarDayCell(
+                date: calendar.date(byAdding: .day, value: index, to: startDate) ?? startDate,
+                isCurrentMonth: true,
+                isToday: index == 3,
+                isSelected: false,
+                holidays: [],
+                holidayTopOffset: nil,
+                holidayTextWidth: 48,
+                displayedHolidayLineCount: nil,
+                calendar: calendar,
+                importantMarker: marker
+            )
+        }
+    }
+    .frame(width: 5 * 38, height: CalendarDayContentLayout.cellHeight)
+}
+
+#Preview("도장 세로 정렬 · 보통 · 밝은 모드") {
+    markerAlignmentPreview()
+}
+
+#Preview("도장 세로 정렬 · xxxLarge · 밝은 모드") {
+    markerAlignmentPreview()
+        .dynamicTypeSize(.xxxLarge)
+}
+
+#Preview("도장 세로 정렬 · 보통 · 어두운 모드") {
+    markerAlignmentPreview()
+        .environment(\.colorScheme, .dark)
+}
+
+#Preview("도장 세로 정렬 · xxxLarge · 어두운 모드") {
+    markerAlignmentPreview()
+        .dynamicTypeSize(.xxxLarge)
+        .environment(\.colorScheme, .dark)
 }
 
 #Preview("표시 조합") {
