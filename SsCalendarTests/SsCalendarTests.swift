@@ -230,6 +230,7 @@ struct TodayWidgetStatusResolverTests {
         #expect(status.today?.id == "overnight")
         #expect(status.isTodayOngoing)
     }
+
 }
 
 @Suite("HolidayCountry")
@@ -3584,5 +3585,71 @@ struct CalendarWidgetMarkerMetricsTests {
         #expect(sizes[1] < sizes[2])
         #expect(sizes[2] < sizes[3])
         #expect(sizes[3] <= 80)
+    }
+
+    @Test("도장 선 굵기는 0.16배·앱 최소 2.5pt·위젯 상한 3pt와 2pt를 따른다")
+    func markerLineWidthUsesSharedRatioAndCaps() {
+        let ratioGeometry = ImportantMarkerStampMetrics.geometry(forFontSize: 20, minimumLineWidth: 0)
+        let appMinimumGeometry = ImportantMarkerStampMetrics.geometry(forFontSize: 10)
+        let largestWidgetGeometry = ImportantMarkerStampMetrics.geometry(
+            forFontSize: 24,
+            maxLineWidth: 3,
+            minimumLineWidth: 0
+        )
+        let mediumWidgetGeometry = ImportantMarkerStampMetrics.geometry(
+            forFontSize: 10,
+            maxLineWidth: 2,
+            minimumLineWidth: 0
+        )
+
+        #expect(abs(ratioGeometry.lineWidth - 3.2) < 0.001)
+        #expect(appMinimumGeometry.lineWidth >= 2.5)
+        #expect(largestWidgetGeometry.lineWidth <= 3)
+        #expect(mediumWidgetGeometry.lineWidth <= 2)
+    }
+
+    @Test("윤일 매년 반복 일정의 표시는 윤년에만 나온다")
+    func leapDayYearlyMarkerAppearsOnlyInLeapYears() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let startDate = calendar.date(from: DateComponents(year: 2024, month: 2, day: 29, hour: 9))!
+        let event = Event(
+            title: "윤일 표시",
+            isAllDay: false,
+            startDate: startDate,
+            endDate: startDate.addingTimeInterval(3_600),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "년",
+            repeatInterval: 1,
+            memo: "",
+            importantMarkerRawValue: ImportantMarker.sun.rawValue
+        )
+        let nonLeapRange = DateInterval(
+            start: calendar.date(from: DateComponents(year: 2025, month: 2, day: 28))!,
+            end: calendar.date(from: DateComponents(year: 2025, month: 3, day: 1))!
+        )
+        let leapRange = DateInterval(
+            start: calendar.date(from: DateComponents(year: 2028, month: 2, day: 28))!,
+            end: calendar.date(from: DateComponents(year: 2028, month: 3, day: 1))!
+        )
+
+        let nonLeapOccurrences = EventOccurrenceService.occurrences(
+            for: event,
+            intersecting: nonLeapRange,
+            calendar: calendar
+        )
+        let leapOccurrences = EventOccurrenceService.occurrences(
+            for: event,
+            intersecting: leapRange,
+            calendar: calendar
+        )
+
+        #expect(nonLeapOccurrences.isEmpty)
+        #expect(leapOccurrences.count == 1)
+        #expect(CalendarDisplayOccurrence(local: leapOccurrences[0]).importantMarker == .sun)
     }
 }

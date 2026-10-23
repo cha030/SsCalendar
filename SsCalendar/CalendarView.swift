@@ -131,6 +131,7 @@ struct CalendarView: View {
 
                 Spacer()
             }
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             // 월간 달력 어디를 스와이프해도 다음/이전 달로 이동한다. 날짜 칸의 onTapGesture는
             // 최소 이동 거리(24pt) 없는 순수 탭이라 이 DragGesture와 겹치지 않고, simultaneousGesture라
             // CalendarWeekRow 내부의 다른 제스처도 그대로 동작한다(DayScheduleView와 같은 방식).
@@ -596,4 +597,16 @@ private struct SystemCalendarFetchKey: Equatable {
 #Preview {
     CalendarView()
         .modelContainer(for: Event.self, inMemory: true)
+}
+
+#Preview("월간 · xxxLarge") {
+    CalendarView()
+        .modelContainer(for: Event.self, inMemory: true)
+        .dynamicTypeSize(.xxxLarge)
+}
+
+#Preview("월간 · accessibility5 (xxxLarge 상한)") {
+    CalendarView()
+        .modelContainer(for: Event.self, inMemory: true)
+        .dynamicTypeSize(.accessibility5)
 }

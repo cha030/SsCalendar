@@ -771,7 +771,20 @@
       }
     },
     "중요한 일정" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Important event"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "중요한 일정"
+          }
+        }
+      }
     },
     "진행" : {
       "localizations" : {

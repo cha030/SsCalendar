@@ -209,7 +209,7 @@ enum ImportantMarkerSelection {
 
 enum ImportantMarkerStampMetrics {
     static let ringRadiusRatio: CGFloat = 1.15
-    static let ringLineWidthRatio: CGFloat = 0.12
+    static let ringLineWidthRatio: CGFloat = 0.16
     static let rayCount = 8
     static let rayStartGapRatio: CGFloat = 0.22
     static let rayLengthRatio: CGFloat = 0.33
@@ -225,7 +225,8 @@ enum ImportantMarkerStampMetrics {
     static func geometry(
         forFontSize fontSize: CGFloat,
         maxDiameter: CGFloat? = nil,
-        maxLineWidth: CGFloat? = nil
+        maxLineWidth: CGFloat? = nil,
+        minimumLineWidth: CGFloat = 2.5
     ) -> Geometry {
         let requestedDiameter = 2 * (ringRadiusRatio + rayStartGapRatio + rayLengthRatio) * fontSize
         let diameter = min(requestedDiameter, maxDiameter ?? requestedDiameter)
@@ -233,7 +234,7 @@ enum ImportantMarkerStampMetrics {
         return Geometry(
             diameter: diameter,
             lineWidth: min(
-                ringLineWidthRatio * fontSize * scale,
+                max(minimumLineWidth, ringLineWidthRatio * fontSize * scale),
                 maxLineWidth ?? .greatestFiniteMagnitude
             ),
             ringRadius: ringRadiusRatio * fontSize * scale,
@@ -263,6 +264,7 @@ struct ImportantMarkerStamp: View {
     var fontSize: CGFloat? = nil
     var maxDiameter: CGFloat? = nil
     var maxLineWidth: CGFloat? = nil
+    var minimumLineWidth: CGFloat = 2.5
 
     @ScaledMetric(relativeTo: .body) private var scaledFontSize: CGFloat = 12
     @ScaledMetric(relativeTo: .body) private var scaledMaxDiameter: CGFloat = 40
@@ -271,7 +273,8 @@ struct ImportantMarkerStamp: View {
         ImportantMarkerStampMetrics.geometry(
             forFontSize: fontSize ?? scaledFontSize,
             maxDiameter: maxDiameter ?? scaledMaxDiameter,
-            maxLineWidth: maxLineWidth
+            maxLineWidth: maxLineWidth,
+            minimumLineWidth: minimumLineWidth
         )
     }
 

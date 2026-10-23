@@ -487,7 +487,8 @@ private struct CalendarWidgetExpandedDayView: View {
                 marker: day.importantMarker,
                 fontSize: metrics.dateFontSize,
                 maxDiameter: metrics.markerDiameterCap,
-                maxLineWidth: metrics.markerLineWidthCap
+                maxLineWidth: metrics.markerLineWidthCap,
+                minimumLineWidth: 0
             )
 
             Text(String(day.dayNumber))
@@ -637,7 +638,8 @@ private struct CalendarWidgetMediumDayView: View {
                             marker: day.importantMarker,
                             fontSize: 10,
                             maxDiameter: 25,
-                            maxLineWidth: 1.5
+                            maxLineWidth: 2,
+                            minimumLineWidth: 0
                         )
 
                         Text(String(day.dayNumber))
@@ -932,13 +934,13 @@ struct CalendarWidgetWeekMetrics {
     /// 단계 3(가장 크게)의 점 스타일에서 일정 색깔 점의 지름.
     var markerDiameterCap: CGFloat {
         if textSizeLevel == 3 {
-            return max(0, columnWidth - 6)
+            return max(0, columnWidth - 9)
         }
         return min(max(0, columnWidth - 2), dateBadgeSize * 1.3)
     }
 
     var markerLineWidthCap: CGFloat? {
-        textSizeLevel == 3 ? 2 : nil
+        textSizeLevel == 3 ? 3 : nil
     }
 
     var eventDotSize: CGFloat {
