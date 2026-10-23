@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 /// 화면 표시 전용 일정 값 타입. 저장하지 않으며 SwiftData `Event`에 종속되지 않는다.
 /// 로컬(SwiftData) 일정과 시스템 캘린더(EventKit) 일정을 같은 형태로 합쳐 그리기 위해 사용한다.
@@ -178,5 +179,177 @@ extension CalendarDisplayOccurrence {
 
             return first.sortStartDate < second.sortStartDate
         }
+    }
+}
+
+struct ImportantMarkerCandidate: Hashable, Sendable {
+    let id: String
+    let marker: ImportantMarker
+    let firstDay: Date
+    let createdAt: Date
+}
+
+enum ImportantMarkerSelection {
+    static func marker(
+        for date: Date,
+        candidates: [ImportantMarkerCandidate],
+        calendar: Calendar
+    ) -> ImportantMarker {
+        candidates
+            .filter {
+                $0.marker != .none && calendar.isDate($0.firstDay, inSameDayAs: date)
+            }
+            .sorted {
+                if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                return $0.id < $1.id
+            }
+            .first?.marker ?? .none
+    }
+}
+
+enum ImportantMarkerStampMetrics {
+    static let ringRadiusRatio: CGFloat = 1.15
+    static let ringLineWidthRatio: CGFloat = 0.12
+    static let rayCount = 8
+    static let rayStartGapRatio: CGFloat = 0.22
+    static let rayLengthRatio: CGFloat = 0.33
+
+    struct Geometry: Equatable {
+        let diameter: CGFloat
+        let lineWidth: CGFloat
+        let ringRadius: CGFloat
+        let rayStart: CGFloat
+        let rayEnd: CGFloat
+    }
+
+    static func geometry(
+        forFontSize fontSize: CGFloat,
+        maxDiameter: CGFloat? = nil,
+        maxLineWidth: CGFloat? = nil
+    ) -> Geometry {
+        let requestedDiameter = 2 * (ringRadiusRatio + rayStartGapRatio + rayLengthRatio) * fontSize
+        let diameter = min(requestedDiameter, maxDiameter ?? requestedDiameter)
+        let scale = diameter / requestedDiameter
+        return Geometry(
+            diameter: diameter,
+            lineWidth: min(
+                ringLineWidthRatio * fontSize * scale,
+                maxLineWidth ?? .greatestFiniteMagnitude
+            ),
+            ringRadius: ringRadiusRatio * fontSize * scale,
+            rayStart: (ringRadiusRatio + rayStartGapRatio) * fontSize * scale,
+            rayEnd: (ringRadiusRatio + rayStartGapRatio + rayLengthRatio) * fontSize * scale
+        )
+    }
+
+    static func ringRadius(forFontSize fontSize: CGFloat) -> CGFloat {
+        ringRadiusRatio * fontSize
+    }
+}
+
+enum ImportantMarkerStyle {
+    static var gold: Color {
+        Color(uiColor: UIColor { traits in
+            if traits.userInterfaceStyle == .dark {
+                return UIColor(red: 235 / 255, green: 180 / 255, blue: 50 / 255, alpha: 1)
+            }
+            return UIColor(red: 214 / 255, green: 158 / 255, blue: 20 / 255, alpha: 1)
+        })
+    }
+}
+
+struct ImportantMarkerStamp: View {
+    let marker: ImportantMarker
+    var fontSize: CGFloat? = nil
+    var maxDiameter: CGFloat? = nil
+    var maxLineWidth: CGFloat? = nil
+
+    @ScaledMetric(relativeTo: .body) private var scaledFontSize: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var scaledMaxDiameter: CGFloat = 40
+
+    private var geometry: ImportantMarkerStampMetrics.Geometry {
+        ImportantMarkerStampMetrics.geometry(
+            forFontSize: fontSize ?? scaledFontSize,
+            maxDiameter: maxDiameter ?? scaledMaxDiameter,
+            maxLineWidth: maxLineWidth
+        )
+    }
+
+    var body: some View {
+        Group {
+            switch marker {
+            case .none:
+                EmptyView()
+            case .star:
+                ImportantMarkerStarShape()
+                    .stroke(ImportantMarkerStyle.gold, lineWidth: geometry.lineWidth)
+            case .sun:
+                ImportantMarkerSunShape(geometry: geometry)
+                    .stroke(
+                        ImportantMarkerStyle.gold,
+                        style: StrokeStyle(
+                            lineWidth: geometry.lineWidth,
+                            lineCap: .round,
+                            lineJoin: .round
+                        )
+                    )
+            }
+        }
+        .frame(width: geometry.diameter, height: geometry.diameter)
+        .rotationEffect(.degrees(10))
+        .allowsHitTesting(false)
+    }
+}
+
+private struct ImportantMarkerStarShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let outerRadius = min(rect.width, rect.height) / 2
+        let innerRadius = outerRadius * 0.42
+        var path = Path()
+
+        for index in 0..<10 {
+            let radius = index.isMultiple(of: 2) ? outerRadius : innerRadius
+            let angle = (-Double.pi / 2) + (Double(index) * Double.pi / 5)
+            let point = CGPoint(
+                x: center.x + CGFloat(cos(angle)) * radius,
+                y: center.y + CGFloat(sin(angle)) * radius
+            )
+            if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct ImportantMarkerSunShape: Shape {
+    let geometry: ImportantMarkerStampMetrics.Geometry
+
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let scale = min(rect.width, rect.height) / geometry.diameter
+        let ringRadius = geometry.ringRadius * scale
+        let rayStart = geometry.rayStart * scale
+        let rayEnd = geometry.rayEnd * scale
+        var path = Path()
+        path.addEllipse(in: CGRect(
+            x: center.x - ringRadius,
+            y: center.y - ringRadius,
+            width: ringRadius * 2,
+            height: ringRadius * 2
+        ))
+
+        for index in 0..<ImportantMarkerStampMetrics.rayCount {
+            let angle = -Double.pi / 2 + (Double(index) * 2 * Double.pi / Double(ImportantMarkerStampMetrics.rayCount))
+            path.move(to: CGPoint(
+                x: center.x + CGFloat(cos(angle)) * rayStart,
+                y: center.y + CGFloat(sin(angle)) * rayStart
+            ))
+            path.addLine(to: CGPoint(
+                x: center.x + CGFloat(cos(angle)) * rayEnd,
+                y: center.y + CGFloat(sin(angle)) * rayEnd
+            ))
+        }
+        return path
     }
 }

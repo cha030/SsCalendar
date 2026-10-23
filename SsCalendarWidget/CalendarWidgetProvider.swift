@@ -67,6 +67,14 @@ struct CalendarWidgetProvider: TimelineProvider {
             let localItems = occurrences.map {
                 CalendarWidgetItem(local: $0, calendar: calendar)
             }
+            let localMarkerCandidates = occurrences.map { occurrence in
+                ImportantMarkerCandidate(
+                    id: occurrence.event.id.uuidString,
+                    marker: occurrence.event.importantMarker,
+                    firstDay: occurrence.occupiedDayRange(calendar: calendar).lowerBound,
+                    createdAt: occurrence.event.createdAt
+                )
+            }
             let items = CalendarWidgetItem.merged(
                 local: localItems,
                 system: systemItems(in: grid.interval, calendar: calendar)
@@ -102,6 +110,11 @@ struct CalendarWidgetProvider: TimelineProvider {
                     holidayTitle: HolidayDisplayFormatter.title(
                         for: holidays.map(\.name),
                         on: day,
+                        calendar: calendar
+                    ),
+                    importantMarker: ImportantMarkerSelection.marker(
+                        for: day,
+                        candidates: localMarkerCandidates,
                         calendar: calendar
                     ),
                     events: dayEvents

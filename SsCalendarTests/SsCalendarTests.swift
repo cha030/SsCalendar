@@ -3551,3 +3551,38 @@ struct WidgetReloadDebouncerTests {
         #expect(reloadCount == 1)
     }
 }
+
+@Suite("태양 도장 기하")
+struct ImportantMarkerStampMetricsTests {
+    @Test("태양 고리 반지름은 날짜 글꼴 크기의 1.1배 이상이다")
+    func ringRadiusContainsDateNumber() {
+        let fontSize: CGFloat = 12
+        #expect(ImportantMarkerStampMetrics.ringRadius(forFontSize: fontSize) >= fontSize * 1.1)
+    }
+
+    @Test("태양 광선은 8개이고 길이는 모두 같다")
+    func sunHasEightEqualRays() {
+        let fontSize: CGFloat = 12
+        let geometry = ImportantMarkerStampMetrics.geometry(forFontSize: fontSize)
+        #expect(ImportantMarkerStampMetrics.rayCount == 8)
+        #expect(abs((geometry.rayEnd - geometry.rayStart) - fontSize * 0.33) < 0.001)
+    }
+}
+
+@Suite("월간 위젯 도장 크기")
+struct CalendarWidgetMarkerMetricsTests {
+    @Test("단계 0·1·2·3은 날짜 숫자와 함께 커지고 단계 3은 칸 너비 상한을 지킨다")
+    func markerScalesWithDateNumberAndFitsColumn() {
+        let fontSizes: [CGFloat] = [12, 15.6, 20.4, 24]
+        let sizes = fontSizes.enumerated().map { index, fontSize in
+            ImportantMarkerStampMetrics.geometry(
+                forFontSize: fontSize,
+                maxDiameter: index == 3 ? 80 : nil
+            ).diameter
+        }
+        #expect(sizes[0] < sizes[1])
+        #expect(sizes[1] < sizes[2])
+        #expect(sizes[2] < sizes[3])
+        #expect(sizes[3] <= 80)
+    }
+}

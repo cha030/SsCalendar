@@ -770,6 +770,9 @@
         }
       }
     },
+    "중요한 일정" : {
+
+    },
     "진행" : {
       "localizations" : {
         "en" : {
@@ -796,12 +799,63 @@
         }
       }
     },
+    "출장" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Business trip"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "출장"
+          }
+        }
+      }
+    },
+    "친구 만나기" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meet friends"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "친구 만나기"
+          }
+        }
+      }
+    },
     "크리스마스" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Christmas Day"
+          }
+        }
+      }
+    },
+    "프로젝트 회의" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Project meeting"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로젝트 회의"
           }
         }
       }
@@ -870,57 +924,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "회의"
-          }
-        }
-      }
-    },
-    "친구 만나기" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meet friends"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "친구 만나기"
-          }
-        }
-      }
-    },
-    "프로젝트 회의" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Project meeting"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "프로젝트 회의"
-          }
-        }
-      }
-    },
-    "출장" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Business trip"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "출장"
           }
         }
       }

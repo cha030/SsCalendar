@@ -125,6 +125,7 @@ func calendarTextSizePreviewEntry(level: Int) -> CalendarWidgetEntry {
             isToday: calendar.isDate(day, inSameDayAs: busyDay),
             isHoliday: isHoliday,
             holidayTitle: isHoliday ? "광복절" : nil,
+            importantMarker: calendar.isDate(day, inSameDayAs: busyDay) ? .sun : .none,
             events: dayEvents
         )
     }
@@ -166,3 +167,4 @@ func calendarTextSizePreviewEntry(level: Int) -> CalendarWidgetEntry {
 } timeline: {
     calendarTextSizePreviewEntry(level: 2)
 }
+

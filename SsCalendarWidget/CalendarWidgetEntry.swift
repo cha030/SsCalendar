@@ -74,6 +74,7 @@ struct CalendarWidgetDay: Identifiable, Hashable, Sendable {
     let isToday: Bool
     let isHoliday: Bool
     let holidayTitle: String?
+    let importantMarker: ImportantMarker
     let events: [CalendarWidgetEvent]
 
     var id: Date { date }
@@ -173,6 +174,7 @@ enum CalendarWidgetCalendar {
                 isToday: calendar.isDateInToday(day),
                 isHoliday: false,
                 holidayTitle: nil,
+                importantMarker: .none,
                 events: []
             )
         }
@@ -260,6 +262,9 @@ enum CalendarWidgetCalendar {
                 isToday: calendar.isDateInToday(day),
                 isHoliday: holidayDate.map { calendar.isDate(day, inSameDayAs: $0) } ?? false,
                 holidayTitle: holidayDate.map { calendar.isDate(day, inSameDayAs: $0) } == true ? String(localized: "추석") : nil,
+                importantMarker: calendar.isDate(day, inSameDayAs: today)
+                    ? .sun
+                    : (calendar.isDate(day, inSameDayAs: sampleDates[1]) ? .star : .none),
                 events: sampleEvents
             )
         }

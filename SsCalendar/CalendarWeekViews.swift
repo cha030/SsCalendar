@@ -25,22 +25,19 @@ struct CalendarWeekRow: View {
         occurrences: [CalendarDisplayOccurrence],
         calendar: Calendar
     ) -> ImportantMarker {
-        occurrences
-            .filter { occurrence in
-                guard !occurrence.isSystem,
-                      occurrence.importantMarker != .none else {
-                    return false
-                }
-                let startDay = occurrence.occupiedDayRange(calendar: calendar).lowerBound
-                return calendar.isDate(startDay, inSameDayAs: date)
-            }
-            .sorted { first, second in
-                if first.createdAt != second.createdAt {
-                    return first.createdAt < second.createdAt
-                }
-                return first.id < second.id
-            }
-            .first?.importantMarker ?? .none
+        ImportantMarkerSelection.marker(
+            for: date,
+            candidates: occurrences.compactMap { occurrence in
+                guard !occurrence.isSystem else { return nil }
+                return ImportantMarkerCandidate(
+                    id: occurrence.id,
+                    marker: occurrence.importantMarker,
+                    firstDay: occurrence.occupiedDayRange(calendar: calendar).lowerBound,
+                    createdAt: occurrence.createdAt
+                )
+            },
+            calendar: calendar
+        )
     }
 
     /// 단일 날짜 일정이 2줄로 확장돼도 되는지는 "실제 제목이 한 줄에 다 들어가는 너비"를 알아야

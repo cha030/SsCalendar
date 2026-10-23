@@ -476,25 +476,35 @@ private struct CalendarWidgetExpandedDayView: View {
 
     private var dateNumber: some View {
         let isLargestToday = metrics.textSizeLevel == 3 && day.isToday
-        return Text(String(day.dayNumber))
-            .font(
-                .system(
-                    size: metrics.dateFontSize,
-                    weight: isLargestToday ? .bold : (day.isToday ? .semibold : .regular)
-                )
-            )
-            .lineLimit(1)
-            .fixedSize()
-            .foregroundStyle(
-                metrics.textSizeLevel == 3 ? dateColor : (day.isToday ? Color.white : dateColor)
-            )
-            .frame(width: metrics.dateBadgeSize, height: metrics.dateBadgeSize)
-            .background {
-                if day.isToday && metrics.textSizeLevel != 3 {
-                    Circle().fill(Color.blue)
-                }
+        return ZStack {
+            if day.isToday && metrics.textSizeLevel != 3 {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: metrics.dateBadgeSize, height: metrics.dateBadgeSize)
             }
-            .frame(maxWidth: .infinity)
+
+            ImportantMarkerStamp(
+                marker: day.importantMarker,
+                fontSize: metrics.dateFontSize,
+                maxDiameter: metrics.markerDiameterCap,
+                maxLineWidth: metrics.markerLineWidthCap
+            )
+
+            Text(String(day.dayNumber))
+                .font(
+                    .system(
+                        size: metrics.dateFontSize,
+                        weight: isLargestToday ? .bold : (day.isToday ? .semibold : .regular)
+                    )
+                )
+                .lineLimit(1)
+                .fixedSize()
+                .foregroundStyle(
+                    metrics.textSizeLevel == 3 ? dateColor : (day.isToday ? Color.white : dateColor)
+                )
+                .frame(width: metrics.dateBadgeSize, height: metrics.dateBadgeSize)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var dateControls: some View {
@@ -504,6 +514,13 @@ private struct CalendarWidgetExpandedDayView: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .accessibilityLabel(
+            Text(
+                day.importantMarker == .none
+                    ? String(day.dayNumber)
+                    : String(day.dayNumber) + ", " + String(localized: "중요한 일정")
+            )
+        )
     }
 
     private var lunarText: String? {
@@ -609,22 +626,39 @@ private struct CalendarWidgetMediumDayView: View {
         VStack(spacing: 2) {
             ZStack {
                 Link(destination: CalendarWidgetDeepLink.dayURL(dateString: day.dateString)) {
-                    Text(String(day.dayNumber))
-                        .font(
-                            .system(
-                                size: 10,
-                                weight: day.isToday ? .semibold : .regular
-                            )
-                        )
-                        .foregroundStyle(day.isToday ? Color.white : dateColor)
-                        .frame(width: 17, height: 17)
-                        .background {
-                            if day.isToday {
-                                Circle().fill(Color.blue)
-                            }
+                    ZStack {
+                        if day.isToday {
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 17, height: 17)
                         }
-                        .frame(maxWidth: .infinity)
+
+                        ImportantMarkerStamp(
+                            marker: day.importantMarker,
+                            fontSize: 10,
+                            maxDiameter: 25,
+                            maxLineWidth: 1.5
+                        )
+
+                        Text(String(day.dayNumber))
+                            .font(
+                                .system(
+                                    size: 10,
+                                    weight: day.isToday ? .semibold : .regular
+                                )
+                            )
+                            .foregroundStyle(day.isToday ? Color.white : dateColor)
+                            .frame(width: 17, height: 17)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
+                .accessibilityLabel(
+                    Text(
+                        day.importantMarker == .none
+                            ? String(day.dayNumber)
+                            : String(day.dayNumber) + ", " + String(localized: "중요한 일정")
+                    )
+                )
             }
             .frame(maxWidth: .infinity)
 
@@ -818,7 +852,7 @@ private struct CalendarWidgetWeekLayout {
 
 }
 
-private struct CalendarWidgetWeekMetrics {
+struct CalendarWidgetWeekMetrics {
     let family: WidgetFamily
     let weekCount: Int
     let rowHeight: CGFloat
@@ -896,6 +930,17 @@ private struct CalendarWidgetWeekMetrics {
     }
 
     /// 단계 3(가장 크게)의 점 스타일에서 일정 색깔 점의 지름.
+    var markerDiameterCap: CGFloat {
+        if textSizeLevel == 3 {
+            return max(0, columnWidth - 6)
+        }
+        return min(max(0, columnWidth - 2), dateBadgeSize * 1.3)
+    }
+
+    var markerLineWidthCap: CGFloat? {
+        textSizeLevel == 3 ? 2 : nil
+    }
+
     var eventDotSize: CGFloat {
         if isExtraLarge { return 7 }
         return isCompactSixWeekLarge ? 4.5 : 5.5
