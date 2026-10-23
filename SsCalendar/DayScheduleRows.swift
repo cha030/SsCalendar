@@ -129,8 +129,31 @@ private struct ScheduleEventRowContent: View {
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color.orange))
             }
+
+            if let markerSymbol = importantMarkerSymbol {
+                Image(systemName: markerSymbol)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(ImportantMarkerStyle.gold)
+                    .accessibilityLabel(Text(importantMarkerAccessibilityLabel))
+            }
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
+    }
+
+    private var importantMarkerSymbol: String? {
+        switch occurrence.importantMarker {
+        case .none: return nil
+        case .star: return "star"
+        case .sun: return "sun.max"
+        }
+    }
+
+    private var importantMarkerAccessibilityLabel: String {
+        switch occurrence.importantMarker {
+        case .none: return ""
+        case .star: return String(localized: "중요한 일정: 별")
+        case .sun: return String(localized: "중요한 일정: 태양")
+        }
     }
 }

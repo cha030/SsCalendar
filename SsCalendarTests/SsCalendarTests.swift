@@ -3239,6 +3239,168 @@ struct ImportantMarkerTests {
         #expect(!EventEditorView.shouldShowImportantMarker(for: .systemCalendar(calendarIdentifier: "calendar")))
     }
 
+    private func occurrence(
+        id: String,
+        marker: ImportantMarker,
+        createdAt: Date,
+        startDate: Date,
+        endDate: Date
+    ) -> CalendarDisplayOccurrence {
+        CalendarDisplayOccurrence(
+            id: id,
+            source: .local(eventID: UUID()),
+            title: id,
+            isAllDay: false,
+            startDate: startDate,
+            endDate: endDate,
+            color: .blue,
+            importantMarker: marker,
+            createdAt: createdAt
+        )
+    }
+
+    @Test("대표 표시는 먼저 등록된 일정이며 동률이면 id 순서다")
+    func representativeMarkerUsesCreatedAtThenID() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 10))!
+        let later = occurrence(
+            id: "b",
+            marker: .sun,
+            createdAt: date.addingTimeInterval(60),
+            startDate: date,
+            endDate: date.addingTimeInterval(3600)
+        )
+        let earlier = occurrence(
+            id: "a",
+            marker: .star,
+            createdAt: date,
+            startDate: date,
+            endDate: date.addingTimeInterval(3600)
+        )
+        #expect(CalendarWeekRow.importantMarker(for: date, occurrences: [later, earlier], calendar: calendar) == .star)
+
+        let tiedSun = occurrence(
+            id: "z",
+            marker: .sun,
+            createdAt: date,
+            startDate: date,
+            endDate: date.addingTimeInterval(3600)
+        )
+        #expect(CalendarWeekRow.importantMarker(for: date, occurrences: [tiedSun, earlier], calendar: calendar) == .star)
+    }
+
+    @Test("없음은 대표 표시 후보에서 제외되고 여러 날 일정은 첫날만 표시한다")
+    func noneIsExcludedAndMultiDayStartsOnly() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        let start = calendar.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 10))!
+        let none = occurrence(
+            id: "none",
+            marker: .none,
+            createdAt: start,
+            startDate: start,
+            endDate: start.addingTimeInterval(3600)
+        )
+        let multiDay = occurrence(
+            id: "multi",
+            marker: .sun,
+            createdAt: start.addingTimeInterval(60),
+            startDate: start,
+            endDate: calendar.date(byAdding: .day, value: 2, to: start)!
+        )
+        let nextDay = calendar.date(byAdding: .day, value: 1, to: start)!
+        #expect(CalendarWeekRow.importantMarker(for: start, occurrences: [none, multiDay], calendar: calendar) == .sun)
+        #expect(CalendarWeekRow.importantMarker(for: nextDay, occurrences: [multiDay], calendar: calendar) == .none)
+    }
+
+    @Test("로컬 발생분과 반복 예외는 시리즈 표시를 따르고 삭제된 발생분은 표시가 없다")
+    func occurrencesUseSeriesMarkerAndDeletedOccurrenceHasNone() {
+        let event = Event(
+            title: "반복 표시",
+            isAllDay: false,
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3600),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "주",
+            repeatInterval: 1,
+            memo: "",
+            importantMarkerRawValue: ImportantMarker.star.rawValue
+        )
+        let exception = EventOccurrenceException(
+            eventID: event.id,
+            originalOccurrenceStartDate: event.startDate,
+            isExcluded: false,
+            overrideTitle: "예외"
+        )
+        let occurrence = EventOccurrence(
+            event: event,
+            startDate: event.startDate.addingTimeInterval(86_400),
+            endDate: event.endDate.addingTimeInterval(86_400),
+            originalStartDate: event.startDate,
+            exception: exception
+        )
+        #expect(CalendarDisplayOccurrence(local: occurrence).importantMarker == .star)
+        #expect(CalendarWeekRow.importantMarker(for: occurrence.startDate, occurrences: [], calendar: DeviceCalendar.current) == .none)
+    }
+
+    @Test("서울과 LA에서 같은 날짜의 표시 대표값이 같다")
+    func representativeMarkerIsStableAcrossTimeZones() {
+        let components = DateComponents(year: 2026, month: 10, day: 22, hour: 10)
+        var seoul = Calendar(identifier: .gregorian)
+        seoul.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        var losAngeles = Calendar(identifier: .gregorian)
+        losAngeles.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+        let seoulDate = seoul.date(from: components)!
+        let losAngelesDate = losAngeles.date(from: components)!
+        let seoulOccurrence = occurrence(
+            id: "seoul",
+            marker: .star,
+            createdAt: seoulDate,
+            startDate: seoulDate,
+            endDate: seoulDate.addingTimeInterval(3600)
+        )
+        let losAngelesOccurrence = occurrence(
+            id: "los-angeles",
+            marker: .star,
+            createdAt: losAngelesDate,
+            startDate: losAngelesDate,
+            endDate: losAngelesDate.addingTimeInterval(3600)
+        )
+        #expect(CalendarWeekRow.importantMarker(for: seoulDate, occurrences: [seoulOccurrence], calendar: seoul) == .star)
+        #expect(CalendarWeekRow.importantMarker(for: losAngelesDate, occurrences: [losAngelesOccurrence], calendar: losAngeles) == .star)
+    }
+
+    @Test("외부 시스템 일정에는 표시가 없다")
+    func systemOccurrenceHasNoImportantMarker() {
+        let date = Date()
+        let reference = SystemCalendarEventReference(
+            eventIdentifier: "event",
+            calendarItemIdentifier: "item",
+            externalIdentifier: nil,
+            calendarIdentifier: "calendar",
+            startDate: date,
+            occurrenceDate: nil,
+            isRecurring: false
+        )
+        let occurrence = CalendarDisplayOccurrence(
+            id: "system:event",
+            source: .system(calendarTitle: "외부", reference: reference),
+            title: "외부 일정",
+            isAllDay: false,
+            startDate: date,
+            endDate: date.addingTimeInterval(3600),
+            color: .red,
+            importantMarker: .star,
+            createdAt: date
+        )
+        #expect(CalendarWeekRow.importantMarker(for: date, occurrences: [occurrence], calendar: DeviceCalendar.current) == .none)
+    }
+
 }
 
 @Suite("D-Day 하루 차이 의심 사례 재현 (Step 6 안정화)")

@@ -115,6 +115,7 @@ struct CalendarDayCell: View {
     /// WeekEventLayout이 일정 밀도까지 반영해 확정한 줄 수. 뷰와 배치 엔진이 같은 높이를 쓴다.
     let displayedHolidayLineCount: Int?
     let calendar: Calendar
+    let importantMarker: ImportantMarker
 
     @AppStorage(LunarDisplaySetting.storageKey, store: LunarDisplaySetting.store)
     private var showLunarDates = false
@@ -221,6 +222,9 @@ struct CalendarDayCell: View {
                     .padding(.top, 3)
             }
 
+            ImportantMarkerStamp(marker: importantMarker)
+                .allowsHitTesting(false)
+
             Text("\(calendar.component(.day, from: date))")
                 .font(.body)
                 .foregroundStyle(isToday ? Color.white : dateColor)
@@ -254,6 +258,100 @@ struct CalendarDayCell: View {
     }
 }
 
+enum ImportantMarkerStyle {
+    static var gold: Color {
+        Color(uiColor: UIColor { traits in
+            if traits.userInterfaceStyle == .dark {
+                return UIColor(red: 235 / 255, green: 180 / 255, blue: 50 / 255, alpha: 1)
+            }
+            return UIColor(red: 214 / 255, green: 158 / 255, blue: 20 / 255, alpha: 1)
+        })
+    }
+}
+
+private struct ImportantMarkerStamp: View {
+    let marker: ImportantMarker
+
+    @ScaledMetric(relativeTo: .body) private var diameter: CGFloat = 34
+
+    private var lineWidth: CGFloat {
+        max(1.5, diameter * 0.065)
+    }
+
+    var body: some View {
+        Group {
+            switch marker {
+            case .none:
+                EmptyView()
+            case .star:
+                ImportantMarkerStarShape()
+                    .stroke(ImportantMarkerStyle.gold, lineWidth: lineWidth)
+            case .sun:
+                ImportantMarkerSunShape()
+                    .stroke(ImportantMarkerStyle.gold, lineWidth: lineWidth)
+            }
+        }
+        .frame(width: diameter, height: diameter)
+        .rotationEffect(.degrees(10))
+        .allowsHitTesting(false)
+    }
+}
+
+private struct ImportantMarkerStarShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let outerRadius = min(rect.width, rect.height) / 2
+        let innerRadius = outerRadius * 0.42
+        var path = Path()
+
+        for index in 0..<10 {
+            let radius = index.isMultiple(of: 2) ? outerRadius : innerRadius
+            let angle = (-Double.pi / 2) + (Double(index) * Double.pi / 5)
+            let point = CGPoint(
+                x: center.x + CGFloat(cos(angle)) * radius,
+                y: center.y + CGFloat(sin(angle)) * radius
+            )
+            if index == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
+        }
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct ImportantMarkerSunShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2
+        let ringRadius = radius * 0.48
+        let rayStart = radius * 0.63
+        let rayEnd = radius * 0.9
+        var path = Path()
+        path.addEllipse(in: CGRect(
+            x: center.x - ringRadius,
+            y: center.y - ringRadius,
+            width: ringRadius * 2,
+            height: ringRadius * 2
+        ))
+
+        for index in 0..<11 {
+            let angle = -Double.pi / 2 + (Double(index) * 2 * Double.pi / 11)
+            path.move(to: CGPoint(
+                x: center.x + CGFloat(cos(angle)) * rayStart,
+                y: center.y + CGFloat(sin(angle)) * rayStart
+            ))
+            path.addLine(to: CGPoint(
+                x: center.x + CGFloat(cos(angle)) * rayEnd,
+                y: center.y + CGFloat(sin(angle)) * rayEnd
+            ))
+        }
+        return path
+    }
+}
+
 #Preview {
     CalendarDayCell(
         date: Date(),
@@ -270,6 +368,86 @@ struct CalendarDayCell: View {
         holidayTopOffset: 58,
         holidayTextWidth: 48,
         displayedHolidayLineCount: nil,
-        calendar: Calendar.current
+        calendar: Calendar.current,
+        importantMarker: .none
     )
+}
+
+#Preview("표시 조합") {
+    HStack(spacing: 8) {
+        CalendarDayCell(
+            date: Date(),
+            isCurrentMonth: true,
+            isToday: false,
+            isSelected: false,
+            holidays: [],
+            holidayTopOffset: nil,
+            holidayTextWidth: 48,
+            displayedHolidayLineCount: nil,
+            calendar: Calendar.current,
+            importantMarker: .star
+        )
+        CalendarDayCell(
+            date: Date(),
+            isCurrentMonth: true,
+            isToday: false,
+            isSelected: false,
+            holidays: [],
+            holidayTopOffset: nil,
+            holidayTextWidth: 48,
+            displayedHolidayLineCount: nil,
+            calendar: Calendar.current,
+            importantMarker: .sun
+        )
+    }
+    .frame(width: 160)
+}
+
+#Preview("오늘·다크·큰 글자") {
+    CalendarDayCell(
+        date: Date(),
+        isCurrentMonth: true,
+        isToday: true,
+        isSelected: false,
+        holidays: [],
+        holidayTopOffset: nil,
+        holidayTextWidth: 48,
+        displayedHolidayLineCount: nil,
+        calendar: Calendar.current,
+        importantMarker: .sun
+    )
+    .environment(\.colorScheme, .dark)
+    .dynamicTypeSize(.accessibility5)
+    .frame(width: 80)
+}
+
+#Preview("일정 제목과 표시") {
+    let calendar = Calendar.current
+    let weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+    let dates = (0..<7).compactMap {
+        calendar.date(byAdding: .day, value: $0, to: weekStart)
+    }
+    let eventDate = dates[2]
+    CalendarWeekRow(
+        week: CalendarWeek(dates: dates),
+        occurrences: [
+            CalendarDisplayOccurrence(
+                id: "preview-marker-event",
+                source: .local(eventID: UUID()),
+                title: "중요한 일정",
+                isAllDay: false,
+                startDate: eventDate,
+                endDate: eventDate.addingTimeInterval(3600),
+                color: .blue,
+                importantMarker: .star,
+                createdAt: Date()
+            )
+        ],
+        holidaysByDate: [:],
+        currentDate: eventDate,
+        selectedDate: eventDate,
+        calendar: calendar,
+        onSelectDate: { _ in }
+    )
+    .frame(height: CalendarDayContentLayout.cellHeight)
 }

@@ -20,6 +20,29 @@ struct CalendarWeekRow: View {
     // 3개 이하로 줄이고 나머지를 +N으로 넘긴다 — WeekEventLayout의 placement 적합성 검사 참고).
     private let maximumVisibleEventsPerDay = 4
 
+    static func importantMarker(
+        for date: Date,
+        occurrences: [CalendarDisplayOccurrence],
+        calendar: Calendar
+    ) -> ImportantMarker {
+        occurrences
+            .filter { occurrence in
+                guard !occurrence.isSystem,
+                      occurrence.importantMarker != .none else {
+                    return false
+                }
+                let startDay = occurrence.occupiedDayRange(calendar: calendar).lowerBound
+                return calendar.isDate(startDay, inSameDayAs: date)
+            }
+            .sorted { first, second in
+                if first.createdAt != second.createdAt {
+                    return first.createdAt < second.createdAt
+                }
+                return first.id < second.id
+            }
+            .first?.importantMarker ?? .none
+    }
+
     /// 단일 날짜 일정이 2줄로 확장돼도 되는지는 "실제 제목이 한 줄에 다 들어가는 너비"를 알아야
     /// 판단할 수 있다. 그 너비는 칸 폭(cellWidth)에서 정해지므로, 이 계산을 GeometryReader 안에서
     /// 실제 cellWidth를 구한 뒤에 한다(바깥에서 미리 계산해 두면 폭을 알 수 없다).
@@ -79,7 +102,12 @@ struct CalendarWeekRow: View {
                                 cellWidth - CalendarDayContentLayout.holidayHorizontalPadding
                             ),
                             displayedHolidayLineCount: eventLayout.holidayLineCounts[column],
-                            calendar: calendar
+                            calendar: calendar,
+                            importantMarker: Self.importantMarker(
+                                for: date,
+                                occurrences: occurrences,
+                                calendar: calendar
+                            )
                         )
                         .contentShape(Rectangle())
                         .onTapGesture {

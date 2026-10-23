@@ -18,7 +18,9 @@ extension CalendarDisplayOccurrence {
             startDate: startDate,
             endDate: endDate,
             color: EventColor(rawValue: occurrence.colorName)?.color ?? .gray,
-            originalStartDate: occurrence.originalStartDate
+            originalStartDate: occurrence.originalStartDate,
+            importantMarker: occurrence.event.importantMarker,
+            createdAt: occurrence.event.createdAt
         )
     }
 }
