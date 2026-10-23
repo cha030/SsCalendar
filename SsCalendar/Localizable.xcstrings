@@ -1123,6 +1123,16 @@
         }
       }
     },
+    "별" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Star"
+          }
+        }
+      }
+    },
     "보라색" : {
       "localizations" : {
         "en" : {
@@ -1735,16 +1745,6 @@
         }
       }
     },
-    "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Applies only the values changed in this edit to occurrences that were edited individually."
-          }
-        }
-      }
-    },
     "이전 달" : {
       "localizations" : {
         "en" : {
@@ -1773,6 +1773,16 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "일"
+          }
+        }
+      }
+    },
+    "이번에 전체 일정에서 변경한 값만 개별 수정 일정에도 적용합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applies only the values changed in this edit to occurrences that were edited individually."
           }
         }
       }
@@ -2197,6 +2207,36 @@
         }
       }
     },
+    "중요한 일정: 별" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Important event: star"
+          }
+        }
+      }
+    },
+    "중요한 일정: 없음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Important event: none"
+          }
+        }
+      }
+    },
+    "중요한 일정: 태양" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Important event: sun"
+          }
+        }
+      }
+    },
     "지난 일정" : {
       "localizations" : {
         "en" : {
@@ -2356,6 +2396,16 @@
         }
       }
     },
+    "태양" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sun"
+          }
+        }
+      }
+    },
     "파란색" : {
       "localizations" : {
         "en" : {
@@ -2368,6 +2418,26 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "파란색"
+          }
+        }
+      }
+    },
+    "표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Marker"
+          }
+        }
+      }
+    },
+    "표시는 \"전체 반복 일정\"에서만 바꿀 수 있어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Marker can only be changed from \"All Repeating Events.\""
           }
         }
       }

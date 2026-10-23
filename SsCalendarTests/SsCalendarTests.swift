@@ -3146,6 +3146,7 @@ struct SchemaMigrationSafetyTests {
         #expect(migratedEvents.first?.title == "기존 일정")
         #expect(migratedEvents.first?.memo == "마이그레이션 전 메모")
         #expect(migratedEvents.first?.isDDayEnabled == true)
+        #expect(migratedEvents.first?.importantMarker ?? .star == .none)
         #expect(migratedEvents.first?.repeatEndDate == nil)
 
         // 3단계: 새로 추가된 테이블(EventOccurrenceException)도 정상적으로 쓸 수 있어야 한다.
@@ -3165,6 +3166,79 @@ struct SchemaMigrationSafetyTests {
         #expect(eventsAfter.count == 1)
         #expect(eventsAfter.first?.id == savedEventID)
     }
+}
+
+@Suite("중요한 일정 표시 저장")
+struct ImportantMarkerTests {
+    @Test("새 Event의 기본 표시는 none이다")
+    func newEventDefaultsToNone() {
+        let event = Event(
+            title: "기본 일정",
+            isAllDay: false,
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3_600),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "반복 안 함",
+            repeatInterval: 1,
+            memo: ""
+        )
+        #expect(event.importantMarker == .none)
+        #expect(event.importantMarkerRawValue == "none")
+    }
+
+    @Test("별과 태양 raw 값은 enum으로 복원된다")
+    func starAndSunRestore() {
+        let event = Event(
+            title: "표시 일정",
+            isAllDay: false,
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3_600),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "반복 안 함",
+            repeatInterval: 1,
+            memo: "",
+            importantMarkerRawValue: ImportantMarker.star.rawValue
+        )
+        #expect(event.importantMarker == .star)
+
+        event.importantMarkerRawValue = ImportantMarker.sun.rawValue
+        #expect(event.importantMarker == .sun)
+    }
+
+    @Test("알 수 없는 raw 값은 none으로 처리된다")
+    func unknownRawValueFallsBackToNone() {
+        let event = Event(
+            title: "잘못된 표시",
+            isAllDay: false,
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(3_600),
+            color: "파란색",
+            alarmOption: "없음",
+            alarmTimeIntervalBeforeStart: nil,
+            alarmCustomValue: 1,
+            alarmCustomUnit: "일",
+            repeatUnit: "반복 안 함",
+            repeatInterval: 1,
+            memo: "",
+            importantMarkerRawValue: "unknown"
+        )
+        #expect(event.importantMarker == .none)
+    }
+
+    @Test("외부 캘린더 저장을 선택하면 표시 선택을 보여주지 않는다")
+    func externalCalendarHidesMarkerSelection() {
+        #expect(EventEditorView.shouldShowImportantMarker(for: .local))
+        #expect(!EventEditorView.shouldShowImportantMarker(for: .systemCalendar(calendarIdentifier: "calendar")))
+    }
+
 }
 
 @Suite("D-Day 하루 차이 의심 사례 재현 (Step 6 안정화)")

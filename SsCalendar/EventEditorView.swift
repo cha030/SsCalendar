@@ -124,6 +124,24 @@ private enum EventRepeatUnit: String, CaseIterable, Identifiable {
     }
 }
 
+private extension ImportantMarker {
+    var localizedTitle: LocalizedStringResource {
+        switch self {
+        case .none: "없음"
+        case .star: "별"
+        case .sun: "태양"
+        }
+    }
+
+    var accessibilityTitle: LocalizedStringResource {
+        switch self {
+        case .none: "중요한 일정: 없음"
+        case .star: "중요한 일정: 별"
+        case .sun: "중요한 일정: 태양"
+        }
+    }
+}
+
 /// 반복 종료 방식(Step 5-2 반복 종료일 기능). 외부 EventKit 반복 규칙은 건드리지 않는다 —
 /// SsCalendar 자체 일정에만 적용한다.
 private enum EventRepeatEndOption: String, CaseIterable, Identifiable {
@@ -248,6 +266,7 @@ struct EventEditorView: View {
     /// D-Day(남은 일수) 표시 여부(Step 5-2). 기본값 OFF. startDate를 기준으로 계산하므로
     /// 시작 날짜가 바뀌면 미리보기도 같이 바뀐다(아래 dDayPreviewText).
     @State private var isDDayEnabled = false
+    @State private var importantMarker: ImportantMarker = .none
     @State private var saveErrorMessage: String?
     @State private var isPresentingDeleteConfirmation = false
     @State private var isSaving = false
@@ -373,6 +392,7 @@ struct EventEditorView: View {
         )
         _notes = State(initialValue: existingException?.overrideMemo ?? event?.memo ?? "")
         _isDDayEnabled = State(initialValue: event?.isDDayEnabled ?? false)
+        _importantMarker = State(initialValue: event?.importantMarker ?? .none)
 
         let systemCalendar = SystemCalendarService.shared
         writableCalendarGroups = event == nil
@@ -385,8 +405,12 @@ struct EventEditorView: View {
     }
 
     private var isSavingToSystemCalendar: Bool {
-        if case .systemCalendar = saveDestination { return true }
-        return false
+        !Self.shouldShowImportantMarker(for: saveDestination)
+    }
+
+    static func shouldShowImportantMarker(for saveDestination: EventSaveDestination) -> Bool {
+        if case .systemCalendar = saveDestination { return false }
+        return true
     }
 
     var body: some View {
@@ -484,6 +508,29 @@ struct EventEditorView: View {
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            if !isSavingToSystemCalendar {
+                Section {
+                    if isEditingSingleOccurrenceOfRepeatingSeries {
+                        LabeledContent("표시") {
+                            Text(importantMarker.localizedTitle)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Picker("표시", selection: $importantMarker) {
+                            ForEach(ImportantMarker.allCases) { marker in
+                                Text(marker.localizedTitle)
+                                    .tag(marker)
+                                    .accessibilityLabel(Text(marker.accessibilityTitle))
+                            }
+                        }
+                    }
+                } footer: {
+                    if isEditingSingleOccurrenceOfRepeatingSeries {
+                        Text("표시는 \"전체 반복 일정\"에서만 바꿀 수 있어요")
                     }
                 }
             }
@@ -939,6 +986,7 @@ struct EventEditorView: View {
                 repeatInterval: repeatSetting.interval,
                 memo: notes,
                 isDDayEnabled: isDDayEnabled,
+                importantMarkerRawValue: importantMarker.rawValue,
                 repeatEndDate: effectiveRepeatEndDate
             )
             modelContext.insert(newEvent)
@@ -1020,6 +1068,7 @@ struct EventEditorView: View {
         event.repeatInterval = repeatSetting.interval
         event.memo = notes
         event.isDDayEnabled = isDDayEnabled
+        event.importantMarkerRawValue = importantMarker.rawValue
         event.repeatEndDate = effectiveRepeatEndDate
 
         RecurringSeriesExceptionUpdater.apply(

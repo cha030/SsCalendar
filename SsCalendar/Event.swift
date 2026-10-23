@@ -1,6 +1,14 @@
 import Foundation
 import SwiftData
 
+enum ImportantMarker: String, CaseIterable, Identifiable {
+    case none
+    case star
+    case sun
+
+    var id: Self { self }
+}
+
 @Model
 final class Event {
     @Attribute(.unique) var id: UUID
@@ -21,6 +29,7 @@ final class Event {
     /// 경량 마이그레이션으로 안전하게 이 속성을 얻는다(추가 마이그레이션 계획 불필요).
     /// 항상 startDate를 기준으로 계산하며, 지난 일정이어도 이 값을 임의로 끄지 않는다.
     var isDDayEnabled: Bool = false
+    var importantMarkerRawValue: String = ImportantMarker.none.rawValue
     /// 반복 종료 날짜(포함). nil이면 "종료 안 함"(기존 동작과 동일, 무기한 반복). 옵셔널이라
     /// 기존 저장 데이터는 자동으로 nil을 얻어 SwiftData 경량 마이그레이션으로 안전하다 — 기존
     /// 반복 일정은 전부 "종료 안 함" 상태를 그대로 유지한다. 반복하지 않는 일정에는 의미 없다.
@@ -42,6 +51,7 @@ final class Event {
         memo: String,
         createdAt: Date = Date(),
         isDDayEnabled: Bool = false,
+        importantMarkerRawValue: String = ImportantMarker.none.rawValue,
         repeatEndDate: Date? = nil
     ) {
         self.id = id
@@ -59,7 +69,12 @@ final class Event {
         self.memo = memo
         self.createdAt = createdAt
         self.isDDayEnabled = isDDayEnabled
+        self.importantMarkerRawValue = importantMarkerRawValue
         self.repeatEndDate = repeatEndDate
+    }
+
+    var importantMarker: ImportantMarker {
+        ImportantMarker(rawValue: importantMarkerRawValue) ?? .none
     }
 }
 
