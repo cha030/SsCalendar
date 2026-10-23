@@ -3587,25 +3587,36 @@ struct CalendarWidgetMarkerMetricsTests {
         #expect(sizes[3] <= 80)
     }
 
-    @Test("도장 선 굵기는 0.16배·앱 최소 2.5pt·위젯 상한 3pt와 2pt를 따른다")
-    func markerLineWidthUsesSharedRatioAndCaps() {
-        let ratioGeometry = ImportantMarkerStampMetrics.geometry(forFontSize: 20, minimumLineWidth: 0)
-        let appMinimumGeometry = ImportantMarkerStampMetrics.geometry(forFontSize: 10)
+    @Test("앱은 기존 굵기를 유지하고 위젯 단계 0·1·2는 최소 2.5pt로 굵어진다")
+    func widgetLineWidthUsesMinimumWithoutChangingApp() {
+        let appGeometry = ImportantMarkerStampMetrics.geometry(forFontSize: 20)
+        let widgetFontSizes: [CGFloat] = [12, 15.6, 20.4]
+        let widgetLineWidths = widgetFontSizes.map {
+            ImportantMarkerStampMetrics.geometry(
+                forFontSize: $0,
+                minimumLineWidth: 2.5
+            ).lineWidth
+        }
+
+        #expect(abs(appGeometry.lineWidth - 3.2) < 0.001)
+        #expect(widgetLineWidths.allSatisfy { $0 >= 2.5 })
+    }
+
+    @Test("위젯 단계 3은 3pt, 중간 크기는 2pt 상한을 지킨다")
+    func widgetLineWidthCapsOverrideMinimum() {
         let largestWidgetGeometry = ImportantMarkerStampMetrics.geometry(
             forFontSize: 24,
             maxLineWidth: 3,
-            minimumLineWidth: 0
+            minimumLineWidth: 2.5
         )
         let mediumWidgetGeometry = ImportantMarkerStampMetrics.geometry(
             forFontSize: 10,
             maxLineWidth: 2,
-            minimumLineWidth: 0
+            minimumLineWidth: 2.5
         )
 
-        #expect(abs(ratioGeometry.lineWidth - 3.2) < 0.001)
-        #expect(appMinimumGeometry.lineWidth >= 2.5)
-        #expect(largestWidgetGeometry.lineWidth <= 3)
-        #expect(mediumWidgetGeometry.lineWidth <= 2)
+        #expect(largestWidgetGeometry.lineWidth == 3)
+        #expect(mediumWidgetGeometry.lineWidth == 2)
     }
 
     @Test("윤일 매년 반복 일정의 표시는 윤년에만 나온다")

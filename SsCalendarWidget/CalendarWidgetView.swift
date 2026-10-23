@@ -5,6 +5,16 @@ import WidgetKit
 struct CalendarWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: CalendarWidgetEntry
+    private let previewFamily: WidgetFamily?
+
+    init(entry: CalendarWidgetEntry, previewFamily: WidgetFamily? = nil) {
+        self.entry = entry
+        self.previewFamily = previewFamily
+    }
+
+    private var resolvedFamily: WidgetFamily {
+        previewFamily ?? family
+    }
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
     private var weekdaySymbols: [String] {
@@ -30,7 +40,7 @@ struct CalendarWidgetView: View {
                     (geometry.size.height - CGFloat(weekCount - 1) * rowSpacing)
                     / CGFloat(weekCount)
 
-                if family == .systemMedium {
+                if resolvedFamily == .systemMedium {
                     mediumGrid(rowHeight: rowHeight)
                 } else {
                     VStack(spacing: rowSpacing) {
@@ -39,7 +49,7 @@ struct CalendarWidgetView: View {
                                 week: week,
                                 occurrences: entry.occurrences,
                                 selectedDate: entry.selectedDate,
-                                family: family,
+                                family: resolvedFamily,
                                 weekCount: weekCount,
                                 textSizeLevel: textSizeLevel
                             )
@@ -169,32 +179,32 @@ struct CalendarWidgetView: View {
     }
 
     private var isExtraLargePortrait: Bool {
-        family == .systemExtraLargePortrait
+        resolvedFamily == .systemExtraLargePortrait
     }
 
     private var sectionSpacing: CGFloat {
         if isExtraLargePortrait { return 13 }
-        return family == .systemLarge ? 9 : 4
+        return resolvedFamily == .systemLarge ? 9 : 4
     }
 
     private var calendarRowSpacing: CGFloat {
         if isExtraLargePortrait { return 10 }
-        return family == .systemLarge ? 6 : 1
+        return resolvedFamily == .systemLarge ? 6 : 1
     }
 
     private var contentPadding: CGFloat {
         if isExtraLargePortrait { return 14 }
-        return family == .systemLarge ? 11 : 10
+        return resolvedFamily == .systemLarge ? 11 : 10
     }
 
     private var monthTitleFont: Font {
         if isExtraLargePortrait { return .title3.weight(.semibold) }
-        return family == .systemLarge ? .headline : .subheadline.weight(.semibold)
+        return resolvedFamily == .systemLarge ? .headline : .subheadline.weight(.semibold)
     }
 
     private var weekdayFontSize: CGFloat {
         if isExtraLargePortrait { return 12 }
-        return family == .systemLarge ? 11 : 9
+        return resolvedFamily == .systemLarge ? 11 : 9
     }
 
     private var todayButtonFont: Font {
@@ -216,7 +226,7 @@ struct CalendarWidgetView: View {
 
     private var monthTitleWidth: CGFloat {
         if isExtraLargePortrait { return 92 }
-        return family == .systemLarge ? 84 : 76
+        return resolvedFamily == .systemLarge ? 84 : 76
     }
 
     private var navigationSpacing: CGFloat {
@@ -482,15 +492,18 @@ private struct CalendarWidgetExpandedDayView: View {
                     .fill(Color.blue)
                     .frame(width: metrics.dateBadgeSize, height: metrics.dateBadgeSize)
             }
-
+        }
+        .frame(width: metrics.dateBadgeSize, height: metrics.dateBadgeSize)
+        .overlay {
             ImportantMarkerStamp(
                 marker: day.importantMarker,
                 fontSize: metrics.dateFontSize,
                 maxDiameter: metrics.markerDiameterCap,
                 maxLineWidth: metrics.markerLineWidthCap,
-                minimumLineWidth: 0
+                minimumLineWidth: 2.5
             )
-
+        }
+        .overlay {
             Text(String(day.dayNumber))
                 .font(
                     .system(
@@ -633,15 +646,18 @@ private struct CalendarWidgetMediumDayView: View {
                                 .fill(Color.blue)
                                 .frame(width: 17, height: 17)
                         }
-
+                    }
+                    .frame(width: 17, height: 17)
+                    .overlay {
                         ImportantMarkerStamp(
                             marker: day.importantMarker,
                             fontSize: 10,
                             maxDiameter: 25,
                             maxLineWidth: 2,
-                            minimumLineWidth: 0
+                            minimumLineWidth: 2.5
                         )
-
+                    }
+                    .overlay {
                         Text(String(day.dayNumber))
                             .font(
                                 .system(
@@ -1117,6 +1133,11 @@ private func largestLevelPreviewEntry(style: LargestLevelEventStyle) -> Calendar
     SsCalendarWidget()
 } timeline: {
     largestLevelPreviewEntry(style: .dots)
+}
+
+#Preview("단계 3 가장 크게 - 다크") {
+    CalendarWidgetView(entry: largestLevelPreviewEntry(style: .dots), previewFamily: .systemLarge)
+        .environment(\.colorScheme, .dark)
 }
 
 #Preview("단계 3 가장 크게(제목) - 6주 Large", as: .systemLarge) {

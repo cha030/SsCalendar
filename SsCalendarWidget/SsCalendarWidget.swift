@@ -125,7 +125,11 @@ func calendarTextSizePreviewEntry(level: Int) -> CalendarWidgetEntry {
             isToday: calendar.isDate(day, inSameDayAs: busyDay),
             isHoliday: isHoliday,
             holidayTitle: isHoliday ? "광복절" : nil,
-            importantMarker: calendar.isDate(day, inSameDayAs: busyDay) ? .sun : .none,
+            importantMarker: {
+                if components.day == 28 { return .star }
+                if components.day == 29 { return .sun }
+                return calendar.isDate(day, inSameDayAs: busyDay) ? .sun : .none
+            }(),
             events: dayEvents
         )
     }
@@ -168,3 +172,22 @@ func calendarTextSizePreviewEntry(level: Int) -> CalendarWidgetEntry {
     calendarTextSizePreviewEntry(level: 2)
 }
 
+#Preview("중간 크기 - 다크") {
+    CalendarWidgetView(entry: CalendarWidgetCalendar.previewEntry, previewFamily: .systemMedium)
+        .environment(\.colorScheme, .dark)
+}
+
+#Preview("단계 0 보통 - 다크") {
+    CalendarWidgetView(entry: calendarTextSizePreviewEntry(level: 0), previewFamily: .systemLarge)
+        .environment(\.colorScheme, .dark)
+}
+
+#Preview("단계 1 크게 - 다크") {
+    CalendarWidgetView(entry: calendarTextSizePreviewEntry(level: 1), previewFamily: .systemLarge)
+        .environment(\.colorScheme, .dark)
+}
+
+#Preview("단계 2 더 크게 - 다크") {
+    CalendarWidgetView(entry: calendarTextSizePreviewEntry(level: 2), previewFamily: .systemLarge)
+        .environment(\.colorScheme, .dark)
+}
