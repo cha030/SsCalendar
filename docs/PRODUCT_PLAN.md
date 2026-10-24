@@ -1,7 +1,7 @@
 # SsCalendar — Commercial v1.0 Product Plan
 
 > **갱신일:** 2026-10-11
-> **프로젝트:** `SsCalendar` / 제품명 `S's calendaR`
+> **프로젝트:** `SsCalendar` / 제품명 `Ss캘린더`
 > **문서 역할:** 제품의 목표·현재 제공 범위·출시 전 판단 기준을 정리한다. 개발 경과, 실패한 수정 시도, 재현 증거 및 Git 복구 이력의 상세 원문은 [`DEVELOPMENT_STATUS.md`](./DEVELOPMENT_STATUS.md)를 기준으로 한다.
 > **최신 사용자 확인 코드 기준:** `fa68773` (`feat: make external calendar events read-only`). 문서 추가·수정 이후의 Git 상태까지 확인했다는 뜻은 아니다.
 

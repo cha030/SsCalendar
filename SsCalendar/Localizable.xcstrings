@@ -452,12 +452,12 @@
         "ko" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "SsCalendar"
+            "value" : "Ss캘린더"
           }
         }
       }
     },
-    "SsCalendar는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요." : {
+    "Ss캘린더는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -468,7 +468,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "SsCalendar는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요."
+            "value" : "Ss캘린더는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요."
           }
         }
       }
@@ -659,7 +659,7 @@
         }
       }
     },
-    "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. %@" : {
+    "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 Ss캘린더에 저장하도록 선택했습니다. %@" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
@@ -671,12 +671,12 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 SsCalendar에 저장하도록 선택했습니다. %@"
+            "value" : "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 Ss캘린더에 저장하도록 선택했습니다. %@"
           }
         }
       }
     },
-    "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 SsCalendar에 저장됩니다. %@" : {
+    "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 Ss캘린더에 저장됩니다. %@" : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
@@ -688,7 +688,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 SsCalendar에 저장됩니다. %@"
+            "value" : "기본 저장 위치로 설정한 캘린더를 사용할 수 없어 새 일정은 Ss캘린더에 저장됩니다. %@"
           }
         }
       }
@@ -1282,7 +1282,7 @@
         }
       }
     },
-    "새 일정은 SsCalendar에 저장됩니다. 기존 일정의 저장 위치는 변경되지 않습니다." : {
+    "새 일정은 Ss캘린더에 저장됩니다. 기존 일정의 저장 위치는 변경되지 않습니다." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {

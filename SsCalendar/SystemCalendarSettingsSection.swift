@@ -96,9 +96,9 @@ struct SystemCalendarSettingsSection: View {
 
     @ViewBuilder
     private var defaultSaveDestinationSection: some View {
-        LabeledContent("기본 저장 위치", value: "SsCalendar")
+        LabeledContent("기본 저장 위치", value: String(localized: "SsCalendar"))
 
-        Text("새 일정은 SsCalendar에 저장됩니다. 기존 일정의 저장 위치는 변경되지 않습니다.")
+        Text("새 일정은 Ss캘린더에 저장됩니다. 기존 일정의 저장 위치는 변경되지 않습니다.")
             .font(.footnote)
             .foregroundStyle(.secondary)
     }

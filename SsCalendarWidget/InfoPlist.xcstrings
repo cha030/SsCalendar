@@ -13,7 +13,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "SsCalendar"
+            "value" : "Ss캘린더 위젯"
           }
         }
       }
@@ -30,7 +30,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "SsCalendar"
+            "value" : "Ss캘린더"
           }
         }
       }
@@ -47,7 +47,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "© SsCalendar"
+            "value" : "© Ss캘린더"
           }
         }
       }

@@ -15,7 +15,7 @@ struct SystemCalendarSelectionView: View {
 
         Form {
             Section {
-                Text("SsCalendar는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요.")
+                Text("Ss캘린더는 공휴일을 별도로 표시합니다. 공휴일이 중복되면 목록에서 해당 공휴일 캘린더를 꺼주세요.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
