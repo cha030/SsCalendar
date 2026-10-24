@@ -6,14 +6,14 @@ import SwiftData
 enum SharedModelContainer {
     // 불변 상수라 격리할 상태가 없다. HolidayCountry.settingsStore처럼 이 타입의 MainActor 격리를
     // 공유하지 않는(예: 위젯 타깃의 기본 격리가 nonisolated인) 코드에서도 안전하게 참조할 수 있어야 한다.
-    nonisolated static let appGroupIdentifier = "group.sscalendar"
+    nonisolated static let appGroupIdentifier = "group.com.chachachacha00300.sscalendar"
     static let storeRelativePath =
         "Library/Application Support/SwiftData/SsCalendar.store"
 
     private static let migrationMarkerKey =
         "sharedSwiftDataMigrationCompleted"
     private static let logger = Logger(
-        subsystem: "group.sscalendar",
+        subsystem: "group.com.chachachacha00300.sscalendar",
         category: "SharedModelContainer"
     )
 

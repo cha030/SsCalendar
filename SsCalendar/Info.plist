@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>HOLIDAY_API_KEY</key>
-	<string>$(HOLIDAY_API_KEY)</string>
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
@@ -20,5 +18,7 @@
 			</array>
 		</dict>
 	</array>
+	<key>HOLIDAY_API_KEY</key>
+	<string>$(HOLIDAY_API_KEY)</string>
 </dict>
 </plist>

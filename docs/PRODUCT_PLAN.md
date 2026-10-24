@@ -157,7 +157,7 @@
 - 기존 기능을 바꿀 때 앱, 위젯, SwiftData, App Group, 반복 일정·알림·D-Day에 대한 영향부터 확인한다.
 - **자동 테스트 통과와 실기기 UI/IME 검증을 구분**한다.
 - Git 명령은 사용자가 직접 실행한다. Codex·Claude 등 에이전트에는 조회를 포함한 모든 Git 명령 실행을 금지한다.
-- `SsCalendarWidgetExtension.entitlements`는 위젯 `CODE_SIGN_ENTITLEMENTS`에 연결되어 있으며 앱·위젯 모두 `group.sscalendar`를 사용한다는 점검 결과가 있다. **삭제하지 않는다.**
+- `SsCalendarWidgetExtension.entitlements`는 위젯 `CODE_SIGN_ENTITLEMENTS`에 연결되어 있으며 앱·위젯 모두 `group.com.chachachacha00300.sscalendar`를 사용한다는 점검 결과가 있다. **삭제하지 않는다.**
 - 본 문서는 제품 정책과 범위의 기준이며, 기술적 문제의 상세 분석과 실패 시도 기록은 [`docs/DEVELOPMENT_STATUS.md`](./DEVELOPMENT_STATUS.md)에 둔다.
 - 본 문서를 갱신할 때 구현 완료, 실기기 검증 완료, 검토 중, 보류, 실패를 혼동하지 않는다.
 
